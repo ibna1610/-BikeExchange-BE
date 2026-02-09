@@ -24,7 +24,7 @@ public class TransactionController {
         try {
             Transaction transaction = transactionService.createTransaction(bikeId, buyerId);
             return ResponseEntity.status(HttpStatus.CREATED).body(transaction);
-        } catch (RuntimeException | IllegalArgumentException e) {
+        } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
     }
@@ -61,7 +61,7 @@ public class TransactionController {
         try {
             Transaction transaction = transactionService.acceptTransaction(transactionId);
             return ResponseEntity.ok(transaction);
-        } catch (RuntimeException | IllegalArgumentException e) {
+        } catch (RuntimeException e) {
             return ResponseEntity.badRequest().build();
         }
     }
@@ -91,7 +91,7 @@ public class TransactionController {
         try {
             Transaction transaction = transactionService.cancelTransaction(transactionId);
             return ResponseEntity.ok(transaction);
-        } catch (RuntimeException | IllegalArgumentException e) {
+        } catch (RuntimeException e) {
             return ResponseEntity.badRequest().build();
         }
     }
