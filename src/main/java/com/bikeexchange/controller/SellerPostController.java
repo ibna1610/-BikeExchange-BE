@@ -11,6 +11,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -32,16 +33,16 @@ public class SellerPostController {
     private PostService postService;
 
     @GetMapping
-    @Operation(summary = "List posts", description = "List posts with optional sellerId and status filters.")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "List posts", description = "List posts for the authenticated seller.")
     public ResponseEntity<?> list(
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser,
-            @Parameter(description = "Seller id to filter (optional)", example = "1") @RequestParam(name = "sellerId", required = false) Long sellerIdParam,
-            @Parameter(description = "Filter by statuses (repeat or comma-separated). Example: status=ACTIVE&status=VERIFIED", example = "ACTIVE") @RequestParam(name = "status", required = false) java.util.List<String> statusParams,
+            @Parameter(description = "Filter by statuses (repeat or comma-separated). Example: status=ACTIVE&status=VERIFIED", example = "ACTIVE") @RequestParam(required = false) java.util.List<String> status,
             @Parameter(description = "Page number (0-indexed)", example = "0") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Number of items per page", example = "20") @RequestParam(defaultValue = "20") int size) {
-        Long sellerId = currentUser != null ? currentUser.getId() : sellerIdParam;
+        Long sellerId = currentUser.getId();
         Pageable pageable = PageRequest.of(page, size);
-        Page<Post> result = postService.listPosts(sellerId, statusParams, pageable);
+        Page<Post> result = postService.listPosts(sellerId, status, pageable);
 
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
@@ -50,15 +51,12 @@ public class SellerPostController {
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Get seller post detail", description = "Fetch details of a post owned by the seller.")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Get seller post detail", description = "Fetch details of a post owned by the authenticated seller.")
     public ResponseEntity<?> getOne(
             @Parameter(description = "Post id", example = "10") @PathVariable Long id,
-            @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser,
-            @Parameter(description = "Seller id when unauthenticated", example = "1") @RequestParam(name = "sellerId", required = false) Long sellerIdParam) {
-        Long sellerId = currentUser != null ? currentUser.getId() : sellerIdParam;
-        if (sellerId == null) {
-            return ResponseEntity.badRequest().body(Map.of("success", false, "message", "sellerId is required when not logged in"));
-        }
+            @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser) {
+        Long sellerId = currentUser.getId();
         Post post = postService.getSellerPost(id, sellerId);
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
@@ -67,15 +65,12 @@ public class SellerPostController {
     }
 
     @PostMapping
-    @Operation(summary = "Create seller post", description = "Create a post from an existing bike owned by the seller.")
+    @PreAuthorize("hasRole('SELLER')")
+    @Operation(summary = "Create seller post", description = "Create a post from an existing bike owned by the seller. Must have SELLER role.")
     public ResponseEntity<?> create(
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser,
-            @Parameter(description = "Seller id when unauthenticated", example = "1") @RequestParam(name = "sellerId", required = false) Long sellerIdParam,
             @RequestBody SellerPostCreateRequest request) {
-        Long sellerId = currentUser != null ? currentUser.getId() : sellerIdParam;
-        if (sellerId == null) {
-            return ResponseEntity.badRequest().body(Map.of("success", false, "message", "sellerId is required when not logged in"));
-        }
+        Long sellerId = currentUser.getId();
         Post post = postService.createPost(sellerId, request);
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
@@ -85,16 +80,13 @@ public class SellerPostController {
     }
 
     @PutMapping("/{id}")
-    @Operation(summary = "Update seller post", description = "Update a post owned by the seller.")
+    @PreAuthorize("hasRole('SELLER')")
+    @Operation(summary = "Update seller post", description = "Update a post owned by the authenticated seller.")
     public ResponseEntity<?> update(
             @Parameter(description = "Post id", example = "10") @PathVariable Long id,
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser,
-            @Parameter(description = "Seller id when unauthenticated", example = "1") @RequestParam(name = "sellerId", required = false) Long sellerIdParam,
             @RequestBody SellerPostUpdateRequest request) {
-        Long sellerId = currentUser != null ? currentUser.getId() : sellerIdParam;
-        if (sellerId == null) {
-            return ResponseEntity.badRequest().body(Map.of("success", false, "message", "sellerId is required when not logged in"));
-        }
+        Long sellerId = currentUser.getId();
         Post post = postService.updatePost(id, sellerId, request);
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
@@ -104,15 +96,12 @@ public class SellerPostController {
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "Delete seller post", description = "Cancel a post owned by the seller.")
+    @PreAuthorize("hasRole('SELLER')")
+    @Operation(summary = "Delete seller post", description = "Cancel a post owned by the authenticated seller.")
     public ResponseEntity<?> delete(
             @Parameter(description = "Post id", example = "10") @PathVariable Long id,
-            @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser,
-            @Parameter(description = "Seller id when unauthenticated", example = "1") @RequestParam(name = "sellerId", required = false) Long sellerIdParam) {
-        Long sellerId = currentUser != null ? currentUser.getId() : sellerIdParam;
-        if (sellerId == null) {
-            return ResponseEntity.badRequest().body(Map.of("success", false, "message", "sellerId is required when not logged in"));
-        }
+            @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser) {
+        Long sellerId = currentUser.getId();
         postService.deletePost(id, sellerId);
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);

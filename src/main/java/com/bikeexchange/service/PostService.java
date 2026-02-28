@@ -171,7 +171,9 @@ public class PostService {
         historyService.log("post", saved.getId(), "created", seller.getId(), null);
 
         if (listingType == Post.ListingType.VERIFIED) {
-            inspectionService.requestInspection(sellerId, bike.getId());
+            com.bikeexchange.dto.request.InspectionRequestDto inspectionDto = new com.bikeexchange.dto.request.InspectionRequestDto();
+            inspectionDto.setBikeId(bike.getId());
+            inspectionService.requestInspection(sellerId, inspectionDto);
         }
         return saved;
     }
@@ -188,6 +190,15 @@ public class PostService {
         Post post = getSellerPost(postId, sellerId);
         post.setStatus(Post.PostStatus.CANCELLED);
         postRepository.save(post);
+
+        // Also revert the bike status to DRAFT so it doesn't appear as ACTIVE/VERIFIED
+        // in search without an active post
+        Bike bike = post.getBike();
+        if (bike.getStatus() != Bike.BikeStatus.SOLD && bike.getStatus() != Bike.BikeStatus.RESERVED) {
+            bike.setStatus(Bike.BikeStatus.DRAFT);
+            bikeRepository.save(bike);
+        }
+
         historyService.log("post", post.getId(), "cancelled", sellerId, null);
     }
 
