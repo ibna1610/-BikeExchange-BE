@@ -31,7 +31,7 @@ public class BikeController {
     private BikeService bikeService;
 
     @GetMapping
-    @Operation(summary = "Search and Filter Bikes", description = "Retrieve a paginated list of bikes, optionally filtered by keyword")
+    @Operation(summary = "Search and Filter Bikes", description = "Retrieve a paginated list of bikes. Filters: keyword, category_id, status (repeat param or comma-separated).")
     public ResponseEntity<?> getListings(
             @Parameter(description = "Search keyword for title, brand, or model", example = "Giant") @RequestParam(required = false) String keyword,
             @Parameter(description = "Filter by category ID", example = "1") @RequestParam(name = "category_id", required = false) Long categoryId,

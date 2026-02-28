@@ -12,6 +12,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
+/**
+ * Inspection Management Service
+ * - Request inspections (escrow points, status transitions)
+ * - Assign inspectors
+ * - Submit reports with media
+ * - Approve reports (release commission, mark bike VERIFIED)
+ * - Audit logging for key actions
+ */
 @Service
 public class InspectionService {
 
@@ -40,11 +48,18 @@ public class InspectionService {
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public InspectionRequest requestInspection(Long requesterId, Long listingId) {
-        Bike listing = bikeRepository.findByIdForUpdate(listingId)
-                .orElseThrow(() -> new ResourceNotFoundException("Listing missing"));
+        if (requesterId == null) {
+            throw new IllegalArgumentException("Requester ID is required");
+        }
 
-        if (!listing.getSeller().getId().equals(requesterId)) {
-            throw new IllegalArgumentException("Only seller can request inspection for their listing");
+        Bike listing = bikeRepository.findByIdForUpdate(listingId)
+                .orElseThrow(() -> new ResourceNotFoundException("Bike listing not found with ID: " + listingId));
+
+        if (listing.getSeller() == null || !listing.getSeller().getId().equals(requesterId)) {
+            Long ownerId = (listing.getSeller() != null) ? listing.getSeller().getId() : null;
+            throw new IllegalArgumentException(String.format(
+                    "Only the seller (ID: %s) can request inspection for this listing. Provided requester ID: %s",
+                    ownerId, requesterId));
         }
 
         UserWallet wallet = walletRepository.findByUserIdForUpdate(requesterId)
@@ -123,6 +138,21 @@ public class InspectionService {
         report.setFrameCondition(request.getFrameCondition());
         report.setGroupsetCondition(request.getGroupsetCondition());
         report.setWheelCondition(request.getWheelCondition());
+
+        // Attach medias if present
+        if (request.getMedias() != null && !request.getMedias().isEmpty()) {
+            java.util.List<InspectionReportMedia> medias = new java.util.ArrayList<>();
+            for (int i = 0; i < request.getMedias().size(); i++) {
+                var mr = request.getMedias().get(i);
+                InspectionReportMedia m = new InspectionReportMedia();
+                m.setReport(report);
+                m.setUrl(mr.getUrl());
+                m.setType(InspectionReportMedia.MediaType.valueOf(mr.getType().toUpperCase()));
+                m.setSortOrder(mr.getSortOrder() != null ? mr.getSortOrder() : i);
+                medias.add(m);
+            }
+            report.setMedias(medias);
+        }
 
         InspectionReport saved = reportRepository.save(report);
         historyService.log("inspection", inspection.getId(), "report_submitted", inspectorId, null);
