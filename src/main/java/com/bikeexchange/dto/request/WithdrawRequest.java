@@ -5,5 +5,7 @@ import lombok.Data;
 @Data
 public class WithdrawRequest {
     private Long amount;
-    private String bankAccountConfig;
+    private String bankAccountName;
+    private String bankAccountNumber;
+    private String bankName;
 }

@@ -36,7 +36,8 @@ public class WalletController {
             @RequestParam(name = "userId", required = false) Long userIdParam) {
         Long userId = currentUser != null ? currentUser.getId() : userIdParam;
         if (userId == null) {
-            return ResponseEntity.badRequest().body(Map.of("success", false, "message", "userId is required when not logged in"));
+            return ResponseEntity.badRequest()
+                    .body(Map.of("success", false, "message", "userId is required when not logged in"));
         }
         UserWallet wallet = walletService.getWallet(userId);
 
@@ -51,14 +52,14 @@ public class WalletController {
     public ResponseEntity<?> getTransactions(
             @AuthenticationPrincipal UserPrincipal currentUser,
             @RequestParam(name = "userId", required = false) Long userIdParam,
-            @Parameter(description = "Filter by transaction types: DEPOSIT, WITHDRAW, SPEND, EARN, ESCROW_HOLD, ESCROW_RELEASE, COMMISSION", example = "DEPOSIT")
-            @RequestParam(name = "type", required = false) java.util.List<String> typeParams) {
+            @Parameter(description = "Filter by transaction types: DEPOSIT, WITHDRAW, SPEND, EARN, ESCROW_HOLD, ESCROW_RELEASE, COMMISSION", example = "DEPOSIT") @RequestParam(name = "type", required = false) java.util.List<String> typeParams) {
         Long userId = currentUser != null ? currentUser.getId() : userIdParam;
         if (userId == null) {
-            return ResponseEntity.badRequest().body(Map.of("success", false, "message", "userId is required when not logged in"));
+            return ResponseEntity.badRequest()
+                    .body(Map.of("success", false, "message", "userId is required when not logged in"));
         }
         List<PointTransaction> transactions = walletService.getTransactions(userId, typeParams);
-        java.util.List<PointTransactionDto> dtos = transactions.stream().map(PointTransactionDto::from).toList();
+        List<PointTransactionDto> dtos = transactions.stream().map(PointTransactionDto::from).toList();
         Map<String, Object> summary = new HashMap<>();
         summary.put("totalCount", transactions.size());
         long totalAmount = transactions.stream().mapToLong(t -> t.getAmount() != null ? t.getAmount() : 0L).sum();
@@ -101,7 +102,7 @@ public class WalletController {
     public ResponseEntity<?> requestWithdraw(@AuthenticationPrincipal UserPrincipal currentUser,
             @RequestBody WithdrawRequest request) {
         UserWallet wallet = walletService.requestWithdraw(currentUser.getId(), request.getAmount(),
-                request.getBankAccountConfig());
+                request.getBankName(), request.getBankAccountName(), request.getBankAccountNumber());
 
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);

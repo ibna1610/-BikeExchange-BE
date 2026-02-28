@@ -75,7 +75,8 @@ public class WalletService {
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
-    public UserWallet requestWithdraw(Long userId, Long amount, String bankDetails) {
+    public UserWallet requestWithdraw(Long userId, Long amount, String bankName, String bankAccountName,
+            String bankAccountNumber) {
         if (amount <= 0)
             throw new IllegalArgumentException("Withdraw amount must be > 0");
 
@@ -95,9 +96,61 @@ public class WalletService {
         tx.setAmount(amount);
         tx.setType(PointTransaction.TransactionType.WITHDRAW);
         tx.setStatus(PointTransaction.TransactionStatus.PENDING); // Admin must approve
-        tx.setReferenceId("Bank: " + bankDetails);
+        tx.setReferenceId(String.format("Withdrawal: %s | %s | %s", bankName, bankAccountName, bankAccountNumber));
         pointTxRepo.save(tx);
 
         return wallet;
+    }
+
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public void approveWithdrawal(Long transactionId) {
+        PointTransaction tx = pointTxRepo.findById(transactionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Transaction not found"));
+
+        if (tx.getType() != PointTransaction.TransactionType.WITHDRAW
+                || tx.getStatus() != PointTransaction.TransactionStatus.PENDING) {
+            throw new IllegalArgumentException("Invalid transaction for approval");
+        }
+
+        UserWallet wallet = walletRepository.findByUserIdForUpdate(tx.getUser().getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Wallet not found"));
+
+        tx.setStatus(PointTransaction.TransactionStatus.SUCCESS);
+        pointTxRepo.save(tx);
+
+        wallet.setFrozenPoints(wallet.getFrozenPoints() - tx.getAmount());
+        // Available points were already deducted at request time
+        walletRepository.save(wallet);
+    }
+
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public void rejectWithdrawal(Long transactionId, String reason) {
+        PointTransaction tx = pointTxRepo.findById(transactionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Transaction not found"));
+
+        if (tx.getType() != PointTransaction.TransactionType.WITHDRAW
+                || tx.getStatus() != PointTransaction.TransactionStatus.PENDING) {
+            throw new IllegalArgumentException("Invalid transaction for rejection");
+        }
+
+        UserWallet wallet = walletRepository.findByUserIdForUpdate(tx.getUser().getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Wallet not found"));
+
+        tx.setStatus(PointTransaction.TransactionStatus.FAILED);
+        tx.setRemarks(reason);
+        pointTxRepo.save(tx);
+
+        // Refund the points
+        wallet.setFrozenPoints(wallet.getFrozenPoints() - tx.getAmount());
+        wallet.setAvailablePoints(wallet.getAvailablePoints() + tx.getAmount());
+        walletRepository.save(wallet);
+    }
+
+    public List<PointTransaction> getWithdrawals(java.util.List<PointTransaction.TransactionStatus> statuses) {
+        if (statuses == null || statuses.isEmpty()) {
+            return pointTxRepo.findByTypeOrderByCreatedAtDesc(PointTransaction.TransactionType.WITHDRAW);
+        }
+        return pointTxRepo.findByTypeAndStatusInOrderByCreatedAtDesc(PointTransaction.TransactionType.WITHDRAW,
+                statuses);
     }
 }

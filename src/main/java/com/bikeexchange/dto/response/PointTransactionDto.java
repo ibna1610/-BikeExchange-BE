@@ -13,6 +13,9 @@ public class PointTransactionDto {
     private String type;
     private String status;
     private String referenceId;
+    private String remarks;
+    private String userEmail;
+    private String userFullName;
     private LocalDateTime createdAt;
 
     public static PointTransactionDto from(PointTransaction tx) {
@@ -23,6 +26,11 @@ public class PointTransactionDto {
         d.type = tx.getType() != null ? tx.getType().name() : null;
         d.status = tx.getStatus() != null ? tx.getStatus().name() : null;
         d.referenceId = tx.getReferenceId();
+        d.remarks = tx.getRemarks();
+        if (tx.getUser() != null) {
+            d.userEmail = tx.getUser().getEmail();
+            d.userFullName = tx.getUser().getFullName();
+        }
         d.createdAt = tx.getCreatedAt();
         return d;
     }
