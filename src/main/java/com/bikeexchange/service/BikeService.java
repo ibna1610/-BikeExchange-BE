@@ -51,6 +51,39 @@ public class BikeService {
         return bikeRepository.findByCategories_Id(categoryId, pageable);
     }
 
+    public Page<Bike> searchBikesAdvanced(String keyword, Long categoryId, List<String> statusParams, Pageable pageable) {
+        List<Bike.BikeStatus> statuses;
+        if (statusParams != null && !statusParams.isEmpty()) {
+            statuses = statusParams.stream()
+                    .map(s -> {
+                        try {
+                            return Bike.BikeStatus.valueOf(s.trim().toUpperCase());
+                        } catch (IllegalArgumentException ex) {
+                            return null;
+                        }
+                    })
+                    .filter(java.util.Objects::nonNull)
+                    .toList();
+            if (statuses.isEmpty()) {
+                statuses = java.util.Arrays.asList(Bike.BikeStatus.values());
+            }
+        } else {
+            statuses = java.util.Arrays.asList(Bike.BikeStatus.values());
+        }
+
+        if (keyword != null && !keyword.isBlank()) {
+            if (categoryId != null) {
+                return bikeRepository.searchByCategoryKeywordAndStatuses(categoryId, keyword.toLowerCase(), statuses, pageable);
+            }
+            return bikeRepository.searchByKeywordAndStatuses(keyword.toLowerCase(), statuses, pageable);
+        }
+
+        if (categoryId != null) {
+            return bikeRepository.findByCategories_IdAndStatusIn(categoryId, statuses, pageable);
+        }
+        return bikeRepository.findByStatusIn(statuses, pageable);
+    }
+
     public Bike getBikeById(Long id) {
         return bikeRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Bike not found with id: " + id));
