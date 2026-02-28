@@ -20,7 +20,7 @@ public class BikeMedia {
 
     @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "listing_id", nullable = false)
+    @JoinColumn(name = "bike_id", nullable = false)
     private Bike bike;
 
     @Column(nullable = false)

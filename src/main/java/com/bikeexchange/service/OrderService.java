@@ -26,6 +26,9 @@ public class OrderService {
     @Autowired
     private PointTransactionRepository pointTxRepo;
 
+    @Autowired
+    private HistoryService historyService;
+
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public Order createOrder(Long buyerId, Long bikeId, String idempotencyKey) {
         // 1. Check idempotency
@@ -74,7 +77,10 @@ public class OrderService {
         order.setIdempotencyKey(idempotencyKey);
         order.setStatus(Order.OrderStatus.ESCROWED);
 
-        return orderRepository.save(order);
+        Order saved = orderRepository.save(order);
+        historyService.log("order", saved.getId(), "created", buyerId, null);
+        historyService.log("bike", bike.getId(), "reserved", buyerId, null);
+        return saved;
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
@@ -125,6 +131,9 @@ public class OrderService {
         listing.setStatus(Bike.BikeStatus.SOLD);
         bikeRepository.save(listing);
 
-        return orderRepository.save(order);
+        Order saved = orderRepository.save(order);
+        historyService.log("order", saved.getId(), "completed", buyerId, null);
+        historyService.log("bike", listing.getId(), "sold", buyerId, null);
+        return saved;
     }
 }
