@@ -47,3 +47,10 @@ logging:
 app:
   jwtSecret: ${JWT_SECRET:926D96C90030DD58429D2751AC1BDBBC926D96C90030DD58429D2751AC1BDBBC}
   jwtExpirationMs: ${JWT_EXPIRATION_MS:86400000}
+
+vnpay:
+  tmnCode: ${VNP_TMN_CODE:B2H6WZFU}
+  hashSecret: ${VNP_HASH_SECRET:PCC5IVNXNSUTMNJ1BA92NBI1MXB50C2P}
+  payUrl: https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
+  returnUrl: ${VNP_RETURN_URL:http://localhost:8080/api/vnpay/vnpay-payment-return}
+  ipnUrl: ${VNP_IPN_URL:http://localhost:8080/api/vnpay/ipn}

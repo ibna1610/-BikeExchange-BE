@@ -2,6 +2,7 @@ package com.bikeexchange.controller;
 
 import com.bikeexchange.dto.request.DepositRequest;
 import com.bikeexchange.dto.request.WithdrawRequest;
+import com.bikeexchange.dto.response.PointTransactionDto;
 import com.bikeexchange.model.UserWallet;
 import com.bikeexchange.security.UserPrincipal;
 import com.bikeexchange.service.WalletService;
@@ -40,9 +41,11 @@ public class WalletController {
 
     @GetMapping("/transactions")
     public ResponseEntity<?> getTransactions(@AuthenticationPrincipal UserPrincipal currentUser) {
+        java.util.List<PointTransactionDto> dtos = walletService.getTransactions(currentUser.getId())
+                .stream().map(PointTransactionDto::from).toList();
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
-        response.put("data", walletService.getTransactions(currentUser.getId()));
+        response.put("data", dtos);
 
         return ResponseEntity.ok(response);
     }
