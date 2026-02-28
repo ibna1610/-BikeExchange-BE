@@ -31,6 +31,26 @@ public class WalletService {
         return pointTxRepo.findByUserIdOrderByCreatedAtDesc(userId);
     }
 
+    public List<PointTransaction> getTransactions(Long userId, java.util.List<String> typeParams) {
+        if (typeParams == null || typeParams.isEmpty()) {
+            return pointTxRepo.findByUserIdOrderByCreatedAtDesc(userId);
+        }
+        java.util.List<PointTransaction.TransactionType> types = typeParams.stream()
+                .map(s -> {
+                    try {
+                        return PointTransaction.TransactionType.valueOf(s.trim().toUpperCase());
+                    } catch (IllegalArgumentException ex) {
+                        return null;
+                    }
+                })
+                .filter(s -> s != null)
+                .toList();
+        if (types.isEmpty()) {
+            return java.util.List.of();
+        }
+        return pointTxRepo.findByUserIdAndTypeInOrderByCreatedAtDesc(userId, types);
+    }
+
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public UserWallet depositPoints(Long userId, Long amount, String referenceId) {
         if (amount <= 0)
