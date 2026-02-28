@@ -53,7 +53,8 @@ public class BikeService {
         return bikeRepository.findByCategories_Id(categoryId, pageable);
     }
 
-    public Page<Bike> searchBikesAdvanced(String keyword, Long categoryId, List<String> statusParams, Pageable pageable) {
+    public Page<Bike> searchBikesAdvanced(String keyword, Long categoryId, List<String> statusParams,
+            Pageable pageable) {
         List<Bike.BikeStatus> statuses;
         if (statusParams != null && !statusParams.isEmpty()) {
             statuses = statusParams.stream()
@@ -75,7 +76,8 @@ public class BikeService {
 
         if (keyword != null && !keyword.isBlank()) {
             if (categoryId != null) {
-                return bikeRepository.searchByCategoryKeywordAndStatuses(categoryId, keyword.toLowerCase(), statuses, pageable);
+                return bikeRepository.searchByCategoryKeywordAndStatuses(categoryId, keyword.toLowerCase(), statuses,
+                        pageable);
             }
             return bikeRepository.searchByKeywordAndStatuses(keyword.toLowerCase(), statuses, pageable);
         }
@@ -92,7 +94,7 @@ public class BikeService {
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
-    public Bike createListing(Long sellerId, BikeCreateRequest request) {
+    public Bike createBike(Long sellerId, BikeCreateRequest request) {
         User seller = userRepository.findById(sellerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Seller not found"));
 
@@ -149,15 +151,15 @@ public class BikeService {
         return saved;
     }
 
-    public Bike updateListing(Long listingId, Long sellerId, BikeCreateRequest request) {
-        Bike bike = getBikeById(listingId);
+    public Bike updateBike(Long bikeId, Long sellerId, BikeCreateRequest request) {
+        Bike bike = getBikeById(bikeId);
 
         if (!bike.getSeller().getId().equals(sellerId)) {
-            throw new IllegalArgumentException("Only the seller can update this listing");
+            throw new IllegalArgumentException("Only the seller can update this bike");
         }
 
         if (bike.getStatus() == Bike.BikeStatus.RESERVED || bike.getStatus() == Bike.BikeStatus.SOLD) {
-            throw new IllegalStateException("Cannot update a listing that is reserved or sold");
+            throw new IllegalStateException("Cannot update a bike that is reserved or sold");
         }
 
         bike.setTitle(request.getTitle());
@@ -208,15 +210,15 @@ public class BikeService {
         return saved;
     }
 
-    public void deleteListing(Long listingId, Long sellerId) {
-        Bike bike = getBikeById(listingId);
+    public void deleteBike(Long bikeId, Long sellerId) {
+        Bike bike = getBikeById(bikeId);
 
         if (!bike.getSeller().getId().equals(sellerId)) {
-            throw new IllegalArgumentException("Only the seller can delete this listing");
+            throw new IllegalArgumentException("Only the seller can delete this bike");
         }
 
         if (bike.getStatus() == Bike.BikeStatus.RESERVED) {
-            throw new IllegalStateException("Cannot delete a reserved listing");
+            throw new IllegalStateException("Cannot delete a reserved bike");
         }
 
         // Soft delete or just update status to CANCELLED
