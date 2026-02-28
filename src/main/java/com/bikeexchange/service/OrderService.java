@@ -37,8 +37,8 @@ public class OrderService {
         Bike listing = bikeRepository.findByIdForUpdate(listingId)
                 .orElseThrow(() -> new ResourceNotFoundException("Bike missing"));
 
-        if (listing.getStatus() != Bike.BikeStatus.ACTIVE) {
-            throw new ListingNotAvailableException("Listing is not ACTIVE");
+        if (listing.getStatus() != Bike.BikeStatus.ACTIVE && listing.getStatus() != Bike.BikeStatus.VERIFIED) {
+            throw new ListingNotAvailableException("Listing is not ACTIVE or VERIFIED");
         }
 
         // 3. Lock buyer wallet
