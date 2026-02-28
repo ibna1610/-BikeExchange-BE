@@ -12,19 +12,18 @@ jobs:
     runs-on: ubuntu-latest
 
     services:
-      postgres:
-        image: postgres:15-alpine
+      mysql:
+        image: mysql:8.0
         env:
-          POSTGRES_DB: bike_exchange_test
-          POSTGRES_USER: sa
-          POSTGRES_PASSWORD: password
+          MYSQL_DATABASE: bike_exchange_test
+          MYSQL_ROOT_PASSWORD: password
         ports:
-          - 5432:5432
+          - 3306:3306
         options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
       redis:
         image: redis:7-alpine
         ports:
@@ -40,3 +39,11 @@ jobs:
         cache: maven
     - name: Build with Maven
       run: mvn -B package --file pom.xml
+      env:
+        DB_HOST: localhost
+        DB_PORT: 3306
+        DB_NAME: bike_exchange_test
+        DB_USER: root
+        DB_PASSWORD: password
+        REDIS_HOST: localhost
+        REDIS_PORT: 6379

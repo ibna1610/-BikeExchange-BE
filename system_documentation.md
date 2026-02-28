@@ -116,7 +116,18 @@ Hệ thống sử dụng cơ chế **Escrow (Giao dịch đảm bảo)**.
 
 ---
 
-## 6. Luồng Trị an & Lịch sử (Dispute & History)
+## 6. Luồng Chat & Nhắn tin (Chat & Messaging)
+
+Hệ thống hỗ trợ cả REST và WebSocket (STOMP).
+
+*   **Tạo/Lấy hội thoại**: `POST /chat/conversations` (Dùng khi người mua nhấn "Chat với người bán").
+*   **Gửi tin nhắn**: `POST /chat/messages`.
+*   **Danh sách hội thoại**: `GET /chat/conversations`.
+*   **Chi tiết tin nhắn**: `GET /chat/conversations/{conversationId}/messages`.
+
+---
+
+## 7. Luồng Trị an & Lịch sử (Dispute & History)
 
 *   **Khiếu nại (Dispute)**: Nếu có vấn đề sau khi nhận hàng, người mua có thể tạo khiếu nại trước khi nhấn xác nhận.
 *   **Lịch sử (History)**: Mọi thay đổi trạng thái của Xe, Đơn hàng, Kiểm định đều được lưu lại để truy vết.
