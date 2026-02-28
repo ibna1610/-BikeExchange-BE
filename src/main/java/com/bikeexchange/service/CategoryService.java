@@ -32,7 +32,9 @@ public class CategoryService {
     public Optional<Category> update(Long id, Category payload) {
         return categoryRepository.findById(id).map(existing -> {
             existing.setName(payload.getName() != null ? payload.getName() : existing.getName());
-            existing.setDescription(payload.getDescription() != null ? payload.getDescription() : existing.getDescription());
+            existing.setDescription(
+                    payload.getDescription() != null ? payload.getDescription() : existing.getDescription());
+            existing.setImgUrl(payload.getImgUrl() != null ? payload.getImgUrl() : existing.getImgUrl());
             return categoryRepository.save(existing);
         });
     }
