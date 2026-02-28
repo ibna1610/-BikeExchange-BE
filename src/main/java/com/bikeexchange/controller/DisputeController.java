@@ -27,7 +27,6 @@ public class DisputeController {
     private DisputeService disputeService;
 
     @PostMapping("/dispute")
-    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> createDispute(@AuthenticationPrincipal UserPrincipal currentUser,
             @RequestBody DisputeCreateRequest request) {
         Dispute dispute = disputeService.createDispute(currentUser.getId(), request);
@@ -41,7 +40,6 @@ public class DisputeController {
     }
 
     @PostMapping("/admin/dispute/{id}/resolve")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> resolveDispute(@PathVariable Long id,
             @RequestBody DisputeResolveRequest request) {
         Dispute dispute = disputeService.resolveDispute(id, request);

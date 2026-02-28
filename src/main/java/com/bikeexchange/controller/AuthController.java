@@ -6,6 +6,7 @@ import com.bikeexchange.dto.response.JwtAuthResponse;
 import com.bikeexchange.model.User;
 import com.bikeexchange.model.UserWallet;
 import com.bikeexchange.repository.UserRepository;
+import com.bikeexchange.repository.UserWalletRepository;
 import com.bikeexchange.security.JwtTokenProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -15,6 +16,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Collections;
@@ -34,6 +36,9 @@ public class AuthController {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private UserWalletRepository walletRepository;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -60,6 +65,7 @@ public class AuthController {
     }
 
     @PostMapping("/register")
+    @Transactional
     @Operation(summary = "Register New User", description = "Creates a new buyer account on the platform")
     public ResponseEntity<?> registerUser(@RequestBody RegisterRequest signUpRequest) {
         if (userRepository.existsByEmail(signUpRequest.getEmail())) {
@@ -75,26 +81,18 @@ public class AuthController {
         user.setAddress(signUpRequest.getAddress());
         user.setRole(User.UserRole.BUYER);
 
+        User savedUser = userRepository.save(user);
+
+        // Create Wallet for the new user
         UserWallet wallet = new UserWallet();
-        wallet.setUser(user);
+        wallet.setUser(savedUser);
         wallet.setAvailablePoints(0L);
         wallet.setFrozenPoints(0L);
-        // Cascading persist should ideally be done in the service layer but for
-        // AuthController directly saving requires ensuring cascade
-        // We'll just do it in a service normally. Given simplified scope, let's just
-        // save via repo.
-        // Wait, User doesn't have Cascade.ALL on Wallet. We must save User first, then
-        // UserWallet.
-
-        userRepository.save(user);
-
-        // Ideally call WalletRepository.save(wallet) - let's assume we have it or will
-        // add it. To keep AuthController simple, we'll let Wallet creation happen
-        // asynchronously or add it later in WalletService.
+        walletRepository.save(wallet);
 
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
-        response.put("message", "User registered successfully");
+        response.put("message", "User registered successfully with a new wallet");
 
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }

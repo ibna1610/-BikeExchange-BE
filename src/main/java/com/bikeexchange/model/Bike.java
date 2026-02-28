@@ -94,8 +94,12 @@ public class Bike {
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
         views = 0;
-        status = BikeStatus.DRAFT;
-        inspectionStatus = InspectionStatus.NONE;
+        if (status == null) {
+            status = BikeStatus.DRAFT;
+        }
+        if (inspectionStatus == null) {
+            inspectionStatus = InspectionStatus.NONE;
+        }
     }
 
     @PreUpdate

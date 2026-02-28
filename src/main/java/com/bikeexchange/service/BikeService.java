@@ -16,6 +16,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
@@ -42,13 +44,46 @@ public class BikeService {
 
     public Page<Bike> searchBikes(String keyword, Pageable pageable) {
         if (keyword != null && !keyword.isBlank()) {
-            return bikeRepository.searchAvailableBikes(keyword, pageable);
+            return bikeRepository.searchAllStatuses(keyword, pageable);
         }
-        return bikeRepository.findByStatus(Bike.BikeStatus.ACTIVE, pageable);
+        return bikeRepository.findAll(pageable);
     }
 
     public Page<Bike> searchBikesByCategory(Long categoryId, Pageable pageable) {
         return bikeRepository.findByCategories_Id(categoryId, pageable);
+    }
+
+    public Page<Bike> searchBikesAdvanced(String keyword, Long categoryId, List<String> statusParams, Pageable pageable) {
+        List<Bike.BikeStatus> statuses;
+        if (statusParams != null && !statusParams.isEmpty()) {
+            statuses = statusParams.stream()
+                    .map(s -> {
+                        try {
+                            return Bike.BikeStatus.valueOf(s.trim().toUpperCase());
+                        } catch (IllegalArgumentException ex) {
+                            return null;
+                        }
+                    })
+                    .filter(java.util.Objects::nonNull)
+                    .toList();
+            if (statuses.isEmpty()) {
+                statuses = java.util.Arrays.asList(Bike.BikeStatus.values());
+            }
+        } else {
+            statuses = java.util.Arrays.asList(Bike.BikeStatus.values());
+        }
+
+        if (keyword != null && !keyword.isBlank()) {
+            if (categoryId != null) {
+                return bikeRepository.searchByCategoryKeywordAndStatuses(categoryId, keyword.toLowerCase(), statuses, pageable);
+            }
+            return bikeRepository.searchByKeywordAndStatuses(keyword.toLowerCase(), statuses, pageable);
+        }
+
+        if (categoryId != null) {
+            return bikeRepository.findByCategories_IdAndStatusIn(categoryId, statuses, pageable);
+        }
+        return bikeRepository.findByStatusIn(statuses, pageable);
     }
 
     public Bike getBikeById(Long id) {
@@ -56,6 +91,7 @@ public class BikeService {
                 .orElseThrow(() -> new ResourceNotFoundException("Bike not found with id: " + id));
     }
 
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public Bike createListing(Long sellerId, BikeCreateRequest request) {
         User seller = userRepository.findById(sellerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Seller not found"));
@@ -78,7 +114,6 @@ public class BikeService {
         bike.setPricePoints(request.getPricePoints());
         bike.setCondition(request.getCondition());
         bike.setBikeType(request.getBikeType());
-        // Default status
         bike.setStatus(Bike.BikeStatus.DRAFT);
         bike.setInspectionStatus(Bike.InspectionStatus.NONE);
         bike.setCreatedAt(LocalDateTime.now());
@@ -190,4 +225,5 @@ public class BikeService {
         bikeRepository.save(bike);
         historyService.log("bike", bike.getId(), "cancelled", sellerId, null);
     }
+
 }

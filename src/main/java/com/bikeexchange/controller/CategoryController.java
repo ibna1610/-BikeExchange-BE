@@ -1,15 +1,12 @@
 package com.bikeexchange.controller;
 
 import com.bikeexchange.model.Category;
-import com.bikeexchange.model.Bike;
-import com.bikeexchange.repository.CategoryRepository;
-import com.bikeexchange.repository.BikeRepository;
+import com.bikeexchange.service.CategoryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -20,17 +17,14 @@ import java.util.Map;
 public class CategoryController {
 
     @Autowired
-    private CategoryRepository categoryRepository;
-
-    @Autowired
-    private BikeRepository bikeRepository;
+    private CategoryService categoryService;
 
     @PostMapping
     public ResponseEntity<?> create(@RequestBody Category category) {
         if (category.getName() == null || category.getName().isBlank()) {
             return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Category name is required"));
         }
-        Category saved = categoryRepository.save(category);
+        Category saved = categoryService.create(category);
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
         response.put("data", saved);
@@ -41,7 +35,7 @@ public class CategoryController {
     public ResponseEntity<?> list(@RequestParam(defaultValue = "0") int page,
                                   @RequestParam(defaultValue = "20") int size) {
         Pageable pageable = PageRequest.of(page, size);
-        Page<Category> result = categoryRepository.findAll(pageable);
+        Page<Category> result = categoryService.list(pageable);
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
         response.put("data", result);
@@ -49,13 +43,9 @@ public class CategoryController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> update(@PathVariable Long id, @RequestBody Category payload) {
-        return categoryRepository.findById(id)
-                .map(existing -> {
-                    existing.setName(payload.getName() != null ? payload.getName() : existing.getName());
-                    existing.setDescription(payload.getDescription() != null ? payload.getDescription() : existing.getDescription());
-                    Category saved = categoryRepository.save(existing);
+        return categoryService.update(id, payload)
+                .map(saved -> {
                     Map<String, Object> response = new HashMap<>();
                     response.put("success", true);
                     response.put("data", saved);
@@ -65,14 +55,10 @@ public class CategoryController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> delete(@PathVariable Long id) {
-        return categoryRepository.findById(id)
-                .map(existing -> {
-                    categoryRepository.delete(existing);
-                    return ResponseEntity.ok(Map.of("success", true));
-                })
-                .orElseGet(() -> ResponseEntity.notFound().build());
+        boolean ok = categoryService.delete(id);
+        if (ok) return ResponseEntity.ok(Map.of("success", true));
+        return ResponseEntity.notFound().build();
     }
 
     @GetMapping("/{id}/bikes")
@@ -80,7 +66,7 @@ public class CategoryController {
                                                  @RequestParam(defaultValue = "0") int page,
                                                  @RequestParam(defaultValue = "20") int size) {
         Pageable pageable = PageRequest.of(page, size);
-        Page<Bike> result = bikeRepository.findByCategories_Id(id, pageable);
+        Page<com.bikeexchange.dto.response.BikeResponse> result = categoryService.listBikesByCategory(id, pageable);
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
         response.put("data", result);

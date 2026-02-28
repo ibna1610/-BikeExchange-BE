@@ -42,6 +42,9 @@ public class InspectionReport {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
+    @OneToMany(mappedBy = "report", cascade = CascadeType.ALL, orphanRemoval = true)
+    private java.util.List<InspectionReportMedia> medias;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();

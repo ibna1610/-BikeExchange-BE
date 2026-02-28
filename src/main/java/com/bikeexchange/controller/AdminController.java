@@ -24,7 +24,6 @@ public class AdminController {
     private AdminService adminService;
 
     @GetMapping("/dashboard")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> getDashboardMetrics() {
         Map<String, Object> metrics = adminService.getDashboardMetrics();
 

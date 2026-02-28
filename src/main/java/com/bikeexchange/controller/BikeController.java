@@ -31,19 +31,15 @@ public class BikeController {
     private BikeService bikeService;
 
     @GetMapping
-    @Operation(summary = "Search and Filter Bikes", description = "Retrieve a paginated list of bikes, optionally filtered by keyword")
+    @Operation(summary = "Search and Filter Bikes", description = "Retrieve a paginated list of bikes. Filters: keyword, category_id, status (repeat param or comma-separated).")
     public ResponseEntity<?> getListings(
             @Parameter(description = "Search keyword for title, brand, or model", example = "Giant") @RequestParam(required = false) String keyword,
             @Parameter(description = "Filter by category ID", example = "1") @RequestParam(name = "category_id", required = false) Long categoryId,
+            @Parameter(description = "Filter by statuses (repeat param or comma-separated). Example: status=VERIFIED&status=ACTIVE", example = "VERIFIED") @RequestParam(name = "status", required = false) java.util.List<String> statusParams,
             @Parameter(description = "Page number (0-indexed)", example = "0") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Number of items per page", example = "20") @RequestParam(defaultValue = "20") int size) {
         Pageable pageable = PageRequest.of(page, size);
-        Page<Bike> result;
-        if (categoryId != null) {
-            result = bikeService.searchBikesByCategory(categoryId, pageable);
-        } else {
-            result = bikeService.searchBikes(keyword, pageable);
-        }
+        Page<Bike> result = bikeService.searchBikesAdvanced(keyword, categoryId, statusParams, pageable);
 
         Page<com.bikeexchange.dto.response.BikeResponse> dtoPage = result
                 .map(com.bikeexchange.dto.response.BikeResponse::fromEntity);
@@ -80,7 +76,7 @@ public class BikeController {
 
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
-        response.put("message", "Listing created successfully in DRAFT state");
+        response.put("message", "Listing created successfully");
         response.put("data", com.bikeexchange.dto.response.BikeResponse.fromEntity(bike));
         return ResponseEntity.ok(response);
     }
