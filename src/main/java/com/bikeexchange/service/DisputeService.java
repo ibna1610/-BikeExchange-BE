@@ -40,7 +40,7 @@ public class DisputeService {
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
 
         if (!order.getBuyer().getId().equals(reporterId)
-                && !order.getListing().getSeller().getId().equals(reporterId)) {
+                && !order.getBike().getSeller().getId().equals(reporterId)) {
             throw new IllegalArgumentException("Only buyer or seller can open a dispute");
         }
 
@@ -80,7 +80,7 @@ public class DisputeService {
 
         Long amount = order.getAmountPoints();
         User buyer = order.getBuyer();
-        User seller = order.getListing().getSeller();
+        User seller = order.getBike().getSeller();
 
         UserWallet buyerWallet = walletRepository.findByUserIdForUpdate(buyer.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Buyer wallet not found"));
@@ -105,9 +105,9 @@ public class DisputeService {
             order.setStatus(Order.OrderStatus.CANCELLED);
             orderRepository.save(order);
 
-            Bike listing = order.getListing();
-            listing.setStatus(Bike.BikeStatus.ACTIVE); // make available again
-            bikeRepository.save(listing);
+            Bike bike = order.getBike();
+            bike.setStatus(Bike.BikeStatus.ACTIVE); // make available again
+            bikeRepository.save(bike);
 
             dispute.setStatus(Dispute.DisputeStatus.RESOLVED_REFUND);
             dispute.setResolutionNote(request.getResolutionNote());
@@ -134,9 +134,9 @@ public class DisputeService {
             order.setStatus(Order.OrderStatus.COMPLETED);
             orderRepository.save(order);
 
-            Bike listing = order.getListing();
-            listing.setStatus(Bike.BikeStatus.SOLD);
-            bikeRepository.save(listing);
+            Bike bike = order.getBike();
+            bike.setStatus(Bike.BikeStatus.SOLD);
+            bikeRepository.save(bike);
 
             dispute.setStatus(Dispute.DisputeStatus.RESOLVED_RELEASE);
             dispute.setResolutionNote(request.getResolutionNote());

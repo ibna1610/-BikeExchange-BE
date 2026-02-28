@@ -27,40 +27,40 @@ public class OrderService {
     private PointTransactionRepository pointTxRepo;
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
-    public Order createOrder(Long buyerId, Long listingId, String idempotencyKey) {
+    public Order createOrder(Long buyerId, Long bikeId, String idempotencyKey) {
         // 1. Check idempotency
         if (orderRepository.existsByIdempotencyKey(idempotencyKey)) {
             throw new IllegalArgumentException("Order with this idempotency key already exists in progress");
         }
 
-        // 2. Lock listing
-        Bike listing = bikeRepository.findByIdForUpdate(listingId)
+        // 2. Lock bike
+        Bike bike = bikeRepository.findByIdForUpdate(bikeId)
                 .orElseThrow(() -> new ResourceNotFoundException("Bike missing"));
 
-        if (listing.getStatus() != Bike.BikeStatus.ACTIVE && listing.getStatus() != Bike.BikeStatus.VERIFIED) {
-            throw new ListingNotAvailableException("Listing is not ACTIVE or VERIFIED");
+        if (bike.getStatus() != Bike.BikeStatus.ACTIVE && bike.getStatus() != Bike.BikeStatus.VERIFIED) {
+            throw new ListingNotAvailableException("Bike is not ACTIVE or VERIFIED");
         }
 
         // 3. Lock buyer wallet
         UserWallet buyerWallet = walletRepository.findByUserIdForUpdate(buyerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Buyer wallet missing"));
 
-        if (buyerWallet.getAvailablePoints() < listing.getPricePoints()) {
+        if (buyerWallet.getAvailablePoints() < bike.getPricePoints()) {
             throw new InsufficientBalanceException("Not enough available points to escrow");
         }
 
-        // 4. Update balances & Listing
-        buyerWallet.setAvailablePoints(buyerWallet.getAvailablePoints() - listing.getPricePoints());
-        buyerWallet.setFrozenPoints(buyerWallet.getFrozenPoints() + listing.getPricePoints());
+        // 4. Update balances & Bike
+        buyerWallet.setAvailablePoints(buyerWallet.getAvailablePoints() - bike.getPricePoints());
+        buyerWallet.setFrozenPoints(buyerWallet.getFrozenPoints() + bike.getPricePoints());
         walletRepository.save(buyerWallet);
 
-        listing.setStatus(Bike.BikeStatus.RESERVED);
-        bikeRepository.save(listing);
+        bike.setStatus(Bike.BikeStatus.RESERVED);
+        bikeRepository.save(bike);
 
         // 5. Point Transaction log
         PointTransaction pTx = new PointTransaction();
         pTx.setUser(buyerWallet.getUser());
-        pTx.setAmount(listing.getPricePoints());
+        pTx.setAmount(bike.getPricePoints());
         pTx.setType(PointTransaction.TransactionType.ESCROW_HOLD);
         pTx.setStatus(PointTransaction.TransactionStatus.SUCCESS);
         pTx.setReferenceId("OrderKey: " + idempotencyKey);
@@ -69,8 +69,8 @@ public class OrderService {
         // 6. Save Order
         Order order = new Order();
         order.setBuyer(buyerWallet.getUser());
-        order.setListing(listing);
-        order.setAmountPoints(listing.getPricePoints());
+        order.setBike(bike);
+        order.setAmountPoints(bike.getPricePoints());
         order.setIdempotencyKey(idempotencyKey);
         order.setStatus(Order.OrderStatus.ESCROWED);
 
@@ -97,7 +97,7 @@ public class OrderService {
         UserWallet buyerWallet = walletRepository.findByUserIdForUpdate(buyerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Buyer wallet missing"));
 
-        UserWallet sellerWallet = walletRepository.findByUserIdForUpdate(order.getListing().getSeller().getId())
+        UserWallet sellerWallet = walletRepository.findByUserIdForUpdate(order.getBike().getSeller().getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Seller wallet missing"));
 
         // Release buyer's frozen points effectively
@@ -121,7 +121,7 @@ public class OrderService {
 
         order.setStatus(Order.OrderStatus.COMPLETED);
 
-        Bike listing = order.getListing();
+        Bike listing = order.getBike();
         listing.setStatus(Bike.BikeStatus.SOLD);
         bikeRepository.save(listing);
 

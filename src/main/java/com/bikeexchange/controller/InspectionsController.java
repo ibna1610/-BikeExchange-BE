@@ -100,7 +100,7 @@ public class InspectionsController {
     }
 
     @PostMapping
-    @Operation(summary = "Request inspection", description = "Roles: Seller (or supply sellerId in test mode). Body: InspectionRequestDto { listingId }")
+    @Operation(summary = "Request inspection", description = "Roles: Seller (or supply sellerId in test mode). Body: InspectionRequestDto { bikeId }")
     public ResponseEntity<?> create(
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser,
             @RequestBody InspectionRequestDto request,
