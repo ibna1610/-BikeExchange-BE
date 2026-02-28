@@ -31,11 +31,7 @@ public class Bike {
     private Brand brand;
 
     @ManyToMany
-    @JoinTable(
-            name = "bike_categories",
-            joinColumns = @JoinColumn(name = "bike_id"),
-            inverseJoinColumns = @JoinColumn(name = "category_id")
-    )
+    @JoinTable(name = "bike_categories", joinColumns = @JoinColumn(name = "bike_id"), inverseJoinColumns = @JoinColumn(name = "category_id"))
     private Set<Category> categories = new HashSet<>();
 
     @Column(nullable = false)
@@ -63,11 +59,11 @@ public class Bike {
     private String location;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 20)
     private BikeStatus status;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "inspection_status")
+    @Column(name = "inspection_status", length = 30)
     private InspectionStatus inspectionStatus;
 
     @ManyToOne(fetch = FetchType.LAZY)

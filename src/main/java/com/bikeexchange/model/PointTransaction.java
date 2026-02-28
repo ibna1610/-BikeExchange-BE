@@ -34,6 +34,9 @@ public class PointTransaction {
     @Column(nullable = false)
     private TransactionStatus status;
 
+    @Column(name = "remarks")
+    private String remarks;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 

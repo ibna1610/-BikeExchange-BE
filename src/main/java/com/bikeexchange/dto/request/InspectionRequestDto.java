@@ -4,5 +4,5 @@ import lombok.Data;
 
 @Data
 public class InspectionRequestDto {
-    private Long listingId;
+    private Long bikeId;
 }

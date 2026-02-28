@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * Inspection Management Service
@@ -141,7 +142,7 @@ public class InspectionService {
 
         // Attach medias if present
         if (request.getMedias() != null && !request.getMedias().isEmpty()) {
-            java.util.List<InspectionReportMedia> medias = new java.util.ArrayList<>();
+            List<InspectionReportMedia> medias = new java.util.ArrayList<>();
             for (int i = 0; i < request.getMedias().size(); i++) {
                 var mr = request.getMedias().get(i);
                 InspectionReportMedia m = new InspectionReportMedia();
@@ -161,14 +162,16 @@ public class InspectionService {
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
-    public InspectionReport adminApproveReport(Long reportId) {
-        InspectionReport report = reportRepository.findById(reportId)
-                .orElseThrow(() -> new ResourceNotFoundException("Report not found"));
+    public InspectionReport adminApproveInspection(Long inspectionId) {
+        InspectionRequest inspection = inspectionRepository.findById(inspectionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Inspection not found"));
+
+        InspectionReport report = reportRepository.findByRequestId(inspectionId)
+                .orElseThrow(() -> new ResourceNotFoundException("No report found for this inspection"));
 
         report.setAdminDecision(InspectionRequest.RequestStatus.APPROVED);
         reportRepository.save(report);
 
-        InspectionRequest inspection = report.getRequest();
         inspection.setStatus(InspectionRequest.RequestStatus.APPROVED);
         inspection.setUpdatedAt(LocalDateTime.now());
         inspectionRepository.save(inspection);
@@ -201,6 +204,7 @@ public class InspectionService {
         tx.setReferenceId("Inspection fee: " + inspection.getId());
         pointTxRepo.save(tx);
 
+        historyService.log("inspection", inspection.getId(), "approved", null, null);
         historyService.log("report", report.getId(), "approved", null, null);
         historyService.log("bike", listing.getId(), "verified", null, null);
         return report;
