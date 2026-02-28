@@ -1,5 +1,6 @@
 package com.bikeexchange.controller;
 
+import com.bikeexchange.dto.request.ConversationCreateRequest;
 import com.bikeexchange.dto.request.MessageSendRequest;
 import com.bikeexchange.model.Conversation;
 import com.bikeexchange.model.Message;
@@ -51,6 +52,20 @@ public class ChatController {
                 response.put("success", true);
                 response.put("data", conversations);
 
+                return ResponseEntity.ok(response);
+        }
+
+        @PostMapping("/conversations")
+        @PreAuthorize("isAuthenticated()")
+        @Operation(summary = "Create or Get Conversation", description = "Explicitly creates a new conversation for a listing or returns an existing one.")
+        public ResponseEntity<?> createConversation(
+                        @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser,
+                        @RequestBody ConversationCreateRequest request) {
+                Conversation conversation = chatService.createConversation(currentUser.getId(), request);
+
+                Map<String, Object> response = new HashMap<>();
+                response.put("success", true);
+                response.put("data", conversation);
                 return ResponseEntity.ok(response);
         }
 
