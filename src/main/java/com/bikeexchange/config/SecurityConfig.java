@@ -89,17 +89,8 @@ public class SecurityConfig {
                         .accessDeniedHandler(accessDeniedHandler))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/**").permitAll()
-                        .requestMatchers("/public/**").permitAll()
-                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-resources/**", "/webjars/**")
-                        .permitAll()
-                        .requestMatchers("/api/health", "/health").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/bikes", "/api/bikes/**", "/bikes", "/bikes/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/categories", "/api/categories/**", "/categories", "/categories/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/categories", "/categories").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/bikes", "/bikes").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/**").permitAll()
-                        .anyRequest().authenticated());
+                        .requestMatchers("/**").permitAll()
+                        .anyRequest().permitAll());
 
         http.authenticationProvider(authenticationProvider());
 

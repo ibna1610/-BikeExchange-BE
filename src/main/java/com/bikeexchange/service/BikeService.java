@@ -42,9 +42,9 @@ public class BikeService {
 
     public Page<Bike> searchBikes(String keyword, Pageable pageable) {
         if (keyword != null && !keyword.isBlank()) {
-            return bikeRepository.searchAvailableBikes(keyword, pageable);
+            return bikeRepository.searchAllStatuses(keyword, pageable);
         }
-        return bikeRepository.findByStatus(Bike.BikeStatus.ACTIVE, pageable);
+        return bikeRepository.findAll(pageable);
     }
 
     public Page<Bike> searchBikesByCategory(Long categoryId, Pageable pageable) {
