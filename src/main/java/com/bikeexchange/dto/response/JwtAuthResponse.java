@@ -11,14 +11,16 @@ public class JwtAuthResponse {
     private Long id;
     private String email;
     private String fullName;
+    private String phone;
     private String role;
 
-    public JwtAuthResponse(String accessToken, Long id, String email, String fullName, String role) {
+    public JwtAuthResponse(String accessToken, Long id, String email, String fullName, String phone, String role) {
         this.accessToken = accessToken;
         this.tokenType = "Bearer";
         this.id = id;
         this.email = email;
         this.fullName = fullName;
+        this.phone = phone;
         this.role = role;
     }
 }
