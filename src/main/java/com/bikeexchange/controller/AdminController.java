@@ -1,10 +1,18 @@
 package com.bikeexchange.controller;
 
+import com.bikeexchange.dto.request.RegisterRequest;
+import com.bikeexchange.model.User;
+import com.bikeexchange.model.UserWallet;
+import com.bikeexchange.repository.UserRepository;
+import com.bikeexchange.repository.UserWalletRepository;
 import com.bikeexchange.service.AdminService;
 import com.bikeexchange.service.WalletService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -87,5 +95,46 @@ public class AdminController {
             @Parameter(description = "Reason for rejection", example = "Invalid bank details") @RequestParam String reason) {
         walletService.rejectWithdrawal(transactionId, reason);
         return ResponseEntity.ok(Map.of("success", true, "message", "Withdrawal rejected and points refunded"));
+    }
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private UserWalletRepository walletRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    @PostMapping("/inspectors/create")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Transactional
+    @Operation(summary = "Admin: Create a new Inspector", description = "Allows an Admin to manually create an inspector account.")
+    public ResponseEntity<?> createInspector(@RequestBody RegisterRequest request) {
+        if (userRepository.existsByEmail(request.getEmail())) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Email is already taken!"));
+        }
+
+        User inspector = new User();
+        inspector.setEmail(request.getEmail());
+        inspector.setPassword(passwordEncoder.encode(request.getPassword()));
+        inspector.setFullName(request.getFullName());
+        inspector.setPhone(request.getPhone());
+        inspector.setAddress(request.getAddress());
+        inspector.setRole(User.UserRole.INSPECTOR);
+        inspector.setIsVerified(true);
+        inspector.setStatus("ACTIVE");
+
+        User saved = userRepository.save(inspector);
+
+        // Auto-create wallet
+        UserWallet wallet = new UserWallet();
+        wallet.setUser(saved);
+        wallet.setAvailablePoints(0L);
+        wallet.setFrozenPoints(0L);
+        walletRepository.save(wallet);
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(Map.of("success", true, "message", "Inspector account created successfully", "data", saved));
     }
 }
