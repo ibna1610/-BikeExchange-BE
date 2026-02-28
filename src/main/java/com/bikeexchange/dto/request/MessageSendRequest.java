@@ -11,11 +11,8 @@ public class MessageSendRequest {
     @Schema(description = "ID of the existing conversation. If null, a new conversation will be created.", example = "1", nullable = true)
     private Long conversationId;
 
-    @Schema(description = "ID of the associated bike listing. Required if creating a new conversation.", example = "10")
+    @Schema(description = "ID of the associated bike listing. Required if creating a new conversation involving the listing.", example = "10", nullable = true)
     private Long bikeId;
-
-    @Schema(description = "ID of the receiving user. Required if creating a new conversation.", example = "2")
-    private Long receiverId;
 
     @Schema(description = "Content of the message", example = "Chào bạn, xe này còn thương lượng được không ạ?")
     private String content;
