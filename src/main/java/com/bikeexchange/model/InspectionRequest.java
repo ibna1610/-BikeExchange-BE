@@ -1,5 +1,6 @@
 package com.bikeexchange.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -11,14 +12,15 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Entity
 @Table(name = "inspection_requests")
+@JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
 public class InspectionRequest {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "listing_id", nullable = false)
-    private Bike listing;
+    @JoinColumn(name = "bike_id", nullable = false)
+    private Bike bike;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "inspector_id")
@@ -36,7 +38,7 @@ public class InspectionRequest {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
-    
+
     @Column(name = "started_at")
     private LocalDateTime startedAt;
 
