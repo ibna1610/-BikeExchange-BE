@@ -63,16 +63,12 @@ public class BikeController {
     }
 
     @PostMapping
-    @Operation(summary = "Create a New Bike", description = "Create a new bike. If not authenticated, provide sellerId param for testing.")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Create a New Bike", description = "Create a new bike. Must be authenticated.")
     public ResponseEntity<?> createBike(
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser,
-            @RequestParam(name = "sellerId", required = false) Long sellerIdParam,
             @RequestBody BikeCreateRequest request) {
-        Long sellerId = currentUser != null ? currentUser.getId() : sellerIdParam;
-        if (sellerId == null) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("success", false, "message", "sellerId is required when not logged in"));
-        }
+        Long sellerId = currentUser.getId();
         Bike bike = bikeService.createBike(sellerId, request);
 
         Map<String, Object> response = new HashMap<>();

@@ -3,6 +3,7 @@ package com.bikeexchange.dto.response;
 import com.bikeexchange.model.InspectionRequest;
 import lombok.Data;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Data
@@ -16,6 +17,14 @@ public class InspectionResponse {
     private String inspectorName;
     private InspectionRequest.RequestStatus status;
     private Long feePoints;
+
+    // Scheduling / availability fields
+    private LocalDate preferredDate;
+    private String preferredTimeSlot;
+    private String address;
+    private String contactPhone;
+    private String notes;
+
     private LocalDateTime createdAt;
     private LocalDateTime startedAt;
     private LocalDateTime completedAt;
@@ -37,6 +46,14 @@ public class InspectionResponse {
         }
         res.setStatus(request.getStatus());
         res.setFeePoints(request.getFeePoints());
+
+        // Scheduling fields
+        res.setPreferredDate(request.getPreferredDate());
+        res.setPreferredTimeSlot(request.getPreferredTimeSlot());
+        res.setAddress(request.getAddress());
+        res.setContactPhone(request.getContactPhone());
+        res.setNotes(request.getNotes());
+
         res.setCreatedAt(request.getCreatedAt());
         res.setStartedAt(request.getStartedAt());
         res.setCompletedAt(request.getCompletedAt());

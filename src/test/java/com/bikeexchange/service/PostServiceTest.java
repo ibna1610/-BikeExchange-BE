@@ -22,6 +22,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.bikeexchange.dto.request.InspectionRequestDto;
 import java.util.Optional;
 
 @ExtendWith(MockitoExtension.class)
@@ -80,7 +81,8 @@ public class PostServiceTest {
             p.setId(100L);
             return p;
         });
-        Mockito.when(pointTxRepo.save(Mockito.any(PointTransaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        Mockito.when(pointTxRepo.save(Mockito.any(PointTransaction.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
 
         Post saved = postService.createPost(1L, request);
 
@@ -98,7 +100,8 @@ public class PostServiceTest {
         Assertions.assertEquals(10L, txCaptor.getValue().getAmount());
         Assertions.assertEquals(PointTransaction.TransactionType.SPEND, txCaptor.getValue().getType());
 
-        Mockito.verify(inspectionService, Mockito.never()).requestInspection(Mockito.anyLong(), Mockito.anyLong());
+        Mockito.verify(inspectionService, Mockito.never()).requestInspection(Mockito.anyLong(),
+                Mockito.any(InspectionRequestDto.class));
     }
 
     @Test
@@ -130,7 +133,8 @@ public class PostServiceTest {
             p.setId(100L);
             return p;
         });
-        Mockito.when(pointTxRepo.save(Mockito.any(PointTransaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        Mockito.when(pointTxRepo.save(Mockito.any(PointTransaction.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
 
         Post saved = postService.createPost(1L, request);
 
@@ -146,7 +150,9 @@ public class PostServiceTest {
         Assertions.assertEquals(30L, txCaptor.getValue().getAmount());
         Assertions.assertEquals(PointTransaction.TransactionType.SPEND, txCaptor.getValue().getType());
 
-        Mockito.verify(inspectionService).requestInspection(1L, 10L);
+        ArgumentCaptor<InspectionRequestDto> inspectionDtoCaptor = ArgumentCaptor.forClass(InspectionRequestDto.class);
+        Mockito.verify(inspectionService).requestInspection(Mockito.eq(1L), inspectionDtoCaptor.capture());
+        Assertions.assertEquals(10L, inspectionDtoCaptor.getValue().getBikeId());
     }
 
     @Test
@@ -204,7 +210,8 @@ public class PostServiceTest {
         post.setId(100L);
         post.setStatus(Post.PostStatus.ACTIVE);
 
-        Mockito.when(postRepository.findByStatusIn(Mockito.anyList(), Mockito.any(org.springframework.data.domain.Pageable.class)))
+        Mockito.when(postRepository.findByStatusIn(Mockito.anyList(),
+                Mockito.any(org.springframework.data.domain.Pageable.class)))
                 .thenReturn(new org.springframework.data.domain.PageImpl<>(java.util.List.of(post)));
 
         org.springframework.data.domain.Page<Post> result = postService.listPosts(null, java.util.List.of("ACTIVE"),

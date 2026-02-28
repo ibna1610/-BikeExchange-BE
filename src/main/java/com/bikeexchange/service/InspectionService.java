@@ -1,6 +1,7 @@
 package com.bikeexchange.service;
 
 import com.bikeexchange.dto.request.InspectionReportDto;
+import com.bikeexchange.dto.request.InspectionRequestDto;
 import com.bikeexchange.exception.InsufficientBalanceException;
 import com.bikeexchange.exception.ResourceNotFoundException;
 import com.bikeexchange.model.*;
@@ -48,11 +49,12 @@ public class InspectionService {
     private static final Long INSPECTION_FEE = 100L; // 100 points (~100k VND)
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
-    public InspectionRequest requestInspection(Long requesterId, Long bikeId) {
+    public InspectionRequest requestInspection(Long requesterId, InspectionRequestDto dto) {
         if (requesterId == null) {
             throw new IllegalArgumentException("Requester ID is required");
         }
 
+        Long bikeId = dto.getBikeId();
         Bike bike = bikeRepository.findByIdForUpdate(bikeId)
                 .orElseThrow(() -> new ResourceNotFoundException("Bike not found with ID: " + bikeId));
 
@@ -89,17 +91,36 @@ public class InspectionService {
         bike.setInspectionStatus(Bike.InspectionStatus.REQUESTED);
         bikeRepository.save(bike);
 
-        // Create Inspection record
+        // Create Inspection record with scheduling info
         InspectionRequest inspection = new InspectionRequest();
         inspection.setBike(bike);
         inspection.setStatus(InspectionRequest.RequestStatus.REQUESTED);
         inspection.setFeePoints(INSPECTION_FEE);
         inspection.setCreatedAt(LocalDateTime.now());
 
+        // Set scheduling / availability fields from DTO
+        inspection.setPreferredDate(dto.getPreferredDate());
+        inspection.setPreferredTimeSlot(dto.getPreferredTimeSlot());
+        inspection.setAddress(dto.getAddress());
+        inspection.setContactPhone(dto.getContactPhone());
+        inspection.setNotes(dto.getNotes());
+
         InspectionRequest saved = inspectionRepository.save(inspection);
         historyService.log("inspection", saved.getId(), "requested", requesterId, null);
         historyService.log("bike", bike.getId(), "inspection_requested", requesterId, null);
         return saved;
+    }
+
+    /**
+     * @deprecated Use {@link #requestInspection(Long, InspectionRequestDto)}
+     *             instead.
+     */
+    @Deprecated
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public InspectionRequest requestInspection(Long requesterId, Long bikeId) {
+        InspectionRequestDto dto = new InspectionRequestDto();
+        dto.setBikeId(bikeId);
+        return requestInspection(requesterId, dto);
     }
 
     public InspectionRequest assignInspector(Long inspectionId, Long inspectorId) {
@@ -162,7 +183,7 @@ public class InspectionService {
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
-    public InspectionReport adminApproveInspection(Long inspectionId) {
+    public InspectionReport adminApproveInspection(Long inspectionId, Long adminId) {
         InspectionRequest inspection = inspectionRepository.findById(inspectionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Inspection not found"));
 
@@ -204,9 +225,18 @@ public class InspectionService {
         tx.setReferenceId("Inspection fee: " + inspection.getId());
         pointTxRepo.save(tx);
 
-        historyService.log("inspection", inspection.getId(), "approved", null, null);
-        historyService.log("report", report.getId(), "approved", null, null);
-        historyService.log("bike", bike.getId(), "verified", null, null);
+        historyService.log("inspection", inspection.getId(), "approved", adminId, null);
+        historyService.log("report", report.getId(), "approved", adminId, null);
+        historyService.log("bike", bike.getId(), "verified", adminId, null);
         return report;
+    }
+
+    /**
+     * @deprecated Use {@link #adminApproveInspection(Long, Long)} with adminId
+     *             instead.
+     */
+    @Deprecated
+    public InspectionReport adminApproveInspection(Long inspectionId) {
+        return adminApproveInspection(inspectionId, null);
     }
 }

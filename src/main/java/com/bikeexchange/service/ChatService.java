@@ -46,6 +46,10 @@ public class ChatService {
 
     @Transactional
     public Conversation createConversation(Long buyerId, ConversationCreateRequest request) {
+        if (request.getBikeId() == null) {
+            throw new IllegalArgumentException("bikeId is required to start a conversation");
+        }
+
         User buyer = userRepository.findById(buyerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Buyer not found"));
 
@@ -57,9 +61,20 @@ public class ChatService {
         }
 
         Bike listing = bikeRepository.findById(request.getBikeId())
-                .orElseThrow(() -> new ResourceNotFoundException("Listing not found"));
-        User seller = userRepository.findById(request.getSellerId())
-                .orElseThrow(() -> new ResourceNotFoundException("Seller not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Bike listing not found"));
+
+        if (listing.getDeletedAt() != null) {
+            throw new IllegalStateException("Cannot start a conversation about a deleted bike");
+        }
+
+        User seller = listing.getSeller();
+        if (seller == null) {
+            throw new ResourceNotFoundException("Seller not found for this bike");
+        }
+
+        if (seller.getId().equals(buyerId)) {
+            throw new IllegalArgumentException("Cannot start a conversation with yourself");
+        }
 
         Conversation conversation = new Conversation();
         conversation.setBike(listing);
@@ -81,24 +96,38 @@ public class ChatService {
         if (request.getConversationId() != null) {
             conversation = conversationRepository.findById(request.getConversationId())
                     .orElseThrow(() -> new ResourceNotFoundException("Conversation not found"));
-        } else {
-            // Check if conversation already exists for this listing and buyer
+        } else if (request.getBikeId() != null) {
+            // Check if conversation already exists for this listing and current user as
+            // buyer
             Optional<Conversation> existing = conversationRepository.findByBikeIdAndBuyerId(request.getBikeId(),
                     senderId);
             if (existing.isPresent()) {
                 conversation = existing.get();
             } else {
-                conversation = new Conversation();
                 Bike listing = bikeRepository.findById(request.getBikeId())
-                        .orElseThrow(() -> new ResourceNotFoundException("Listing not found"));
-                User receiver = userRepository.findById(request.getReceiverId())
-                        .orElseThrow(() -> new ResourceNotFoundException("Receiver not found"));
+                        .orElseThrow(() -> new ResourceNotFoundException("Bike listing not found"));
 
+                if (listing.getDeletedAt() != null) {
+                    throw new IllegalStateException("Cannot send message for a deleted bike");
+                }
+
+                conversation = new Conversation();
                 conversation.setBike(listing);
-                conversation.setBuyer(sender);
-                conversation.setSeller(receiver);
+
+                // If sender is NOT the seller, then sender is buyer, receiver is seller
+                if (!listing.getSeller().getId().equals(senderId)) {
+                    conversation.setBuyer(sender);
+                    conversation.setSeller(listing.getSeller());
+                } else {
+                    // Seller initiating chat - from requirements we assume this shouldn't happen
+                    // without a conversationId or we don't have receiverId anymore.
+                    throw new IllegalArgumentException(
+                            "Sellers cannot initiate new chats without a target receiverId (removed). Please start from listing.");
+                }
                 conversation.setCreatedAt(LocalDateTime.now());
             }
+        } else {
+            throw new IllegalArgumentException("Either conversationId or bikeId must be provided");
         }
 
         conversation.setUpdatedAt(LocalDateTime.now());

@@ -23,6 +23,9 @@ public class Category {
 
     private String description;
 
+    @Column(name = "img_url")
+    private String imgUrl;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
