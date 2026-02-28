@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * Inspection Management Service
@@ -141,7 +142,7 @@ public class InspectionService {
 
         // Attach medias if present
         if (request.getMedias() != null && !request.getMedias().isEmpty()) {
-            java.util.List<InspectionReportMedia> medias = new java.util.ArrayList<>();
+            List<InspectionReportMedia> medias = new java.util.ArrayList<>();
             for (int i = 0; i < request.getMedias().size(); i++) {
                 var mr = request.getMedias().get(i);
                 InspectionReportMedia m = new InspectionReportMedia();

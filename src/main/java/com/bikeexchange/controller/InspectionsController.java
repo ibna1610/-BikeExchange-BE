@@ -4,6 +4,8 @@ import com.bikeexchange.dto.request.InspectionReportDto;
 import com.bikeexchange.dto.request.InspectionRequestDto;
 import com.bikeexchange.model.InspectionReport;
 import com.bikeexchange.model.InspectionRequest;
+import com.bikeexchange.dto.response.InspectionResponse;
+import com.bikeexchange.dto.response.InspectionReportResponse;
 import com.bikeexchange.security.UserPrincipal;
 import com.bikeexchange.repository.InspectionRepository;
 import com.bikeexchange.service.InspectionService;
@@ -47,6 +49,7 @@ public class InspectionsController {
     @Operation(summary = "List inspections", description = "Roles: Public (test mode). Filters: bike_id, inspector_id, status, date_from, date_to. Returns a paginated list.")
     public ResponseEntity<?> list(
             @Parameter(description = "Filter by bike listing id", example = "10") @RequestParam(required = false) Long bike_id,
+            @Parameter(description = "Filter by seller id", example = "3") @RequestParam(required = false) Long sellerId,
             @Parameter(description = "Filter by inspector user id", example = "2") @RequestParam(required = false) Long inspector_id,
             @Parameter(description = "Filter by inspection status", example = "REQUESTED") @RequestParam(required = false) InspectionRequest.RequestStatus status,
             @Parameter(description = "Created at from (ISO-8601)", example = "2026-02-01T00:00:00") @RequestParam(required = false) String date_from,
@@ -58,6 +61,9 @@ public class InspectionsController {
 
         if (bike_id != null) {
             spec = spec.and((root, query, cb) -> cb.equal(root.get("listing").get("id"), bike_id));
+        }
+        if (sellerId != null) {
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("listing").get("seller").get("id"), sellerId));
         }
         if (inspector_id != null) {
             spec = spec.and((root, query, cb) -> cb.equal(root.get("inspector").get("id"), inspector_id));
@@ -75,9 +81,11 @@ public class InspectionsController {
         }
 
         Page<InspectionRequest> result = inspectionRepository.findAll(spec, pageable);
+        Page<InspectionResponse> dtoPage = result.map(InspectionResponse::fromEntity);
+
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
-        response.put("data", result);
+        response.put("data", dtoPage);
         return ResponseEntity.ok(response);
     }
 
@@ -89,31 +97,33 @@ public class InspectionsController {
             @Parameter(description = "Seller id when unauthenticated", example = "1") @RequestParam(name = "sellerId", required = false) Long sellerIdParam) {
         Long requesterId = currentUser != null ? currentUser.getId() : sellerIdParam;
         if (requesterId == null) {
-            return ResponseEntity.badRequest().body(Map.of("success", false, "message", "sellerId is required when not logged in"));
+            return ResponseEntity.badRequest()
+                    .body(Map.of("success", false, "message", "sellerId is required when not logged in"));
         }
-        InspectionRequest inspection = inspectionService.requestInspection(requesterId, request.getListingId());
+        InspectionRequest inspection = inspectionService.requestInspection(requesterId, request.getBikeId());
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
-        response.put("data", inspection);
+        response.put("data", InspectionResponse.fromEntity(inspection));
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/{inspectionId}")
     @Operation(summary = "Get inspection", description = "Roles: Public (test mode). Returns inspection by id.")
-    public ResponseEntity<?> getOne(@Parameter(description = "Inspection id", example = "5") @PathVariable Long id) {
-        return inspectionRepository.findById(id)
-                .map(i -> ResponseEntity.ok(Map.of("success", true, "data", i)))
+    public ResponseEntity<?> getOne(
+            @Parameter(description = "Inspection request id", example = "5") @PathVariable Long inspectionId) {
+        return inspectionRepository.findById(inspectionId)
+                .map(i -> ResponseEntity.ok(Map.of("success", true, "data", InspectionResponse.fromEntity(i))))
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    @PutMapping("/{id}")
+    @PutMapping("/{inspectionId}")
     @Operation(summary = "Update inspection status", description = "Roles: Inspector (ASSIGNED/IN_PROGRESS/INSPECTED), Admin (APPROVED/REJECTED). Test mode allows inspectorId param when unauthenticated.")
     public ResponseEntity<?> updateStatus(
-            @Parameter(description = "Inspection id", example = "5") @PathVariable Long id,
+            @Parameter(description = "Inspection request id", example = "5") @PathVariable Long inspectionId,
             @Parameter(description = "New status", example = "ASSIGNED") @RequestParam InspectionRequest.RequestStatus status,
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser,
             @Parameter(description = "Inspector id when unauthenticated", example = "2") @RequestParam(name = "inspectorId", required = false) Long inspectorIdParam) {
-        InspectionRequest inspection = inspectionRepository.findById(id)
+        InspectionRequest inspection = inspectionRepository.findById(inspectionId)
                 .orElse(null);
         if (inspection == null) {
             return ResponseEntity.notFound().build();
@@ -127,9 +137,10 @@ public class InspectionsController {
         } else if (status == InspectionRequest.RequestStatus.ASSIGNED) {
             Long inspectorId = currentUser != null ? currentUser.getId() : inspectorIdParam;
             if (inspectorId == null) {
-                return ResponseEntity.badRequest().body(Map.of("success", false, "message", "inspectorId is required when not logged in"));
+                return ResponseEntity.badRequest()
+                        .body(Map.of("success", false, "message", "inspectorId is required when not logged in"));
             }
-            inspection = inspectionService.assignInspector(id, inspectorId);
+            inspection = inspectionService.assignInspector(inspectionId, inspectorId);
         } else {
             inspection.setStatus(status);
             inspection.setUpdatedAt(LocalDateTime.now());
@@ -137,35 +148,37 @@ public class InspectionsController {
         inspectionRepository.save(inspection);
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
-        response.put("data", inspection);
+        response.put("data", InspectionResponse.fromEntity(inspection));
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/{id}/report")
+    @PostMapping("/{inspectionId}/report")
     @Operation(summary = "Submit inspection report", description = "Roles: Inspector. Include medias: [{url,type,sortOrder}]")
     public ResponseEntity<?> submitReport(
-            @Parameter(description = "Inspection id", example = "5") @PathVariable Long id,
+            @Parameter(description = "Inspection request id", example = "5") @PathVariable Long inspectionId,
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser,
-            @Parameter(description = "Inspector id when unauthenticated", example = "2") @RequestParam(name = "inspectorId", required = false) Long inspectorIdParam,
+            @Parameter(description = "Inspector user id when unauthenticated", example = "2") @RequestParam(name = "inspectorId", required = false) Long inspectorIdParam,
             @RequestBody InspectionReportDto request) {
         Long inspectorId = currentUser != null ? currentUser.getId() : inspectorIdParam;
         if (inspectorId == null) {
-            return ResponseEntity.badRequest().body(Map.of("success", false, "message", "inspectorId is required when not logged in"));
+            return ResponseEntity.badRequest()
+                    .body(Map.of("success", false, "message", "inspectorId is required when not logged in"));
         }
-        InspectionReport report = inspectionService.submitReport(id, inspectorId, request);
+        InspectionReport report = inspectionService.submitReport(inspectionId, inspectorId, request);
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
-        response.put("data", report);
+        response.put("data", InspectionReportResponse.fromEntity(report));
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/report/{reportId}/approve")
     @Operation(summary = "Approve inspection report", description = "Roles: Admin. Approving marks bike as VERIFIED and releases commission.")
-    public ResponseEntity<?> approveReport(@Parameter(description = "Report id", example = "7") @PathVariable Long reportId) {
+    public ResponseEntity<?> approveReport(
+            @Parameter(description = "Report id", example = "7") @PathVariable Long reportId) {
         InspectionReport report = inspectionService.adminApproveReport(reportId);
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
-        response.put("data", report);
+        response.put("data", InspectionReportResponse.fromEntity(report));
         return ResponseEntity.ok(response);
     }
 }
