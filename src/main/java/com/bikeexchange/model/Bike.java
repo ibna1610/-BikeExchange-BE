@@ -5,6 +5,10 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 @Data
 @NoArgsConstructor
@@ -22,8 +26,17 @@ public class Bike {
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    @Column(nullable = false)
-    private String brand;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "brand_id", nullable = false)
+    private Brand brand;
+
+    @ManyToMany
+    @JoinTable(
+            name = "bike_categories",
+            joinColumns = @JoinColumn(name = "bike_id"),
+            inverseJoinColumns = @JoinColumn(name = "category_id")
+    )
+    private Set<Category> categories = new HashSet<>();
 
     @Column(nullable = false)
     private String model;
@@ -31,13 +44,13 @@ public class Bike {
     @Column(nullable = false)
     private Integer year;
 
-    @Column(nullable = false)
-    private Long price;
+    @Column(name = "price_points", nullable = false)
+    private Long pricePoints;
 
     @Column(nullable = false)
     private Integer mileage;
 
-    @Column(nullable = false)
+    @Column(name = "`condition`", nullable = false)
     private String condition;
 
     @Column(nullable = false)
@@ -53,12 +66,16 @@ public class Bike {
     @Column(nullable = false)
     private BikeStatus status;
 
-    @ManyToOne
+    @Enumerated(EnumType.STRING)
+    @Column(name = "inspection_status")
+    private InspectionStatus inspectionStatus;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "seller_id", nullable = false)
     private User seller;
 
-    @Column(name = "image_urls", columnDefinition = "TEXT")
-    private String imageUrls;
+    @OneToMany(mappedBy = "bike", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<BikeMedia> media = new ArrayList<>();
 
     @Column(name = "views", columnDefinition = "INT DEFAULT 0")
     private Integer views;
@@ -69,12 +86,16 @@ public class Bike {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
         views = 0;
-        status = BikeStatus.AVAILABLE;
+        status = BikeStatus.DRAFT;
+        inspectionStatus = InspectionStatus.NONE;
     }
 
     @PreUpdate
@@ -83,6 +104,10 @@ public class Bike {
     }
 
     public enum BikeStatus {
-        AVAILABLE, SOLD, RESERVED, ARCHIVED
+        DRAFT, ACTIVE, VERIFIED, RESERVED, SOLD, CANCELLED
+    }
+
+    public enum InspectionStatus {
+        NONE, REQUESTED, IN_PROGRESS, APPROVED, REJECTED
     }
 }

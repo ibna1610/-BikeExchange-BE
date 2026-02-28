@@ -7,8 +7,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 @RestController
 @RequestMapping("/users")
+@Tag(name = "User Management", description = "APIs for user CRUD operations and profile management")
+@SecurityRequirement(name = "Bearer Token")
 @CrossOrigin(origins = "*", maxAge = 3600)
 public class UserController {
     @Autowired
@@ -64,10 +69,10 @@ public class UserController {
                 .map(user -> ResponseEntity.ok(new UserStats(
                         user.getTotalBikesSold(),
                         user.getRating(),
-                        user.getIsVerified()
-                )))
+                        user.getIsVerified())))
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    public record UserStats(Integer totalBikesSold, Double rating, Boolean isVerified) {}
+    public record UserStats(Integer totalBikesSold, Double rating, Boolean isVerified) {
+    }
 }
