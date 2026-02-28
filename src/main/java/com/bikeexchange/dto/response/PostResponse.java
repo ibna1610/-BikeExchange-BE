@@ -11,7 +11,7 @@ public class PostResponse {
     private Long sellerId;
     private Long bikeId;
     private String caption;
-    private String listingType;
+    private String postType;
     private String status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -29,7 +29,7 @@ public class PostResponse {
         }
         res.setCaption(post.getCaption());
         if (post.getListingType() != null) {
-            res.setListingType(post.getListingType().name());
+            res.setPostType(post.getListingType().name());
         }
         if (post.getStatus() != null) {
             res.setStatus(post.getStatus().name());
