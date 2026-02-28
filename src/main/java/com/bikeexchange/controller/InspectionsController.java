@@ -2,12 +2,15 @@ package com.bikeexchange.controller;
 
 import com.bikeexchange.dto.request.InspectionReportDto;
 import com.bikeexchange.dto.request.InspectionRequestDto;
+import com.bikeexchange.dto.response.HistoryResponse;
+import com.bikeexchange.dto.response.InspectionReportResponse;
+import com.bikeexchange.dto.response.InspectionResponse;
 import com.bikeexchange.model.InspectionReport;
 import com.bikeexchange.model.InspectionRequest;
-import com.bikeexchange.dto.response.InspectionResponse;
-import com.bikeexchange.dto.response.InspectionReportResponse;
 import com.bikeexchange.security.UserPrincipal;
+import com.bikeexchange.repository.HistoryRepository;
 import com.bikeexchange.repository.InspectionRepository;
+import com.bikeexchange.repository.ReportRepository;
 import com.bikeexchange.service.InspectionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -20,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -44,6 +48,12 @@ public class InspectionsController {
 
     @Autowired
     private InspectionService inspectionService;
+
+    @Autowired
+    private ReportRepository reportRepository;
+
+    @Autowired
+    private HistoryRepository historyRepository;
 
     @GetMapping
     @Operation(summary = "List inspections", description = "Roles: Public (test mode). Filters: bike_id, inspector_id, status, date_from, date_to. Returns a paginated list.")
@@ -112,7 +122,20 @@ public class InspectionsController {
     public ResponseEntity<?> getOne(
             @Parameter(description = "Inspection request id", example = "5") @PathVariable Long inspectionId) {
         return inspectionRepository.findById(inspectionId)
-                .map(i -> ResponseEntity.ok(Map.of("success", true, "data", InspectionResponse.fromEntity(i))))
+                .map(i -> {
+                    InspectionResponse inspection = InspectionResponse.fromEntity(i);
+                    InspectionReportResponse report = reportRepository.findByRequestId(inspectionId)
+                            .map(InspectionReportResponse::fromEntity)
+                            .orElse(null);
+                    List<HistoryResponse> history = historyRepository
+                            .findByEntityTypeAndEntityIdOrderByTimestampAsc("inspection", inspectionId)
+                            .stream().map(HistoryResponse::fromEntity).toList();
+                    Map<String, Object> data = new HashMap<>();
+                    data.put("inspection", inspection);
+                    data.put("report", report);
+                    data.put("history", history);
+                    return ResponseEntity.ok(Map.of("success", true, "data", data));
+                })
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
