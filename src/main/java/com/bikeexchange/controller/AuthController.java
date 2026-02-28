@@ -8,6 +8,7 @@ import com.bikeexchange.model.UserWallet;
 import com.bikeexchange.repository.UserRepository;
 import com.bikeexchange.repository.UserWalletRepository;
 import com.bikeexchange.security.JwtTokenProvider;
+import com.bikeexchange.security.UserPrincipal;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -24,6 +25,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController
@@ -47,8 +52,14 @@ public class AuthController {
     private JwtTokenProvider tokenProvider;
 
     @PostMapping("/login")
-    @Operation(summary = "Authenticate User", description = "Login user using email and password to receive a JWT access token")
-    public ResponseEntity<?> authenticateUser(@RequestBody LoginRequest loginRequest) {
+    @Operation(summary = "Authenticate User", description = "Login user using email and password to receive a JWT access token. Use the dropdown to auto-fill sample accounts.")
+    public ResponseEntity<?> authenticateUser(
+            @RequestBody(description = "Choose a role to auto-fill sample credentials:", content = @Content(mediaType = "application/json", schema = @Schema(implementation = LoginRequest.class), examples = {
+                    @ExampleObject(name = "Admin Account", value = "{\"email\": \"admin@bikeexchange.com\", \"password\": \"password123\"}"),
+                    @ExampleObject(name = "Seller Account", value = "{\"email\": \"seller@bikeexchange.com\", \"password\": \"password123\"}"),
+                    @ExampleObject(name = "Inspector Account", value = "{\"email\": \"inspector@bikeexchange.com\", \"password\": \"password123\"}"),
+                    @ExampleObject(name = "Buyer Account", value = "{\"email\": \"buyer@bikeexchange.com\", \"password\": \"password123\"}")
+            })) @org.springframework.web.bind.annotation.RequestBody LoginRequest loginRequest) {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         loginRequest.getEmail(),
@@ -57,9 +68,12 @@ public class AuthController {
         SecurityContextHolder.getContext().setAuthentication(authentication);
         String jwt = tokenProvider.generateToken(authentication);
 
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
-        response.put("data", new JwtAuthResponse(jwt));
+        response.put("data", new JwtAuthResponse(jwt, principal.getId(), principal.getUsername(),
+                principal.getFullName(), principal.getRole()));
 
         return ResponseEntity.ok(response);
     }
