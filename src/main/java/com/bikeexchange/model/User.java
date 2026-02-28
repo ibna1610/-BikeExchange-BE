@@ -50,6 +50,12 @@ public class User {
     @Column(name = "is_verified", columnDefinition = "BOOLEAN DEFAULT FALSE")
     private Boolean isVerified;
 
+    @Column(name = "status", columnDefinition = "VARCHAR(20) DEFAULT 'ACTIVE'")
+    private String status;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
@@ -57,6 +63,8 @@ public class User {
         totalBikesSold = 0;
         rating = 5.0;
         isVerified = false;
+        if (status == null)
+            status = "ACTIVE";
     }
 
     @PreUpdate
@@ -65,6 +73,6 @@ public class User {
     }
 
     public enum UserRole {
-        BUYER, SELLER, ADMIN
+        GUEST, BUYER, SELLER, INSPECTOR, ADMIN
     }
 }
