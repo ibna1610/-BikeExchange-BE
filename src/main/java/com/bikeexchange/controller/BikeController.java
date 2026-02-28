@@ -76,7 +76,7 @@ public class BikeController {
 
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
-        response.put("message", "Listing created successfully in DRAFT state");
+        response.put("message", "Listing created successfully");
         response.put("data", com.bikeexchange.dto.response.BikeResponse.fromEntity(bike));
         return ResponseEntity.ok(response);
     }

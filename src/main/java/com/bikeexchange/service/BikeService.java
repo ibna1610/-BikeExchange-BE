@@ -16,6 +16,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
@@ -89,6 +91,7 @@ public class BikeService {
                 .orElseThrow(() -> new ResourceNotFoundException("Bike not found with id: " + id));
     }
 
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public Bike createListing(Long sellerId, BikeCreateRequest request) {
         User seller = userRepository.findById(sellerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Seller not found"));
@@ -111,7 +114,6 @@ public class BikeService {
         bike.setPricePoints(request.getPricePoints());
         bike.setCondition(request.getCondition());
         bike.setBikeType(request.getBikeType());
-        // Default status
         bike.setStatus(Bike.BikeStatus.DRAFT);
         bike.setInspectionStatus(Bike.InspectionStatus.NONE);
         bike.setCreatedAt(LocalDateTime.now());
@@ -223,4 +225,5 @@ public class BikeService {
         bikeRepository.save(bike);
         historyService.log("bike", bike.getId(), "cancelled", sellerId, null);
     }
+
 }

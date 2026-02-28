@@ -25,6 +25,8 @@ public interface BikeRepository extends JpaRepository<Bike, Long> {
 
        Page<Bike> findBySellerId(Long sellerId, Pageable pageable);
 
+       Page<Bike> findBySellerIdAndStatusIn(Long sellerId, java.util.List<Bike.BikeStatus> statuses, Pageable pageable);
+
        @Query("SELECT b FROM Bike b WHERE (b.status = 'ACTIVE' OR b.status = 'VERIFIED') " +
                      "AND (b.brand.name LIKE %:keyword% OR b.model LIKE %:keyword% OR b.title LIKE %:keyword%)")
        Page<Bike> searchAvailableBikes(@Param("keyword") String keyword, Pageable pageable);
