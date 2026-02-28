@@ -162,14 +162,16 @@ public class InspectionService {
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
-    public InspectionReport adminApproveReport(Long reportId) {
-        InspectionReport report = reportRepository.findById(reportId)
-                .orElseThrow(() -> new ResourceNotFoundException("Report not found"));
+    public InspectionReport adminApproveInspection(Long inspectionId) {
+        InspectionRequest inspection = inspectionRepository.findById(inspectionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Inspection not found"));
+
+        InspectionReport report = reportRepository.findByRequestId(inspectionId)
+                .orElseThrow(() -> new ResourceNotFoundException("No report found for this inspection"));
 
         report.setAdminDecision(InspectionRequest.RequestStatus.APPROVED);
         reportRepository.save(report);
 
-        InspectionRequest inspection = report.getRequest();
         inspection.setStatus(InspectionRequest.RequestStatus.APPROVED);
         inspection.setUpdatedAt(LocalDateTime.now());
         inspectionRepository.save(inspection);
@@ -202,6 +204,7 @@ public class InspectionService {
         tx.setReferenceId("Inspection fee: " + inspection.getId());
         pointTxRepo.save(tx);
 
+        historyService.log("inspection", inspection.getId(), "approved", null, null);
         historyService.log("report", report.getId(), "approved", null, null);
         historyService.log("bike", listing.getId(), "verified", null, null);
         return report;

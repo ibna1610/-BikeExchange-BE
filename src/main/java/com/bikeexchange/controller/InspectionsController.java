@@ -194,11 +194,11 @@ public class InspectionsController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/report/{reportId}/approve")
-    @Operation(summary = "Approve inspection report", description = "Roles: Admin. Approving marks bike as VERIFIED and releases commission.")
-    public ResponseEntity<?> approveReport(
-            @Parameter(description = "Report id", example = "7") @PathVariable Long reportId) {
-        InspectionReport report = inspectionService.adminApproveReport(reportId);
+    @PostMapping("/{inspectionId}/approve")
+    @Operation(summary = "Approve inspection request", description = "Roles: Admin. Approving marks bike as VERIFIED and releases commission. This approves the overall inspection request based on the submitted report.")
+    public ResponseEntity<?> approveInspection(
+            @Parameter(description = "Inspection request id", example = "5") @PathVariable Long inspectionId) {
+        InspectionReport report = inspectionService.adminApproveInspection(inspectionId);
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
         response.put("data", InspectionReportResponse.fromEntity(report));
