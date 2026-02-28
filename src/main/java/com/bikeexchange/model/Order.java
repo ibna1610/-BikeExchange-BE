@@ -1,5 +1,6 @@
 package com.bikeexchange.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -11,6 +12,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Entity
 @Table(name = "orders")
+@JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
 public class Order {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -21,8 +23,8 @@ public class Order {
     private User buyer;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "listing_id", nullable = false)
-    private Bike listing;
+    @JoinColumn(name = "bike_id", nullable = false)
+    private Bike bike;
 
     @Column(name = "amount_points", nullable = false)
     private Long amountPoints;

@@ -63,51 +63,52 @@ public class BikeController {
     }
 
     @PostMapping
-    @Operation(summary = "Create a New Bike", description = "Create a new bike listing. If not authenticated, provide sellerId param for testing.")
-    public ResponseEntity<?> createListing(
+    @Operation(summary = "Create a New Bike", description = "Create a new bike. If not authenticated, provide sellerId param for testing.")
+    public ResponseEntity<?> createBike(
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser,
             @RequestParam(name = "sellerId", required = false) Long sellerIdParam,
             @RequestBody BikeCreateRequest request) {
         Long sellerId = currentUser != null ? currentUser.getId() : sellerIdParam;
         if (sellerId == null) {
-            return ResponseEntity.badRequest().body(Map.of("success", false, "message", "sellerId is required when not logged in"));
+            return ResponseEntity.badRequest()
+                    .body(Map.of("success", false, "message", "sellerId is required when not logged in"));
         }
-        Bike bike = bikeService.createListing(sellerId, request);
+        Bike bike = bikeService.createBike(sellerId, request);
 
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
-        response.put("message", "Listing created successfully in DRAFT state");
+        response.put("message", "Bike created successfully in DRAFT state");
         response.put("data", com.bikeexchange.dto.response.BikeResponse.fromEntity(bike));
         return ResponseEntity.ok(response);
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Update an Existing Bike", description = "Modify details of an existing bike listing. Must be the owner.")
-    public ResponseEntity<?> updateListing(
+    @Operation(summary = "Update an Existing Bike", description = "Modify details of an existing bike. Must be the owner.")
+    public ResponseEntity<?> updateBike(
             @Parameter(description = "ID of the bike", example = "1") @PathVariable Long id,
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser,
             @RequestBody BikeCreateRequest request) {
-        Bike bike = bikeService.updateListing(id, currentUser.getId(), request);
+        Bike bike = bikeService.updateBike(id, currentUser.getId(), request);
 
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
-        response.put("message", "Listing updated successfully");
+        response.put("message", "Bike updated successfully");
         response.put("data", com.bikeexchange.dto.response.BikeResponse.fromEntity(bike));
         return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Delete / Archive a Bike", description = "Soft delete or mark a bike listing as CANCELLED. Must be the owner.")
-    public ResponseEntity<?> deleteListing(
+    @Operation(summary = "Delete / Archive a Bike", description = "Soft delete or mark a bike as CANCELLED. Must be the owner.")
+    public ResponseEntity<?> deleteBike(
             @Parameter(description = "ID of the bike", example = "1") @PathVariable Long id,
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser) {
-        bikeService.deleteListing(id, currentUser.getId());
+        bikeService.deleteBike(id, currentUser.getId());
 
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
-        response.put("message", "Listing cancelled successfully");
+        response.put("message", "Bike cancelled successfully");
         return ResponseEntity.ok(response);
     }
 }

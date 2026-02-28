@@ -8,8 +8,8 @@ import java.time.LocalDateTime;
 @Data
 public class InspectionResponse {
     private Long id;
-    private Long listingId;
-    private String listingTitle;
+    private Long bikeId;
+    private String bikeTitle;
     private Long ownerId;
     private String ownerName;
     private Long inspectorId;
@@ -23,12 +23,12 @@ public class InspectionResponse {
     public static InspectionResponse fromEntity(InspectionRequest request) {
         InspectionResponse res = new InspectionResponse();
         res.setId(request.getId());
-        if (request.getListing() != null) {
-            res.setListingId(request.getListing().getId());
-            res.setListingTitle(request.getListing().getTitle());
-            if (request.getListing().getSeller() != null) {
-                res.setOwnerId(request.getListing().getSeller().getId());
-                res.setOwnerName(request.getListing().getSeller().getFullName());
+        if (request.getBike() != null) {
+            res.setBikeId(request.getBike().getId());
+            res.setBikeTitle(request.getBike().getTitle());
+            if (request.getBike().getSeller() != null) {
+                res.setOwnerId(request.getBike().getSeller().getId());
+                res.setOwnerName(request.getBike().getSeller().getFullName());
             }
         }
         if (request.getInspector() != null) {

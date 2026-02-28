@@ -1,5 +1,6 @@
 package com.bikeexchange.service;
 
+import com.bikeexchange.dto.request.ConversationCreateRequest;
 import com.bikeexchange.dto.request.MessageSendRequest;
 import com.bikeexchange.exception.ResourceNotFoundException;
 import com.bikeexchange.model.Bike;
@@ -44,6 +45,33 @@ public class ChatService {
     }
 
     @Transactional
+    public Conversation createConversation(Long buyerId, ConversationCreateRequest request) {
+        User buyer = userRepository.findById(buyerId)
+                .orElseThrow(() -> new ResourceNotFoundException("Buyer not found"));
+
+        // Check if conversation already exists for this listing and buyer
+        Optional<Conversation> existing = conversationRepository.findByBikeIdAndBuyerId(request.getBikeId(),
+                buyerId);
+        if (existing.isPresent()) {
+            return existing.get();
+        }
+
+        Bike listing = bikeRepository.findById(request.getBikeId())
+                .orElseThrow(() -> new ResourceNotFoundException("Listing not found"));
+        User seller = userRepository.findById(request.getSellerId())
+                .orElseThrow(() -> new ResourceNotFoundException("Seller not found"));
+
+        Conversation conversation = new Conversation();
+        conversation.setBike(listing);
+        conversation.setBuyer(buyer);
+        conversation.setSeller(seller);
+        conversation.setCreatedAt(LocalDateTime.now());
+        conversation.setUpdatedAt(LocalDateTime.now());
+
+        return conversationRepository.save(conversation);
+    }
+
+    @Transactional
     public Message sendMessage(Long senderId, MessageSendRequest request) {
         User sender = userRepository.findById(senderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Sender not found"));
@@ -55,18 +83,18 @@ public class ChatService {
                     .orElseThrow(() -> new ResourceNotFoundException("Conversation not found"));
         } else {
             // Check if conversation already exists for this listing and buyer
-            Optional<Conversation> existing = conversationRepository.findByListingIdAndBuyerId(request.getListingId(),
+            Optional<Conversation> existing = conversationRepository.findByBikeIdAndBuyerId(request.getBikeId(),
                     senderId);
             if (existing.isPresent()) {
                 conversation = existing.get();
             } else {
                 conversation = new Conversation();
-                Bike listing = bikeRepository.findById(request.getListingId())
+                Bike listing = bikeRepository.findById(request.getBikeId())
                         .orElseThrow(() -> new ResourceNotFoundException("Listing not found"));
                 User receiver = userRepository.findById(request.getReceiverId())
                         .orElseThrow(() -> new ResourceNotFoundException("Receiver not found"));
 
-                conversation.setListing(listing);
+                conversation.setBike(listing);
                 conversation.setBuyer(sender);
                 conversation.setSeller(receiver);
                 conversation.setCreatedAt(LocalDateTime.now());

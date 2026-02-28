@@ -40,7 +40,7 @@ public class BikeServiceTest {
     private BikeService bikeService;
 
     @Test
-    public void createListing_setsDraftAndNoInspection() {
+    public void createBike_setsDraftAndNoInspection() {
         User seller = new User();
         seller.setId(1L);
 
@@ -67,7 +67,7 @@ public class BikeServiceTest {
             return b;
         });
 
-        Bike saved = bikeService.createListing(1L, request);
+        Bike saved = bikeService.createBike(1L, request);
 
         Assertions.assertEquals(Bike.BikeStatus.DRAFT, saved.getStatus());
         Assertions.assertEquals(Bike.InspectionStatus.NONE, saved.getInspectionStatus());

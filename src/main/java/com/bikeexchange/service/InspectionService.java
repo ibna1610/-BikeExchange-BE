@@ -48,18 +48,18 @@ public class InspectionService {
     private static final Long INSPECTION_FEE = 100L; // 100 points (~100k VND)
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
-    public InspectionRequest requestInspection(Long requesterId, Long listingId) {
+    public InspectionRequest requestInspection(Long requesterId, Long bikeId) {
         if (requesterId == null) {
             throw new IllegalArgumentException("Requester ID is required");
         }
 
-        Bike listing = bikeRepository.findByIdForUpdate(listingId)
-                .orElseThrow(() -> new ResourceNotFoundException("Bike listing not found with ID: " + listingId));
+        Bike bike = bikeRepository.findByIdForUpdate(bikeId)
+                .orElseThrow(() -> new ResourceNotFoundException("Bike not found with ID: " + bikeId));
 
-        if (listing.getSeller() == null || !listing.getSeller().getId().equals(requesterId)) {
-            Long ownerId = (listing.getSeller() != null) ? listing.getSeller().getId() : null;
+        if (bike.getSeller() == null || !bike.getSeller().getId().equals(requesterId)) {
+            Long ownerId = (bike.getSeller() != null) ? bike.getSeller().getId() : null;
             throw new IllegalArgumentException(String.format(
-                    "Only the seller (ID: %s) can request inspection for this listing. Provided requester ID: %s",
+                    "Only the seller (ID: %s) can request inspection for this bike. Provided requester ID: %s",
                     ownerId, requesterId));
         }
 
@@ -82,23 +82,23 @@ public class InspectionService {
         tx.setAmount(INSPECTION_FEE);
         tx.setType(PointTransaction.TransactionType.ESCROW_HOLD);
         tx.setStatus(PointTransaction.TransactionStatus.SUCCESS);
-        tx.setReferenceId("Inspection req for Bike: " + listingId);
+        tx.setReferenceId("Inspection req for Bike: " + bikeId);
         pointTxRepo.save(tx);
 
-        // Update listing
-        listing.setInspectionStatus(Bike.InspectionStatus.REQUESTED);
-        bikeRepository.save(listing);
+        // Update bike
+        bike.setInspectionStatus(Bike.InspectionStatus.REQUESTED);
+        bikeRepository.save(bike);
 
         // Create Inspection record
         InspectionRequest inspection = new InspectionRequest();
-        inspection.setListing(listing);
+        inspection.setBike(bike);
         inspection.setStatus(InspectionRequest.RequestStatus.REQUESTED);
         inspection.setFeePoints(INSPECTION_FEE);
         inspection.setCreatedAt(LocalDateTime.now());
 
         InspectionRequest saved = inspectionRepository.save(inspection);
         historyService.log("inspection", saved.getId(), "requested", requesterId, null);
-        historyService.log("bike", listing.getId(), "inspection_requested", requesterId, null);
+        historyService.log("bike", bike.getId(), "inspection_requested", requesterId, null);
         return saved;
     }
 
@@ -176,15 +176,15 @@ public class InspectionService {
         inspection.setUpdatedAt(LocalDateTime.now());
         inspectionRepository.save(inspection);
 
-        Bike listing = inspection.getListing();
-        listing.setInspectionStatus(Bike.InspectionStatus.APPROVED);
-        listing.setStatus(Bike.BikeStatus.VERIFIED);
-        bikeRepository.save(listing);
+        Bike bike = inspection.getBike();
+        bike.setInspectionStatus(Bike.InspectionStatus.APPROVED);
+        bike.setStatus(Bike.BikeStatus.VERIFIED);
+        bikeRepository.save(bike);
 
         // Release commission to inspector
         UserWallet inspectorWallet = walletRepository.findByUserIdForUpdate(inspection.getInspector().getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Inspector Wallet missing"));
-        UserWallet sellerWallet = walletRepository.findByUserIdForUpdate(listing.getSeller().getId())
+        UserWallet sellerWallet = walletRepository.findByUserIdForUpdate(bike.getSeller().getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Seller Wallet missing"));
 
         Long fee = inspection.getFeePoints();
@@ -206,7 +206,7 @@ public class InspectionService {
 
         historyService.log("inspection", inspection.getId(), "approved", null, null);
         historyService.log("report", report.getId(), "approved", null, null);
-        historyService.log("bike", listing.getId(), "verified", null, null);
+        historyService.log("bike", bike.getId(), "verified", null, null);
         return report;
     }
 }
