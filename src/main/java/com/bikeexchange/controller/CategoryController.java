@@ -1,5 +1,6 @@
 package com.bikeexchange.controller;
 
+import com.bikeexchange.dto.request.CategoryRequest;
 import com.bikeexchange.model.Category;
 import com.bikeexchange.service.CategoryService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,11 +21,11 @@ public class CategoryController {
     private CategoryService categoryService;
 
     @PostMapping
-    public ResponseEntity<?> create(@RequestBody Category category) {
-        if (category.getName() == null || category.getName().isBlank()) {
+    public ResponseEntity<?> create(@RequestBody CategoryRequest categoryrequest) {
+        if (categoryrequest.getName() == null || categoryrequest.getName().isBlank()) {
             return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Category name is required"));
         }
-        Category saved = categoryService.create(category);
+        Category saved = categoryService.create(categoryrequest);
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
         response.put("data", saved);
