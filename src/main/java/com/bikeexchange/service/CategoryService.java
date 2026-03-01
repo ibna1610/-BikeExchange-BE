@@ -1,5 +1,6 @@
 package com.bikeexchange.service;
 
+import com.bikeexchange.dto.request.CategoryRequest;
 import com.bikeexchange.dto.response.BikeResponse;
 import com.bikeexchange.model.Bike;
 import com.bikeexchange.model.Category;
@@ -21,8 +22,8 @@ public class CategoryService {
     @Autowired
     private BikeRepository bikeRepository;
 
-    public Category create(Category category) {
-        return categoryRepository.save(category);
+    public Category create(CategoryRequest categoryRequest) {
+        return categoryRepository.save(categoryRequest.toEntity());
     }
 
     public Page<Category> list(Pageable pageable) {
