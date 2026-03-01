@@ -5,10 +5,13 @@ import com.bikeexchange.service.VnPayService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import com.bikeexchange.security.UserPrincipal;
+import org.springframework.web.bind.annotation.*;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.HashMap;
@@ -16,7 +19,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/vnpay")
-@Tag(name = "VNPay", description = "Tích hợp thanh toán VNPay cho nạp ví")
+@SecurityRequirement(name = "Bearer Token")
 public class VnPayController {
 
     @Autowired
@@ -25,9 +28,13 @@ public class VnPayController {
     private VNPAYConfig vnpayConfig;
 
     @GetMapping("/create-payment")
-    public ResponseEntity<?> createPayment(@RequestParam("amount") Long amount,
-                                           @RequestParam("userId") Long userId,
-                                           HttpServletRequest request) {
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Create VNPay Payment URL", description = "Generates a URL to redirect user to VNPay for wallet deposit.")
+    public ResponseEntity<?> createPayment(
+            @Parameter(description = "Amount in VND to deposit", example = "50000") @RequestParam("amount") Long amount,
+            @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser,
+            HttpServletRequest request) {
+        Long userId = currentUser.getId();
         if (amount == null || amount <= 0) {
             return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Số tiền không hợp lệ"));
         }
@@ -60,7 +67,8 @@ public class VnPayController {
             String orderInfo = flat.getOrDefault("vnp_OrderInfo", "");
             Long userId = extractUserId(txnRef, orderInfo);
             if (userId == null) {
-                return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Thiếu thông tin người dùng"));
+                return ResponseEntity.badRequest()
+                        .body(Map.of("success", false, "message", "Thiếu thông tin người dùng"));
             }
             Long amountVnd = Long.parseLong(flat.getOrDefault("vnp_Amount", "0")) / 100;
             String referenceId = flat.getOrDefault("vnp_TransactionNo", "");

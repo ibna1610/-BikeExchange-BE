@@ -63,7 +63,7 @@ public class BikeController {
     }
 
     @PostMapping
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("isAuthenticated() and hasRole('SELLER')")
     @Operation(summary = "Create a New Bike", description = "Create a new bike. Must be authenticated.")
     public ResponseEntity<?> createBike(
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser,
