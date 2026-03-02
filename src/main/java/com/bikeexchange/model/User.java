@@ -60,6 +60,16 @@ public class User {
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
+    // Seller-specific fields
+    @Column(name = "shop_name")
+    private String shopName;
+
+    @Column(name = "shop_description", columnDefinition = "TEXT")
+    private String shopDescription;
+
+    @Column(name = "upgraded_to_seller_at")
+    private LocalDateTime upgradedToSellerAt;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
