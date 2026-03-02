@@ -5,6 +5,7 @@ import com.bikeexchange.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 @Service
@@ -62,21 +63,14 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         
-        // Check if user is already a seller
-        if (user.getRole() == User.UserRole.SELLER) {
-            throw new IllegalArgumentException("User is already a seller");
-        }
-        
-        // Only BUYER can upgrade to SELLER
         if (user.getRole() != User.UserRole.BUYER) {
             throw new IllegalArgumentException("Only buyers can upgrade to seller status");
         }
         
-        // Set seller-specific information
         user.setRole(User.UserRole.SELLER);
         user.setShopName(shopName);
         user.setShopDescription(shopDescription);
-        user.setUpgradedToSellerAt(java.time.LocalDateTime.now());
+        user.setUpgradedToSellerAt(LocalDateTime.now());
         
         return userRepository.save(user);
     }

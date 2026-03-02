@@ -60,7 +60,7 @@ public class User {
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
-    // Seller-specific fields
+    // Seller fields
     @Column(name = "shop_name")
     private String shopName;
 
