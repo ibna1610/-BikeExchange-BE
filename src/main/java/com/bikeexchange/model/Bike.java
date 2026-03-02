@@ -57,6 +57,9 @@ public class Bike {
     @Column(columnDefinition = "TEXT")
     private String features;
 
+    @Column(name = "frame_size")
+    private String frameSize;
+
     @Column(nullable = false)
     private String location;
 

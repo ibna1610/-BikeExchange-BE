@@ -186,6 +186,26 @@ public class PostService {
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
+    public Post adminApprovePost(Long postId, Long adminId) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new ResourceNotFoundException("Post not found"));
+        post.setStatus(Post.PostStatus.ACTIVE);
+        Post saved = postRepository.save(post);
+        historyService.log("post", saved.getId(), "approved", adminId, null);
+        return saved;
+    }
+
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public Post adminRejectPost(Long postId, Long adminId, String reason) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new ResourceNotFoundException("Post not found"));
+        post.setStatus(Post.PostStatus.CANCELLED);
+        Post saved = postRepository.save(post);
+        historyService.log("post", saved.getId(), "rejected", adminId, reason);
+        return saved;
+    }
+
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public void deletePost(Long postId, Long sellerId) {
         Post post = getSellerPost(postId, sellerId);
         post.setStatus(Post.PostStatus.CANCELLED);

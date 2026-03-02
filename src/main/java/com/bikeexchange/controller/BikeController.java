@@ -36,10 +36,14 @@ public class BikeController {
             @Parameter(description = "Search keyword for title, brand, or model", example = "Giant") @RequestParam(required = false) String keyword,
             @Parameter(description = "Filter by category ID", example = "1") @RequestParam(name = "category_id", required = false) Long categoryId,
             @Parameter(description = "Filter by statuses (repeat param or comma-separated). Example: status=VERIFIED&status=ACTIVE", example = "VERIFIED") @RequestParam(name = "status", required = false) java.util.List<String> statusParams,
+            @Parameter(description = "Minimum price (points)", example = "1000") @RequestParam(name = "price_min", required = false) Long priceMin,
+            @Parameter(description = "Maximum price (points)", example = "5000") @RequestParam(name = "price_max", required = false) Long priceMax,
+            @Parameter(description = "Minimum year", example = "2018") @RequestParam(name = "min_year", required = false) Integer minYear,
+            @Parameter(description = "Frame size (e.g., 54cm)", example = "54cm") @RequestParam(name = "frame_size", required = false) String frameSize,
             @Parameter(description = "Page number (0-indexed)", example = "0") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Number of items per page", example = "20") @RequestParam(defaultValue = "20") int size) {
         Pageable pageable = PageRequest.of(page, size);
-        Page<Bike> result = bikeService.searchBikesAdvanced(keyword, categoryId, statusParams, pageable);
+        Page<Bike> result = bikeService.searchBikesAdvanced(keyword, categoryId, statusParams, priceMin, priceMax, minYear, frameSize, pageable);
 
         Page<com.bikeexchange.dto.response.BikeResponse> dtoPage = result
                 .map(com.bikeexchange.dto.response.BikeResponse::fromEntity);

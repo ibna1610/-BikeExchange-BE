@@ -220,4 +220,28 @@ public class PostServiceTest {
         Assertions.assertEquals(1, result.getTotalElements());
         Assertions.assertEquals(100L, result.getContent().get(0).getId());
     }
+
+    @Test
+    public void adminApprovePost_setsActive() {
+        Post post = new Post();
+        post.setId(200L);
+        post.setStatus(Post.PostStatus.CANCELLED);
+        Mockito.when(postRepository.findById(200L)).thenReturn(Optional.of(post));
+        Mockito.when(postRepository.save(Mockito.any(Post.class))).thenAnswer(i -> i.getArgument(0));
+
+        Post saved = postService.adminApprovePost(200L, 1L);
+        Assertions.assertEquals(Post.PostStatus.ACTIVE, saved.getStatus());
+    }
+
+    @Test
+    public void adminRejectPost_setsCancelled() {
+        Post post = new Post();
+        post.setId(300L);
+        post.setStatus(Post.PostStatus.ACTIVE);
+        Mockito.when(postRepository.findById(300L)).thenReturn(Optional.of(post));
+        Mockito.when(postRepository.save(Mockito.any(Post.class))).thenAnswer(i -> i.getArgument(0));
+
+        Post saved = postService.adminRejectPost(300L, 1L, "bad");
+        Assertions.assertEquals(Post.PostStatus.CANCELLED, saved.getStatus());
+    }
 }

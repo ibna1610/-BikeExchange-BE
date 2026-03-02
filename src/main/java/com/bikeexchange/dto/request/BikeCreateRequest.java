@@ -34,6 +34,9 @@ public class BikeCreateRequest {
     @Schema(description = "Category/type of the bike (e.g. Road, Mountain, Hybrid)", example = "Hybrid")
     private String bikeType;
 
+    @Schema(description = "Frame size of the bike, e.g. 54cm", example = "54cm", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+    private String frameSize;
+
     @Schema(description = "List of images and videos attached to this bike", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
     private List<BikeMediaRequest> media;
 

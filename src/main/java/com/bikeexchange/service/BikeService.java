@@ -53,8 +53,8 @@ public class BikeService {
         return bikeRepository.findByCategories_Id(categoryId, pageable);
     }
 
-    public Page<Bike> searchBikesAdvanced(String keyword, Long categoryId, List<String> statusParams,
-            Pageable pageable) {
+        public Page<Bike> searchBikesAdvanced(String keyword, Long categoryId, List<String> statusParams,
+            Long minPrice, Long maxPrice, Integer minYear, String frameSize, Pageable pageable) {
         List<Bike.BikeStatus> statuses;
         if (statusParams != null && !statusParams.isEmpty()) {
             statuses = statusParams.stream()
@@ -80,6 +80,11 @@ public class BikeService {
                         pageable);
             }
             return bikeRepository.searchByKeywordAndStatuses(keyword.toLowerCase(), statuses, pageable);
+        }
+
+        // If price/frame filters provided, use advanced filter
+        if (minPrice != null || maxPrice != null || minYear != null || (frameSize != null && !frameSize.isBlank())) {
+            return bikeRepository.filterBikesAdvanced(minPrice, maxPrice, minYear, frameSize, pageable);
         }
 
         if (categoryId != null) {
@@ -116,6 +121,7 @@ public class BikeService {
         bike.setPricePoints(request.getPricePoints());
         bike.setCondition(request.getCondition());
         bike.setBikeType(request.getBikeType());
+        bike.setFrameSize(request.getFrameSize());
         bike.setStatus(Bike.BikeStatus.DRAFT);
         bike.setInspectionStatus(Bike.InspectionStatus.NONE);
         bike.setCreatedAt(LocalDateTime.now());
@@ -178,6 +184,7 @@ public class BikeService {
         bike.setPricePoints(request.getPricePoints());
         bike.setCondition(request.getCondition());
         bike.setBikeType(request.getBikeType());
+        bike.setFrameSize(request.getFrameSize());
         bike.setUpdatedAt(LocalDateTime.now());
 
         // Handle Media logic

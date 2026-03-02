@@ -40,6 +40,7 @@ public class DisputeController {
     }
 
     @PostMapping("/admin/dispute/{id}/resolve")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> resolveDispute(@PathVariable Long id,
             @RequestBody DisputeResolveRequest request) {
         Dispute dispute = disputeService.resolveDispute(id, request);
