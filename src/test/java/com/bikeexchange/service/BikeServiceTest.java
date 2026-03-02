@@ -15,8 +15,12 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 
 import java.util.Optional;
+import java.util.Collections;
 
 @ExtendWith(MockitoExtension.class)
 public class BikeServiceTest {
@@ -71,5 +75,15 @@ public class BikeServiceTest {
 
         Assertions.assertEquals(Bike.BikeStatus.DRAFT, saved.getStatus());
         Assertions.assertEquals(Bike.InspectionStatus.NONE, saved.getInspectionStatus());
+    }
+
+    @Test
+    public void searchAdvanced_withPriceAndFrame_filters() {
+        Page<Bike> page = new PageImpl<>(Collections.singletonList(new Bike()));
+        Mockito.when(bikeRepository.filterBikesAdvanced(Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any()))
+                .thenReturn(page);
+
+        Page<Bike> result = bikeService.searchBikesAdvanced(null, null, null, 100L, 500L, 2020, "54cm", PageRequest.of(0, 10));
+        Assertions.assertEquals(1, result.getTotalElements());
     }
 }

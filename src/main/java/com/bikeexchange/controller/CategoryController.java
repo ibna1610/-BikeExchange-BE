@@ -9,6 +9,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -21,6 +22,7 @@ public class CategoryController {
     private CategoryService categoryService;
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> create(@RequestBody CategoryRequest categoryrequest) {
         if (categoryrequest.getName() == null || categoryrequest.getName().isBlank()) {
             return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Category name is required"));
@@ -44,6 +46,7 @@ public class CategoryController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> update(@PathVariable Long id, @RequestBody Category payload) {
         return categoryService.update(id, payload)
                 .map(saved -> {
@@ -56,6 +59,7 @@ public class CategoryController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> delete(@PathVariable Long id) {
         boolean ok = categoryService.delete(id);
         if (ok) return ResponseEntity.ok(Map.of("success", true));

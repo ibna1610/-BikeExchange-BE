@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 @RestController
 @RequestMapping("/users")
@@ -54,6 +55,7 @@ public class UserController {
     }
 
     @PutMapping("/{userId}/verify")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<User> verifyUser(@PathVariable Long userId) {
         try {
             User verifiedUser = userService.verifyUser(userId);

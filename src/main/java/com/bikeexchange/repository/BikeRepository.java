@@ -39,6 +39,17 @@ public interface BikeRepository extends JpaRepository<Bike, Long> {
                      @Param("minYear") Integer minYear,
                      Pageable pageable);
 
+       @Query("SELECT b FROM Bike b WHERE (b.status = 'ACTIVE' OR b.status = 'VERIFIED') " +
+                     "AND (:minPrice IS NULL OR b.pricePoints >= :minPrice) " +
+                     "AND (:maxPrice IS NULL OR b.pricePoints <= :maxPrice) " +
+                     "AND (:minYear IS NULL OR b.year >= :minYear) " +
+                     "AND (:frameSize IS NULL OR b.frameSize = :frameSize)")
+       Page<Bike> filterBikesAdvanced(@Param("minPrice") Long minPrice,
+                     @Param("maxPrice") Long maxPrice,
+                     @Param("minYear") Integer minYear,
+                     @Param("frameSize") String frameSize,
+                     Pageable pageable);
+
        List<Bike> findByBikeTypeAndStatus(String bikeType, Bike.BikeStatus status);
 
        Page<Bike> findByCategories_Id(Long categoryId, Pageable pageable);

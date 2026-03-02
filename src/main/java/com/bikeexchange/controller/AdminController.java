@@ -26,6 +26,9 @@ import java.util.Objects;
 
 import com.bikeexchange.model.PointTransaction;
 import com.bikeexchange.dto.response.PointTransactionDto;
+import com.bikeexchange.model.Post;
+import com.bikeexchange.security.UserPrincipal;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
 @RestController
 @RequestMapping("/admin")
@@ -40,6 +43,7 @@ public class AdminController {
     WalletService walletService;
 
     @GetMapping("/dashboard")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> getDashboardMetrics() {
         Map<String, Object> metrics = adminService.getDashboardMetrics();
 
@@ -106,6 +110,38 @@ public class AdminController {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    // --- user management actions ---
+
+    @GetMapping("/users")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> listUsers() {
+        return ResponseEntity.ok(Map.of("success", true, "data", userRepository.findAll()));
+    }
+
+    @PostMapping("/users/{userId}/role")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> changeUserRole(@PathVariable Long userId, @RequestParam String role) {
+        return userRepository.findById(userId).map(u -> {
+            try {
+                u.setRole(com.bikeexchange.model.User.UserRole.valueOf(role.toUpperCase()));
+                userRepository.save(u);
+                return ResponseEntity.ok(Map.of("success", true, "data", u));
+            } catch (IllegalArgumentException ex) {
+                return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Invalid role"));
+            }
+        }).orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @PostMapping("/users/{userId}/status")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> changeUserStatus(@PathVariable Long userId, @RequestParam String status) {
+        return userRepository.findById(userId).map(u -> {
+            u.setStatus(status);
+            userRepository.save(u);
+            return ResponseEntity.ok(Map.of("success", true, "data", u));
+        }).orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
     @PostMapping("/inspectors/create")
     @PreAuthorize("hasRole('ADMIN')")
     @Transactional
@@ -136,5 +172,22 @@ public class AdminController {
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(Map.of("success", true, "message", "Inspector account created successfully", "data", saved));
+    }
+
+    @Autowired
+    private com.bikeexchange.service.PostService postService;
+
+    @PostMapping("/posts/{postId}/approve")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> approvePost(@PathVariable Long postId, @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser) {
+        Post post = postService.adminApprovePost(postId, currentUser.getId());
+        return ResponseEntity.ok(Map.of("success", true, "message", "Post approved", "data", post));
+    }
+
+    @PostMapping("/posts/{postId}/reject")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> rejectPost(@PathVariable Long postId, @RequestParam(required = false) String reason, @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser) {
+        Post post = postService.adminRejectPost(postId, currentUser.getId(), reason);
+        return ResponseEntity.ok(Map.of("success", true, "message", "Post rejected", "data", post));
     }
 }
