@@ -62,17 +62,10 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         
-        // Check if user is already a seller
-        if (user.getRole() == User.UserRole.SELLER) {
-            throw new IllegalArgumentException("User is already a seller");
-        }
-        
-        // Only BUYER can upgrade to SELLER
         if (user.getRole() != User.UserRole.BUYER) {
             throw new IllegalArgumentException("Only buyers can upgrade to seller status");
         }
         
-        // Set seller-specific information
         user.setRole(User.UserRole.SELLER);
         user.setShopName(shopName);
         user.setShopDescription(shopDescription);
