@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -15,7 +16,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import java.util.HashMap;
 import java.util.Map;
 
 @RestController
@@ -84,42 +84,28 @@ public class UserController {
 
     @PostMapping("/{userId}/upgrade-to-seller")
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Upgrade user from Buyer to Seller", description = "Allows an authenticated buyer to upgrade their account to a seller account")
+    @Operation(summary = "Upgrade user from Buyer to Seller")
     public ResponseEntity<?> upgradeToSeller(
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser,
             @PathVariable Long userId,
-            @RequestBody UpgradeToSellerRequest request) {
+            @Valid @RequestBody UpgradeToSellerRequest request) {
         try {
-            // Verify that the user is upgrading their own account
             if (!currentUser.getId().equals(userId)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                         .body(Map.of("success", false, "message", "You can only upgrade your own account"));
             }
 
-            // Verify that all required fields are provided
-            if (request.getShopName() == null || request.getShopName().trim().isEmpty()) {
-                return ResponseEntity.badRequest()
-                        .body(Map.of("success", false, "message", "Shop name is required"));
-            }
-
-            if (request.getShopDescription() == null || request.getShopDescription().trim().isEmpty()) {
-                return ResponseEntity.badRequest()
-                        .body(Map.of("success", false, "message", "Shop description is required"));
-            }
-
-            if (!Boolean.TRUE.equals(request.getAgreeToTerms())) {
+            if (!request.isAgreeToTerms()) {
                 return ResponseEntity.badRequest()
                         .body(Map.of("success", false, "message", "You must agree to the terms and conditions"));
             }
 
             User upgradedUser = userService.upgradeToSeller(userId, request.getShopName(), request.getShopDescription());
-            
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", true);
-            response.put("message", "User successfully upgraded to seller");
-            response.put("data", upgradedUser);
-            
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "User successfully upgraded to seller",
+                "data", upgradedUser
+            ));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest()
                     .body(Map.of("success", false, "message", e.getMessage()));
