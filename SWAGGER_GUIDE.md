@@ -130,6 +130,16 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 **Tổng cộng: 18 endpoints**
 
+### **Seller API** (`/api/users`, `/api/seller`)
+- ✅ Upgrade to Seller (1 endpoint)
+- ✅ Shop Management (shop info, stats)
+- ✅ Listings Management (create, update, delete bike listings)
+- ✅ Sales & Orders (track sales, manage orders)
+- ✅ Wallet & Earnings (view earnings, withdrawal)
+- ✅ Rating & Reviews (view customer feedback)
+
+**Tổng cộng: 10+ endpoints**
+
 ### **Admin API** (`/api/admin`)
 - ✅ Listing Management (5 endpoints)
 - ✅ User Management (6 endpoints)
@@ -171,14 +181,52 @@ POST /api/buyer/1/purchase/101?depositAmount=1000000
 Authorization: Bearer <token>
 ```
 
-### **4. Approve Listing (Admin)**
+### **4. Upgrade to Seller**
+```bash
+POST /users/1/upgrade-to-seller
+Content-Type: application/json
+
+Authorization: Bearer <token>
+
+{
+  "shopName": "My Bike Shop",
+  "shopDescription": "Quality bikes and accessories",
+  "agreeToTerms": true
+}
+```
+
+### **5. Create Bike Listing (Seller)**
+```bash
+POST /api/seller/listings/create
+Content-Type: application/json
+
+Authorization: Bearer <seller_token>
+
+{
+  "bikeName": "Giant TCR Advanced",
+  "bikeType": "Road",
+  "brand": "Giant",
+  "condition": "LIKE_NEW",
+  "pricePoints": 5000,
+  "description": "Professional road bike in excellent condition"
+}
+```
+
+### **6. Get Seller Dashboard Stats (Seller)**
+```bash
+GET /api/seller/dashboard/stats
+
+Authorization: Bearer <seller_token>
+```
+
+### **7. Approve Listing (Admin)**
 ```bash
 PUT /api/admin/listings/101/approve
 
 Authorization: Bearer <admin_token>
 ```
 
-### **5. Get Dashboard Stats (Admin)**
+### **8. Get Dashboard Stats (Admin)**
 ```bash
 GET /api/admin/metrics/dashboard
 
@@ -187,7 +235,36 @@ Authorization: Bearer <admin_token>
 
 ---
 
-## 🔍 Swagger UI Features
+## �️ Seller API Flow
+
+Seller có 3 bước chính:
+
+### **Bước 1: Upgrade từ Buyer → Seller**
+```bash
+POST /users/{userId}/upgrade-to-seller
+```
+- Body: `shopName`, `shopDescription`, `agreeToTerms`
+- Response: User object với role=SELLER
+- **Chỉ BUYER role mới có thể upgrade**
+- Sau upgrade, user nhận được seller capabilities
+
+### **Bước 2: Tạo & Quản lý Bike Listings**
+- `POST /api/seller/listings/create` - Tạo bike listing mới
+- `GET /api/seller/listings` - Xem tất cả listing của seller
+- `PUT /api/seller/listings/{id}` - Update listing info
+- `DELETE /api/seller/listings/{id}` - Delete listing
+- Listing cần admin approve trước khi khách có thể mua
+
+### **Bước 3: Quản lý Sales & Earnings**
+- `GET /api/seller/orders` - Xem orders của seller
+- `GET /api/seller/earnings/summary` - Xem tổng earnings
+- `POST /api/seller/withdraw-request` - Request rút tiền
+- `GET /api/seller/ratings` - Xem ratings từ buyers
+- Earnings = Sale Price - 5% Commission (admin fee)
+
+---
+
+## �🔍 Swagger UI Features
 
 ### **Explore & Test:**
 1. **Browse** tất cả endpoints được organize theo tags
