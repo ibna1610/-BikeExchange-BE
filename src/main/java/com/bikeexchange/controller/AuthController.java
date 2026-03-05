@@ -81,7 +81,8 @@ public class AuthController {
         @PostMapping("/register")
         @Transactional
         @Operation(summary = "Register New User", description = "Creates a new buyer account on the platform")
-        public ResponseEntity<?> registerUser(@RequestBody RegisterRequest signUpRequest) {
+        public ResponseEntity<?> registerUser(
+                        @org.springframework.web.bind.annotation.RequestBody RegisterRequest signUpRequest) {
                 if (userRepository.existsByEmail(signUpRequest.getEmail())) {
                         return new ResponseEntity<>(Collections.singletonMap("message", "Email is already taken!"),
                                         HttpStatus.BAD_REQUEST);
