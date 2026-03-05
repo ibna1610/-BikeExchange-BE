@@ -103,14 +103,21 @@ public class UserController {
             User upgradedUser = userService.upgradeToSeller(userId, request.getShopName(), request.getShopDescription());
             return ResponseEntity.ok(Map.of(
                 "success", true,
-                "message", "User successfully upgraded to seller",
+                "message", "User successfully upgraded to seller (50,000 points fee charged)",
                 "data", upgradedUser
             ));
+        } catch (com.bikeexchange.exception.InsufficientBalanceException e) {
+            return ResponseEntity.status(HttpStatus.PAYMENT_REQUIRED)
+                    .body(Map.of("success", false, "message", e.getMessage(), "code", "INSUFFICIENT_BALANCE"));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest()
                     .body(Map.of("success", false, "message", e.getMessage()));
+        } catch (com.bikeexchange.exception.ResourceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("success", false, "message", e.getMessage()));
         } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("success", false, "message", "An error occurred during upgrade"));
         }
     }
 
