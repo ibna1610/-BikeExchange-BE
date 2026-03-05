@@ -36,7 +36,7 @@ public class CategoryController {
 
     @GetMapping
     public ResponseEntity<?> list(@RequestParam(defaultValue = "0") int page,
-                                  @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(defaultValue = "20") int size) {
         Pageable pageable = PageRequest.of(page, size);
         Page<Category> result = categoryService.list(pageable);
         Map<String, Object> response = new HashMap<>();
@@ -62,14 +62,15 @@ public class CategoryController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> delete(@PathVariable Long id) {
         boolean ok = categoryService.delete(id);
-        if (ok) return ResponseEntity.ok(Map.of("success", true));
+        if (ok)
+            return ResponseEntity.ok(Map.of("success", true));
         return ResponseEntity.notFound().build();
     }
 
     @GetMapping("/{id}/bikes")
     public ResponseEntity<?> listBikesByCategory(@PathVariable Long id,
-                                                 @RequestParam(defaultValue = "0") int page,
-                                                 @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
         Pageable pageable = PageRequest.of(page, size);
         Page<com.bikeexchange.dto.response.BikeResponse> result = categoryService.listBikesByCategory(id, pageable);
         Map<String, Object> response = new HashMap<>();
