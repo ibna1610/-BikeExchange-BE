@@ -97,7 +97,7 @@ public class OrderService {
         }
 
         Long total = order.getAmountPoints();
-        Long adminCommission = (long) (total * 0.05); // 5%
+        Long adminCommission = (long) (total * 0.02); // 2%
         Long sellerRevenue = total - adminCommission;
 
         UserWallet buyerWallet = walletRepository.findByUserIdForUpdate(buyerId)

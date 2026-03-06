@@ -52,10 +52,23 @@ public class OrderController {
 
         Order order = orderService.approveOrder(id, currentUser.getId());
 
+        // Calculate transfer details
+        Long total = order.getAmountPoints();
+        Long adminCommission = (long) (total * 0.02);
+        Long sellerRevenue = total - adminCommission;
+
+        Map<String, Object> transferDetails = new HashMap<>();
+        transferDetails.put("sellerId", order.getBike().getSeller().getId());
+        transferDetails.put("sellerName", order.getBike().getSeller().getFullName());
+        transferDetails.put("amountReceived", sellerRevenue);
+        transferDetails.put("commission", adminCommission);
+        transferDetails.put("totalAmount", total);
+
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
         response.put("message", "Order completed and points released to seller");
         response.put("data", OrderResponse.fromEntity(order));
+        response.put("transferDetails", transferDetails);
         return ResponseEntity.ok(response);
     }
 }
