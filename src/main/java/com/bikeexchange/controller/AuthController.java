@@ -2,13 +2,17 @@ package com.bikeexchange.controller;
 
 import com.bikeexchange.dto.request.LoginRequest;
 import com.bikeexchange.dto.request.RegisterRequest;
+import com.bikeexchange.dto.request.ResetPasswordRequest;
 import com.bikeexchange.dto.response.JwtAuthResponse;
 import com.bikeexchange.model.User;
 import com.bikeexchange.model.UserWallet;
+import com.bikeexchange.model.VerificationToken;
 import com.bikeexchange.repository.UserRepository;
 import com.bikeexchange.repository.UserWalletRepository;
+import com.bikeexchange.repository.VerificationTokenRepository;
 import com.bikeexchange.security.JwtTokenProvider;
 import com.bikeexchange.security.UserPrincipal;
+import com.bikeexchange.service.EmailService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -50,6 +54,12 @@ public class AuthController {
 
         @Autowired
         private JwtTokenProvider tokenProvider;
+
+        @Autowired
+        private EmailService emailService;
+ 
+        @Autowired
+        private VerificationTokenRepository tokenRepository;
 
         @PostMapping("/login")
         @Operation(summary = "Authenticate User", description = "Login user using email and password to receive a JWT access token. Use the dropdown to auto-fill sample accounts.")
@@ -98,6 +108,13 @@ public class AuthController {
 
                 User savedUser = userRepository.save(user);
 
+                // Create and save verification token
+                VerificationToken token = new VerificationToken(savedUser, VerificationToken.TokenType.VERIFICATION);
+                tokenRepository.save(token);
+
+                // Send verification email
+                emailService.sendVerificationEmail(savedUser, token.getToken());
+
                 // Create Wallet for the new user
                 UserWallet wallet = new UserWallet();
                 wallet.setUser(savedUser);
@@ -107,8 +124,97 @@ public class AuthController {
 
                 Map<String, Object> response = new HashMap<>();
                 response.put("success", true);
-                response.put("message", "User registered successfully with a new wallet");
+                response.put("message", "User registered successfully. Please check your email to verify your account.");
 
                 return new ResponseEntity<>(response, HttpStatus.CREATED);
+        }
+
+        @PostMapping("/verify")
+        @Transactional
+        @Operation(summary = "Verify Email", description = "Verify user's email using the token sent to them")
+        public ResponseEntity<?> verifyUser(@RequestParam("token") String token) {
+                VerificationToken verificationToken = tokenRepository
+                                .findByTokenAndType(token, VerificationToken.TokenType.VERIFICATION)
+                                .orElse(null);
+
+                if (verificationToken == null) {
+                        return new ResponseEntity<>(Collections.singletonMap("message", "Invalid token!"),
+                                        HttpStatus.BAD_REQUEST);
+                }
+
+                if (verificationToken.isExpired()) {
+                        return new ResponseEntity<>(Collections.singletonMap("message", "Token expired!"),
+                                        HttpStatus.BAD_REQUEST);
+                }
+
+                User user = verificationToken.getUser();
+                user.setIsVerified(true);
+                user.setStatus("ACTIVE");
+                userRepository.save(user);
+
+                tokenRepository.deleteByUserAndType(user, VerificationToken.TokenType.VERIFICATION);
+
+                return ResponseEntity.ok(Collections.singletonMap("message", "Account verified successfully!"));
+        }
+
+        @PostMapping("/forgot-password")
+        @Transactional
+        @Operation(summary = "Forgot Password", description = "Send a password reset link to the user's email")
+        public ResponseEntity<?> forgotPassword(@RequestParam String email) {
+                User user = userRepository.findByEmail(email).orElse(null);
+                if (user == null) {
+                        return new ResponseEntity<>(Collections.singletonMap("message", "User not found with this email!"),
+                                        HttpStatus.NOT_FOUND);
+                }
+
+                // Delete any existing reset tokens
+                tokenRepository.deleteByUserAndType(user, VerificationToken.TokenType.PASSWORD_RESET);
+
+                VerificationToken token = new VerificationToken(user, VerificationToken.TokenType.PASSWORD_RESET);
+                tokenRepository.save(token);
+
+                emailService.sendResetPasswordEmail(user, token.getToken());
+
+                return ResponseEntity.ok(Collections.singletonMap("message", "Password reset link has been sent to your email."));
+        }
+
+        @PostMapping("/reset-password")
+        @Transactional
+        @Operation(summary = "Reset Password", description = "Reset user's password using the token and new password")
+        public ResponseEntity<?> resetPassword(@org.springframework.web.bind.annotation.RequestBody ResetPasswordRequest request) {
+                if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+                        return new ResponseEntity<>(Collections.singletonMap("message", "Passwords do not match!"),
+                                        HttpStatus.BAD_REQUEST);
+                }
+
+                VerificationToken resetToken = tokenRepository
+                                .findByTokenAndType(request.getToken(), VerificationToken.TokenType.PASSWORD_RESET)
+                                .orElse(null);
+
+                if (resetToken == null || resetToken.isExpired()) {
+                        return new ResponseEntity<>(Collections.singletonMap("message", "Invalid or expired token!"),
+                                        HttpStatus.BAD_REQUEST);
+                }
+
+                User user = resetToken.getUser();
+                user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+                userRepository.save(user);
+
+                tokenRepository.deleteByUserAndType(user, VerificationToken.TokenType.PASSWORD_RESET);
+
+                return ResponseEntity.ok(Collections.singletonMap("message", "Password has been successfully reset."));
+        }
+
+        @PostMapping("/change-status/{id}")
+        @Operation(summary = "Change User Status", description = "Allow admin to change user status (e.g., ACTIVE, BANNED, UNVERIFIED)")
+        public ResponseEntity<?> changeStatus(@PathVariable Long id, @RequestParam String status) {
+                User user = userRepository.findById(id).orElse(null);
+                if (user == null) {
+                        return new ResponseEntity<>(Collections.singletonMap("message", "User not found!"),
+                                        HttpStatus.NOT_FOUND);
+                }
+                user.setStatus(status);
+                userRepository.save(user);
+                return ResponseEntity.ok(Collections.singletonMap("message", "User status updated to " + status));
         }
 }

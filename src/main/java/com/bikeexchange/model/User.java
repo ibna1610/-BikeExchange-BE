@@ -54,7 +54,7 @@ public class User {
     @Column(name = "is_verified", columnDefinition = "BOOLEAN DEFAULT FALSE")
     private Boolean isVerified;
 
-    @Column(name = "status", columnDefinition = "VARCHAR(20) DEFAULT 'ACTIVE'")
+    @Column(name = "status", columnDefinition = "VARCHAR(20) DEFAULT 'UNVERIFIED'")
     private String status;
 
     @Column(name = "deleted_at")
@@ -78,7 +78,7 @@ public class User {
         rating = 5.0;
         isVerified = false;
         if (status == null)
-            status = "ACTIVE";
+            status = "UNVERIFIED";
     }
 
     @PreUpdate
