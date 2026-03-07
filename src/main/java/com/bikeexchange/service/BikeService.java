@@ -2,16 +2,10 @@ package com.bikeexchange.service;
 
 import com.bikeexchange.dto.request.BikeCreateRequest;
 import com.bikeexchange.dto.request.BikeMediaRequest;
+import com.bikeexchange.exception.InsufficientBalanceException;
 import com.bikeexchange.exception.ResourceNotFoundException;
-import com.bikeexchange.model.Bike;
-import com.bikeexchange.model.BikeMedia;
-import com.bikeexchange.model.Brand;
-import com.bikeexchange.model.Category;
-import com.bikeexchange.model.User;
-import com.bikeexchange.repository.BikeRepository;
-import com.bikeexchange.repository.BrandRepository;
-import com.bikeexchange.repository.CategoryRepository;
-import com.bikeexchange.repository.UserRepository;
+import com.bikeexchange.model.*;
+import com.bikeexchange.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -42,6 +36,12 @@ public class BikeService {
     @Autowired
     private HistoryService historyService;
 
+    @Autowired
+    private UserWalletRepository walletRepository;
+
+    @Autowired
+    private PointTransactionRepository pointTxRepo;
+
     public Page<Bike> searchBikes(String keyword, Pageable pageable) {
         if (keyword != null && !keyword.isBlank()) {
             return bikeRepository.searchAllStatuses(keyword, pageable);
@@ -53,7 +53,7 @@ public class BikeService {
         return bikeRepository.findByCategories_Id(categoryId, pageable);
     }
 
-        public Page<Bike> searchBikesAdvanced(String keyword, Long categoryId, List<String> statusParams,
+    public Page<Bike> searchBikesAdvanced(String keyword, Long categoryId, List<String> statusParams,
             Long minPrice, Long maxPrice, Integer minYear, String frameSize, Pageable pageable) {
         List<Bike.BikeStatus> statuses;
         if (statusParams != null && !statusParams.isEmpty()) {
@@ -151,6 +151,28 @@ public class BikeService {
             }
             bike.setCategories(categories);
         }
+
+        // Deduct 5 points for posting a new bike
+        long postFee = 5L;
+        UserWallet wallet = walletRepository.findByUserIdForUpdate(sellerId)
+                .orElseThrow(() -> new ResourceNotFoundException("Wallet not found for seller"));
+
+        if (wallet.getAvailablePoints() < postFee) {
+            throw new InsufficientBalanceException("Số dư không đủ. Bạn cần 5 điểm để đăng xe mới.");
+        }
+
+        wallet.setAvailablePoints(wallet.getAvailablePoints() - postFee);
+        walletRepository.save(wallet);
+
+        // Record the transaction
+        PointTransaction tx = new PointTransaction();
+        tx.setUser(seller);
+        tx.setAmount(postFee);
+        tx.setType(PointTransaction.TransactionType.SPEND);
+        tx.setStatus(PointTransaction.TransactionStatus.SUCCESS);
+        tx.setReferenceId("BIKE_POST_FEE_" + bike.getId());
+        tx.setRemarks("Phí đăng tin xe đạp mới");
+        pointTxRepo.save(tx);
 
         Bike saved = bikeRepository.save(bike);
         historyService.log("bike", saved.getId(), "created", seller.getId(), null);

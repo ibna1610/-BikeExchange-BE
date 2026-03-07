@@ -66,7 +66,8 @@ public class VnPayService {
             String encodedName = java.net.URLEncoder.encode(field, java.nio.charset.StandardCharsets.UTF_8);
             String encodedValue = java.net.URLEncoder.encode(value, java.nio.charset.StandardCharsets.UTF_8);
             hashData.append(encodedName).append("=").append(encodedValue);
-            if (i < fieldNames.size() - 1) hashData.append("&");
+            if (i < fieldNames.size() - 1)
+                hashData.append("&");
         }
         String expected = config.hmacSHA512(config.getHashSecret(), hashData.toString());
         String provided = queryParams.getOrDefault("vnp_SecureHash", "");
@@ -79,7 +80,8 @@ public class VnPayService {
         if (existed.isPresent() && existed.get().getStatus() == PointTransaction.TransactionStatus.SUCCESS) {
             return false;
         }
-        Long points = amountVnd / 1000;
+        // Tỷ lệ quy đổi: 1.000 VNĐ = 1.000 Điểm (tương đương 1 VNĐ = 1 Điểm)
+        Long points = amountVnd;
         walletService.depositPoints(userId, points, referenceId);
         return true;
     }
