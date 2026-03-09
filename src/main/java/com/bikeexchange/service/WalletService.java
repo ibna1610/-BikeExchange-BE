@@ -153,4 +153,45 @@ public class WalletService {
         return pointTxRepo.findByTypeAndStatusInOrderByCreatedAtDesc(PointTransaction.TransactionType.WITHDRAW,
                 statuses);
     }
+
+    /**
+     * List all transactions, optionally filtering by status.
+     */
+    public List<PointTransaction> getAllTransactions(java.util.List<PointTransaction.TransactionStatus> statuses) {
+        if (statuses == null || statuses.isEmpty()) {
+            return pointTxRepo.findAllByOrderByCreatedAtDesc();
+        }
+        return pointTxRepo.findByStatusInOrderByCreatedAtDesc(statuses);
+    }
+
+    /**
+     * Cancel an arbitrary transaction.  If it's a pending withdrawal, behaves like rejectWithdrawal.
+     * If it's a successful deposit, attempt to reverse the deposit (deduct from wallet).
+     */
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public void cancelTransaction(Long transactionId, String reason) {
+        PointTransaction tx = pointTxRepo.findById(transactionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Transaction not found"));
+        if (tx.getType() == PointTransaction.TransactionType.WITHDRAW
+                && tx.getStatus() == PointTransaction.TransactionStatus.PENDING) {
+            rejectWithdrawal(transactionId, reason);
+            return;
+        }
+        // generic cancellation: mark failed and refund for deposits
+        if (tx.getStatus() == PointTransaction.TransactionStatus.SUCCESS) {
+            tx.setStatus(PointTransaction.TransactionStatus.FAILED);
+            tx.setRemarks(reason);
+            pointTxRepo.save(tx);
+            if (tx.getType() == PointTransaction.TransactionType.DEPOSIT) {
+                UserWallet wallet = walletRepository.findByUserIdForUpdate(tx.getUser().getId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Wallet not found"));
+                wallet.setAvailablePoints(wallet.getAvailablePoints() - tx.getAmount());
+                walletRepository.save(wallet);
+            }
+        } else {
+            tx.setStatus(PointTransaction.TransactionStatus.FAILED);
+            tx.setRemarks(reason);
+            pointTxRepo.save(tx);
+        }
+    }
 }

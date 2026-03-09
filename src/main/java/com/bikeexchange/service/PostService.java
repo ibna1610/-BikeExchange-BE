@@ -198,6 +198,25 @@ public class PostService {
         return saved;
     }
 
+    /**
+     * Generic status change to allow admin to set arbitrary status value.
+     * Reason is optional and logged when present.
+     */
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public Post adminUpdatePostStatus(Long postId, Long adminId, String statusStr, String reason) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new ResourceNotFoundException("Post not found"));
+        try {
+            Post.PostStatus newStatus = Post.PostStatus.valueOf(statusStr.trim().toUpperCase());
+            post.setStatus(newStatus);
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException("Invalid status: " + statusStr);
+        }
+        Post saved = postRepository.save(post);
+        historyService.log("post", saved.getId(), "status->" + post.getStatus(), adminId, reason);
+        return saved;
+    }
+
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public void deletePost(Long postId, Long sellerId) {
         Post post = getSellerPost(postId, sellerId);

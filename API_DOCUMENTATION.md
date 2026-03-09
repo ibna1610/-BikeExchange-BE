@@ -39,11 +39,11 @@
 ### 2️⃣ ADMIN API (`/api/admin`)
 
 #### 📋 Listing Management (Quản lý tin đăng)
-- **PUT** `/api/admin/listings/{bikeId}/approve` - Duyệt tin đăng
-- **PUT** `/api/admin/listings/{bikeId}/reject?reason=TEXT` - Từ chối tin (kèm lý do)
-- **GET** `/api/admin/listings/pending?page=0&size=20` - Xem danh sách tin chờ duyệt
-- **PUT** `/api/admin/listings/{bikeId}/lock` - Khóa tin đăng
-- **DELETE** `/api/admin/listings/{bikeId}` - Xóa tin đăng
+- **GET** `/api/admin/listings?status=ACTIVE&status=VERIFIED&page=0&size=20` - Lấy danh sách tin đăng (lọc theo status)
+- **PUT** `/api/admin/listings/{listingId}` - Cập nhật trạng thái (param `status`, optional `reason`)
+- **POST** `/api/admin/posts/{postId}/approve` - Phê duyệt tin đăng (một alias cho listings)
+- **PUT** `/api/admin/listings/{listingId}/lock` - Khóa tin đăng (chuyển sang CANCELLED)
+- **DELETE** `/api/admin/listings/{listingId}` - Xóa tin đăng (chuyển sang CANCELLED)
 
 #### 👥 User Management (Quản lý người dùng)
 - **GET** `/api/admin/users?page=0&size=20` - Danh sách tất cả người dùng

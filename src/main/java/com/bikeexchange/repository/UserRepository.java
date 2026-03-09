@@ -11,4 +11,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByEmail(String email);
 
     boolean existsByEmail(String email);
+
+    // admin helpers
+    org.springframework.data.domain.Page<User> findByRole(User.UserRole role, org.springframework.data.domain.Pageable pageable);
+    org.springframework.data.domain.Page<User> findByStatus(String status, org.springframework.data.domain.Pageable pageable);
+    org.springframework.data.domain.Page<User> findByEmailContainingIgnoreCase(String email, org.springframework.data.domain.Pageable pageable);
 }

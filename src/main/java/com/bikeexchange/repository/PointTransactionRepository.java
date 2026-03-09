@@ -22,4 +22,8 @@ public interface PointTransactionRepository extends JpaRepository<PointTransacti
             java.util.List<PointTransaction.TransactionStatus> statuses);
 
     Optional<PointTransaction> findByReferenceId(String referenceId);
+
+    // general listings
+    java.util.List<PointTransaction> findAllByOrderByCreatedAtDesc();
+    java.util.List<PointTransaction> findByStatusInOrderByCreatedAtDesc(java.util.List<PointTransaction.TransactionStatus> statuses);
 }
