@@ -4,7 +4,7 @@ import com.bikeexchange.dto.request.DisputeCreateRequest;
 import com.bikeexchange.dto.request.DisputeResolveRequest;
 import com.bikeexchange.model.Dispute;
 import com.bikeexchange.security.UserPrincipal;
-import com.bikeexchange.service.DisputeService;
+import com.bikeexchange.service.service.DisputeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;

@@ -5,8 +5,8 @@ import com.bikeexchange.model.User;
 import com.bikeexchange.model.UserWallet;
 import com.bikeexchange.repository.UserRepository;
 import com.bikeexchange.repository.UserWalletRepository;
-import com.bikeexchange.service.AdminService;
-import com.bikeexchange.service.WalletService;
+import com.bikeexchange.service.service.AdminService;
+import com.bikeexchange.service.service.WalletService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -58,7 +58,7 @@ public class AdminController {
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "List all withdrawals", description = "Retrieve a list of all withdrawal requests with optional status filter.")
     public ResponseEntity<?> getWithdrawals(
-            @Parameter(description = "Filter by statuses (PENDING, SUCCESS, FAILED). Repeat param or comma-separated.", example = "PENDING") @RequestParam(required = false) List<String> status) {
+            @Parameter(example = "PENDING") @RequestParam(name = "status", required = false) List<String> status) {
 
         List<PointTransaction.TransactionStatus> statuses = null;
         if (status != null && !status.isEmpty()) {
@@ -86,7 +86,7 @@ public class AdminController {
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Approve a withdrawal", description = "Marks a pending withdrawal as SUCCESS and releases frozen points.")
     public ResponseEntity<?> approveWithdrawal(
-            @Parameter(description = "ID of the withdrawal transaction", example = "1") @PathVariable Long transactionId) {
+            @Parameter(example = "1") @PathVariable(name = "transactionId") Long transactionId) {
         walletService.approveWithdrawal(transactionId);
         return ResponseEntity.ok(Map.of("success", true, "message", "Withdrawal approved and completed"));
     }
@@ -95,8 +95,8 @@ public class AdminController {
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Reject a withdrawal", description = "Marks a pending withdrawal as FAILED and refunds points to caller.")
     public ResponseEntity<?> rejectWithdrawal(
-            @Parameter(description = "ID of the withdrawal transaction", example = "1") @PathVariable Long transactionId,
-            @Parameter(description = "Reason for rejection", example = "Invalid bank details") @RequestParam String reason) {
+            @Parameter(example = "1") @PathVariable(name = "transactionId") Long transactionId,
+            @Parameter(example = "Invalid bank details") @RequestParam(name = "reason") String reason) {
         walletService.rejectWithdrawal(transactionId, reason);
         return ResponseEntity.ok(Map.of("success", true, "message", "Withdrawal rejected and points refunded"));
     }
@@ -175,18 +175,20 @@ public class AdminController {
     }
 
     @Autowired
-    private com.bikeexchange.service.PostService postService;
+    private com.bikeexchange.service.service.PostService postService;
 
     @PostMapping("/posts/{postId}/approve")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> approvePost(@PathVariable Long postId, @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser) {
+    public ResponseEntity<?> approvePost(@PathVariable Long postId,
+            @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser) {
         Post post = postService.adminApprovePost(postId, currentUser.getId());
         return ResponseEntity.ok(Map.of("success", true, "message", "Post approved", "data", post));
     }
 
     @PostMapping("/posts/{postId}/reject")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> rejectPost(@PathVariable Long postId, @RequestParam(required = false) String reason, @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser) {
+    public ResponseEntity<?> rejectPost(@PathVariable Long postId, @RequestParam(required = false) String reason,
+            @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser) {
         Post post = postService.adminRejectPost(postId, currentUser.getId(), reason);
         return ResponseEntity.ok(Map.of("success", true, "message", "Post rejected", "data", post));
     }

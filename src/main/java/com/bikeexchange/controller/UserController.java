@@ -1,7 +1,7 @@
 package com.bikeexchange.controller;
 
 import com.bikeexchange.model.User;
-import com.bikeexchange.service.UserService;
+import com.bikeexchange.service.service.UserService;
 import com.bikeexchange.dto.request.UpgradeToSellerRequest;
 import com.bikeexchange.security.UserPrincipal;
 import org.springframework.beans.factory.annotation.Autowired;

@@ -1,4 +1,4 @@
-package com.bikeexchange.service;
+package com.bikeexchange.service.service;
 
 import com.bikeexchange.dto.request.BikeCreateRequest;
 import com.bikeexchange.dto.request.BikeMediaRequest;
@@ -122,7 +122,7 @@ public class BikeService {
         bike.setCondition(request.getCondition());
         bike.setBikeType(request.getBikeType());
         bike.setFrameSize(request.getFrameSize());
-        bike.setStatus(Bike.BikeStatus.DRAFT);
+        bike.setStatus(Bike.BikeStatus.ACTIVE);
         bike.setInspectionStatus(Bike.InspectionStatus.NONE);
         bike.setCreatedAt(LocalDateTime.now());
         bike.setMileage(0);

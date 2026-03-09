@@ -4,7 +4,7 @@ import com.bikeexchange.dto.request.OrderCreateRequest;
 import com.bikeexchange.dto.response.OrderResponse;
 import com.bikeexchange.model.Order;
 import com.bikeexchange.security.UserPrincipal;
-import com.bikeexchange.service.OrderService;
+import com.bikeexchange.service.service.OrderService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -47,7 +47,7 @@ public class OrderController {
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Approve an Order", description = "Buyer confirms receipt to release escrowed points to the seller.")
     public ResponseEntity<?> approveOrder(
-            @Parameter(description = "ID of the order to approve", example = "1") @PathVariable Long id,
+            @Parameter(example = "1") @PathVariable Long id,
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser) {
 
         Order order = orderService.approveOrder(id, currentUser.getId());

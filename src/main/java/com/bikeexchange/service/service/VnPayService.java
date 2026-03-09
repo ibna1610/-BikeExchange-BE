@@ -1,4 +1,4 @@
-package com.bikeexchange.service;
+package com.bikeexchange.service.service;
 
 import com.bikeexchange.config.VNPAYConfig;
 import com.bikeexchange.model.PointTransaction;

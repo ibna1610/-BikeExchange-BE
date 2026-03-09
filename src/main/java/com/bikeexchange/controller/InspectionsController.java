@@ -11,7 +11,7 @@ import com.bikeexchange.security.UserPrincipal;
 import com.bikeexchange.repository.HistoryRepository;
 import com.bikeexchange.repository.InspectionRepository;
 import com.bikeexchange.repository.ReportRepository;
-import com.bikeexchange.service.InspectionService;
+import com.bikeexchange.service.service.InspectionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -61,14 +61,14 @@ public class InspectionsController {
     @GetMapping
     @Operation(summary = "List inspections", description = "Filters: bike_id, inspector_id, status, date_from, date_to. Returns a paginated list.")
     public ResponseEntity<?> list(
-            @Parameter(description = "Filter by bike listing id", example = "10") @RequestParam(value = "bike_id", required = false) Long bike_id,
-            @Parameter(description = "Filter by seller id", example = "3") @RequestParam(value = "sellerId", required = false) Long sellerId,
-            @Parameter(description = "Filter by inspector user id", example = "2") @RequestParam(value = "inspector_id", required = false) Long inspector_id,
-            @Parameter(description = "Filter by inspection status", example = "REQUESTED") @RequestParam(value = "status", required = false) InspectionRequest.RequestStatus status,
-            @Parameter(description = "Created at from (ISO-8601)", example = "2026-02-01T00:00:00") @RequestParam(value = "date_from", required = false) String date_from,
-            @Parameter(description = "Created at to (ISO-8601)", example = "2026-02-28T23:59:59") @RequestParam(value = "date_to", required = false) String date_to,
-            @Parameter(description = "Page number (0-indexed)", example = "0") @RequestParam(value = "page", defaultValue = "0") int page,
-            @Parameter(description = "Items per page", example = "20") @RequestParam(value = "size", defaultValue = "20") int size) {
+            @Parameter(example = "10") @RequestParam(name = "bike_id", required = false) Long bike_id,
+            @Parameter(example = "3") @RequestParam(name = "sellerId", required = false) Long sellerId,
+            @Parameter(example = "2") @RequestParam(name = "inspector_id", required = false) Long inspector_id,
+            @Parameter(example = "REQUESTED") @RequestParam(name = "status", required = false) InspectionRequest.RequestStatus status,
+            @Parameter(example = "2026-02-01T00:00:00") @RequestParam(name = "date_from", required = false) String date_from,
+            @Parameter(example = "2026-02-28T23:59:59") @RequestParam(name = "date_to", required = false) String date_to,
+            @Parameter(example = "0") @RequestParam(name = "page", defaultValue = "0") int page,
+            @Parameter(example = "20") @RequestParam(name = "size", defaultValue = "20") int size) {
         Pageable pageable = PageRequest.of(page, size);
         Specification<InspectionRequest> spec = Specification.where(null);
 
@@ -119,7 +119,7 @@ public class InspectionsController {
     @GetMapping("/{inspectionId}")
     @Operation(summary = "Get inspection", description = "Returns inspection by id with report and history.")
     public ResponseEntity<?> getOne(
-            @Parameter(description = "Inspection request id", example = "5") @PathVariable("inspectionId") Long inspectionId) {
+            @Parameter(example = "5") @PathVariable(name = "inspectionId") Long inspectionId) {
         return inspectionRepository.findById(inspectionId)
                 .map(i -> {
                     InspectionResponse inspection = InspectionResponse.fromEntity(i);
@@ -142,8 +142,8 @@ public class InspectionsController {
     @PreAuthorize("hasRole('INSPECTOR')")
     @Operation(summary = "Update inspection status", description = "Roles: Inspector (ASSIGNED/IN_PROGRESS/INSPECTED). Must be an Inspector.")
     public ResponseEntity<?> updateStatus(
-            @Parameter(description = "Inspection request id", example = "5") @PathVariable("inspectionId") Long inspectionId,
-            @Parameter(description = "New status", example = "ASSIGNED") @RequestParam("status") InspectionRequest.RequestStatus status,
+            @Parameter(example = "5") @PathVariable("inspectionId") Long inspectionId,
+            @Parameter(example = "ASSIGNED") @RequestParam("status") InspectionRequest.RequestStatus status,
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser) {
         InspectionRequest inspection = inspectionRepository.findById(inspectionId)
                 .orElse(null);
@@ -174,7 +174,7 @@ public class InspectionsController {
     @PreAuthorize("hasRole('INSPECTOR')")
     @Operation(summary = "Submit inspection report", description = "Roles: Inspector. Include medias: [{url,type,sortOrder}]")
     public ResponseEntity<?> submitReport(
-            @Parameter(description = "Inspection request id", example = "5") @PathVariable("inspectionId") Long inspectionId,
+            @Parameter(example = "5") @PathVariable("inspectionId") Long inspectionId,
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser,
             @RequestBody InspectionReportDto request) {
         Long inspectorId = currentUser.getId();
@@ -189,7 +189,7 @@ public class InspectionsController {
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Approve inspection request", description = "Roles: Admin. Approving marks bike as VERIFIED and releases commission.")
     public ResponseEntity<?> approveInspection(
-            @Parameter(description = "Inspection request id", example = "5") @PathVariable("inspectionId") Long inspectionId,
+            @Parameter(example = "5") @PathVariable("inspectionId") Long inspectionId,
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser) {
         Long adminId = currentUser.getId();
         InspectionReport report = inspectionService.adminApproveInspection(inspectionId, adminId);

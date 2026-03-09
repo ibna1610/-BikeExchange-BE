@@ -2,7 +2,7 @@ package com.bikeexchange.controller;
 
 import com.bikeexchange.dto.request.CategoryRequest;
 import com.bikeexchange.model.Category;
-import com.bikeexchange.service.CategoryService;
+import com.bikeexchange.service.service.CategoryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;

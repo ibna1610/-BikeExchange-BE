@@ -3,7 +3,7 @@ package com.bikeexchange.controller;
 import com.bikeexchange.dto.request.BikeCreateRequest;
 import com.bikeexchange.model.Bike;
 import com.bikeexchange.security.UserPrincipal;
-import com.bikeexchange.service.BikeService;
+import com.bikeexchange.service.service.BikeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -33,17 +33,18 @@ public class BikeController {
     @GetMapping
     @Operation(summary = "Search and Filter Bikes", description = "Retrieve a paginated list of bikes. Filters: keyword, category_id, status (repeat param or comma-separated).")
     public ResponseEntity<?> getListings(
-            @Parameter(description = "Search keyword for title, brand, or model", example = "Giant") @RequestParam(required = false) String keyword,
-            @Parameter(description = "Filter by category ID", example = "1") @RequestParam(name = "category_id", required = false) Long categoryId,
-            @Parameter(description = "Filter by statuses (repeat param or comma-separated). Example: status=VERIFIED&status=ACTIVE", example = "VERIFIED") @RequestParam(name = "status", required = false) java.util.List<String> statusParams,
-            @Parameter(description = "Minimum price (points)", example = "1000") @RequestParam(name = "price_min", required = false) Long priceMin,
-            @Parameter(description = "Maximum price (points)", example = "5000") @RequestParam(name = "price_max", required = false) Long priceMax,
-            @Parameter(description = "Minimum year", example = "2018") @RequestParam(name = "min_year", required = false) Integer minYear,
-            @Parameter(description = "Frame size (e.g., 54cm)", example = "54cm") @RequestParam(name = "frame_size", required = false) String frameSize,
-            @Parameter(description = "Page number (0-indexed)", example = "0") @RequestParam(defaultValue = "0") int page,
-            @Parameter(description = "Number of items per page", example = "20") @RequestParam(defaultValue = "20") int size) {
+            @Parameter(example = "Giant") @RequestParam(name = "keyword", required = false) String keyword,
+            @Parameter(example = "1") @RequestParam(name = "category_id", required = false) Long categoryId,
+            @Parameter(example = "VERIFIED") @RequestParam(name = "status", required = false) java.util.List<String> statusParams,
+            @Parameter(example = "1000") @RequestParam(name = "price_min", required = false) Long priceMin,
+            @Parameter(example = "5000") @RequestParam(name = "price_max", required = false) Long priceMax,
+            @Parameter(example = "2018") @RequestParam(name = "min_year", required = false) Integer minYear,
+            @Parameter(example = "54cm") @RequestParam(name = "frame_size", required = false) String frameSize,
+            @Parameter(example = "0") @RequestParam(name = "page", defaultValue = "0") int page,
+            @Parameter(example = "20") @RequestParam(name = "size", defaultValue = "20") int size) {
         Pageable pageable = PageRequest.of(page, size);
-        Page<Bike> result = bikeService.searchBikesAdvanced(keyword, categoryId, statusParams, priceMin, priceMax, minYear, frameSize, pageable);
+        Page<Bike> result = bikeService.searchBikesAdvanced(keyword, categoryId, statusParams, priceMin, priceMax,
+                minYear, frameSize, pageable);
 
         Page<com.bikeexchange.dto.response.BikeResponse> dtoPage = result
                 .map(com.bikeexchange.dto.response.BikeResponse::fromEntity);
@@ -57,7 +58,7 @@ public class BikeController {
     @GetMapping("/{id}")
     @Operation(summary = "Get Bike Details", description = "Fetch complete details of a single bike listing by its ID")
     public ResponseEntity<?> getListing(
-            @Parameter(description = "ID of the bike", example = "1") @PathVariable Long id) {
+            @Parameter(example = "1") @PathVariable(name = "id") Long id) {
         Bike bike = bikeService.getBikeById(id);
 
         Map<String, Object> response = new HashMap<>();
@@ -77,7 +78,7 @@ public class BikeController {
 
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
-        response.put("message", "Bike created successfully in DRAFT state");
+        response.put("message", "Bike created successfully in ACTIVE state");
         response.put("data", com.bikeexchange.dto.response.BikeResponse.fromEntity(bike));
         return ResponseEntity.ok(response);
     }
@@ -86,7 +87,7 @@ public class BikeController {
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Update an Existing Bike", description = "Modify details of an existing bike. Must be the owner.")
     public ResponseEntity<?> updateBike(
-            @Parameter(description = "ID of the bike", example = "1") @PathVariable Long id,
+            @Parameter(example = "1") @PathVariable(name = "id") Long id,
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser,
             @RequestBody BikeCreateRequest request) {
         Bike bike = bikeService.updateBike(id, currentUser.getId(), request);
@@ -102,7 +103,7 @@ public class BikeController {
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Delete / Archive a Bike", description = "Soft delete or mark a bike as CANCELLED. Must be the owner.")
     public ResponseEntity<?> deleteBike(
-            @Parameter(description = "ID of the bike", example = "1") @PathVariable Long id,
+            @Parameter(example = "1") @PathVariable(name = "id") Long id,
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser) {
         bikeService.deleteBike(id, currentUser.getId());
 

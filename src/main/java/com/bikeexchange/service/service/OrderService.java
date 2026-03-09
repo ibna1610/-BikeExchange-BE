@@ -1,4 +1,4 @@
-package com.bikeexchange.service;
+package com.bikeexchange.service.service;
 
 import com.bikeexchange.exception.InsufficientBalanceException;
 import com.bikeexchange.exception.InvalidOrderStatusException;

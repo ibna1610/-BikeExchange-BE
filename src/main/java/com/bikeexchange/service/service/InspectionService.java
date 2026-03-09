@@ -1,4 +1,4 @@
-package com.bikeexchange.service;
+package com.bikeexchange.service.service;
 
 import com.bikeexchange.dto.request.InspectionReportDto;
 import com.bikeexchange.dto.request.InspectionRequestDto;

@@ -2,7 +2,7 @@ package com.bikeexchange.controller;
 
 import com.bikeexchange.model.Review;
 import com.bikeexchange.security.UserPrincipal;
-import com.bikeexchange.service.ReviewService;
+import com.bikeexchange.service.service.ReviewService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;

@@ -12,7 +12,7 @@ import com.bikeexchange.repository.UserWalletRepository;
 import com.bikeexchange.repository.VerificationTokenRepository;
 import com.bikeexchange.security.JwtTokenProvider;
 import com.bikeexchange.security.UserPrincipal;
-import com.bikeexchange.service.EmailService;
+import com.bikeexchange.service.service.EmailService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

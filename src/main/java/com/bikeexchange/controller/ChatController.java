@@ -5,7 +5,7 @@ import com.bikeexchange.dto.request.MessageSendRequest;
 import com.bikeexchange.model.Conversation;
 import com.bikeexchange.model.Message;
 import com.bikeexchange.security.UserPrincipal;
-import com.bikeexchange.service.ChatService;
+import com.bikeexchange.service.service.ChatService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -73,9 +73,9 @@ public class ChatController {
         @PreAuthorize("isAuthenticated()")
         @Operation(summary = "Get Messages in a Conversation", description = "Retrieve a paginated list of messages for a specific conversation. Also marks messages as read.")
         public ResponseEntity<?> getMessages(
-                        @Parameter(description = "ID of the conversation", example = "1") @PathVariable Long conversationId,
-                        @Parameter(description = "Page number (0-indexed)", example = "0") @RequestParam(defaultValue = "0") int page,
-                        @Parameter(description = "Number of items per page", example = "50") @RequestParam(defaultValue = "50") int size,
+                        @Parameter(example = "1") @PathVariable(name = "conversationId") Long conversationId,
+                        @Parameter(example = "0") @RequestParam(name = "page", defaultValue = "0") int page,
+                        @Parameter(example = "50") @RequestParam(name = "size", defaultValue = "50") int size,
                         @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser) {
                 Pageable pageable = PageRequest.of(page, size);
                 Page<Message> messages = chatService.getMessages(conversationId, pageable);
