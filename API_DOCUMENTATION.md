@@ -46,27 +46,29 @@
 - **DELETE** `/api/admin/listings/{bikeId}` - Xóa tin đăng
 
 #### 👥 User Management (Quản lý người dùng)
-- **GET** `/api/admin/users?page=0&size=20` - Danh sách tất cả người dùng
+- **GET** `/api/admin/users?page=0&size=20&role=ROLE` - Danh sách người dùng (tùy chọn lọc theo role)
 - **GET** `/api/admin/users/role/{role}?page=0&size=20` - Danh sách người dùng theo role (BUYER, SELLER, ADMIN)
+- **GET** `/api/admin/users/search?email=TEXT&page=0&size=20` - Tìm người dùng theo email
 - **POST** `/api/admin/users/{userId}/activate` - Kích hoạt tài khoản
 - **POST** `/api/admin/users/{userId}/deactivate` - Vô hiệu hóa tài khoản
 - **POST** `/api/admin/users/{userId}/suspend?reason=TEXT` - Khóa tài khoản (vì vi phạm)
-- **GET** `/api/admin/users/search?email=TEXT` - Tìm người dùng theo email
+- **POST** `/api/admin/users/{userId}/role?role=ROLE` - Thay đổi vai trò
+- **POST** `/api/admin/users/{userId}/status?status=TEXT` - Cập nhật trường status
 
 #### 📢 Report Management (Xử lý báo cáo)
 - **GET** `/api/admin/reports/pending?page=0&size=20` - Xem báo cáo chờ xử lý
-- **PUT** `/api/admin/reports/{reportId}/resolve?adminNote=TEXT&resolution=RESOLVED` - Xử lý báo cáo
-- **GET** `/api/admin/reports/type/{type}` - Xem báo cáo theo loại (SPAM, FRAUD, INAPPROPRIATE...)
+- **PUT** `/api/admin/reports/{reportId}/resolve?resolution=RESOLVED|REJECTED&adminNote=TEXT` - Xử lý báo cáo (đặt trạng thái)
+- **GET** `/api/admin/reports/type/{type}?page=0&size=20` - Xem báo cáo theo loại (SPAM, FRAUD, INAPPROPRIATE...)
 
 #### 💼 Transaction Management (Quản lý giao dịch)
-- **GET** `/api/admin/transactions?page=0&size=20` - Xem tất cả giao dịch
+- **GET** `/api/admin/transactions?page=0&size=20&status=STATUS` - Xem tất cả giao dịch (lọc theo status)
 - **GET** `/api/admin/transactions/status/{status}?page=0&size=20` - Xem giao dịch theo status (PENDING, COMPLETED, CANCELLED...)
 - **PUT** `/api/admin/transactions/{transactionId}/cancel?reason=TEXT` - Hủy giao dịch (hoàn tiền)
 
 #### 🔧 Inspection Approval (Phê duyệt kiểm định)
+- **GET** `/api/admin/inspections/pending?page=0&size=20` - Xem biểu mẫu kiểm định chờ xử lý
 - **PUT** `/api/admin/inspections/{inspectionId}/approve` - Duyệt báo cáo kiểm định
 - **PUT** `/api/admin/inspections/{inspectionId}/reject?reason=TEXT` - Từ chối báo cáo
-- **GET** `/api/admin/inspections/pending?page=0&size=20` - Xem báo cáo kiểm định chờ duyệt
 
 #### 📊 Statistics & Dashboard (Thống kê)
 - **GET** `/api/admin/metrics/system` - Thống kê hệ thống (tổng users, bikes, transactions, reports...)
