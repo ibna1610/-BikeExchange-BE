@@ -27,6 +27,20 @@ spring:
   mvc:
     throw-exception-if-no-handler-found: true
 
+  mail:
+    host: smtp-relay.brevo.com
+    port: 587
+    username: a44240001@smtp-brevo.com
+    password: ${BREVO_SMTP_KEY:xsmtpsib-52bc62e2021a70644dc6fe73fbdad1a24e5abb94b94b729fb0f932294595af3d-iyafiJiuUvuNDZbC}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+    from-email: chinsucuc@gmail.com
+
 server:
   servlet:
     context-path: /api
@@ -47,6 +61,9 @@ logging:
 app:
   jwtSecret: ${JWT_SECRET:926D96C90030DD58429D2751AC1BDBBC926D96C90030DD58429D2751AC1BDBBC}
   jwtExpirationMs: ${JWT_EXPIRATION_MS:86400000}
+  frontend.url: ${FRONTEND_URL:http://localhost:5173}
+  forgot-password.url: ${FORGOT_PASSWORD_URL:http://localhost:5173/reset-password}
+  name: BikeExchange
 
 vnpay:
   tmnCode: ${VNP_TMN_CODE:B2H6WZFU}
