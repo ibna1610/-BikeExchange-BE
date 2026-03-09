@@ -8,18 +8,24 @@ import java.util.Optional;
 
 @Repository
 public interface PointTransactionRepository extends JpaRepository<PointTransaction, Long> {
-    java.util.List<PointTransaction> findByUserIdOrderByCreatedAtDesc(Long userId);
+        java.util.List<PointTransaction> findByUserIdOrderByCreatedAtDesc(Long userId);
 
-    java.util.List<PointTransaction> findByUserIdAndTypeInOrderByCreatedAtDesc(Long userId,
-            java.util.List<PointTransaction.TransactionType> types);
+        java.util.List<PointTransaction> findByUserIdAndTypeInOrderByCreatedAtDesc(Long userId,
+                        java.util.List<PointTransaction.TransactionType> types);
 
-    java.util.List<PointTransaction> findByTypeOrderByCreatedAtDesc(PointTransaction.TransactionType type);
+        java.util.List<PointTransaction> findByTypeOrderByCreatedAtDesc(PointTransaction.TransactionType type);
 
-    java.util.List<PointTransaction> findByTypeAndStatusOrderByCreatedAtDesc(PointTransaction.TransactionType type,
-            PointTransaction.TransactionStatus status);
+        java.util.List<PointTransaction> findByTypeAndStatusOrderByCreatedAtDesc(PointTransaction.TransactionType type,
+                        PointTransaction.TransactionStatus status);
 
-    java.util.List<PointTransaction> findByTypeAndStatusInOrderByCreatedAtDesc(PointTransaction.TransactionType type,
-            java.util.List<PointTransaction.TransactionStatus> statuses);
+        java.util.List<PointTransaction> findByTypeAndStatusInOrderByCreatedAtDesc(
+                        PointTransaction.TransactionType type,
+                        java.util.List<PointTransaction.TransactionStatus> statuses);
 
-    Optional<PointTransaction> findByReferenceId(String referenceId);
+        Optional<PointTransaction> findByReferenceId(String referenceId);
+
+        java.util.List<PointTransaction> findAllByOrderByCreatedAtDesc();
+
+        java.util.List<PointTransaction> findByStatusInOrderByCreatedAtDesc(
+                        java.util.List<PointTransaction.TransactionStatus> statuses);
 }

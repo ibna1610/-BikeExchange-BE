@@ -153,4 +153,20 @@ public class WalletService {
         return pointTxRepo.findByTypeAndStatusInOrderByCreatedAtDesc(PointTransaction.TransactionType.WITHDRAW,
                 statuses);
     }
+
+    public List<PointTransaction> getAllTransactions(List<PointTransaction.TransactionStatus> statuses) {
+        if (statuses == null || statuses.isEmpty()) {
+            return pointTxRepo.findAllByOrderByCreatedAtDesc();
+        }
+        return pointTxRepo.findByStatusInOrderByCreatedAtDesc(statuses);
+    }
+
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public void cancelTransaction(Long transactionId, String reason) {
+        PointTransaction tx = pointTxRepo.findById(transactionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Transaction not found"));
+        tx.setStatus(PointTransaction.TransactionStatus.FAILED);
+        tx.setRemarks(reason);
+        pointTxRepo.save(tx);
+    }
 }

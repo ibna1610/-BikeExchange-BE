@@ -12,7 +12,7 @@ import com.bikeexchange.repository.InspectionRepository;
 import com.bikeexchange.service.service.AdminService;
 import com.bikeexchange.service.service.WalletService;
 import com.bikeexchange.service.UserReportService;
-import com.bikeexchange.service.InspectionService;
+import com.bikeexchange.service.service.InspectionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -182,8 +182,8 @@ public class AdminController {
     @GetMapping("/users/role/{role}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> listUsersByRole(@PathVariable String role,
-                                             @RequestParam(defaultValue = "0") int page,
-                                             @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
         try {
             User.UserRole r = User.UserRole.valueOf(role.toUpperCase());
             Pageable pageable = PageRequest.of(page, size);
@@ -197,8 +197,8 @@ public class AdminController {
     @GetMapping("/users/search")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> searchUsers(@RequestParam String email,
-                                         @RequestParam(defaultValue = "0") int page,
-                                         @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
         Pageable pageable = PageRequest.of(page, size);
         var result = userRepository.findByEmailContainingIgnoreCase(email, pageable);
         return ResponseEntity.ok(Map.of("success", true, "data", result));
@@ -318,7 +318,8 @@ public class AdminController {
             @RequestParam(defaultValue = "20") int size) {
         Pageable pageable = PageRequest.of(page, size);
         var result = postService.listPosts(null, status, pageable);
-        return ResponseEntity.ok(Map.of("success", true, "data", result.map(com.bikeexchange.dto.response.PostResponse::fromEntity)));
+        return ResponseEntity.ok(
+                Map.of("success", true, "data", result.map(com.bikeexchange.dto.response.PostResponse::fromEntity)));
     }
 
     @PutMapping("/listings/{postId}")
@@ -334,14 +335,16 @@ public class AdminController {
 
     @PutMapping("/listings/{postId}/lock")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> lockListing(@PathVariable Long postId, @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser) {
+    public ResponseEntity<?> lockListing(@PathVariable Long postId,
+            @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser) {
         Post post = postService.adminRejectPost(postId, currentUser.getId(), "locked by admin");
         return ResponseEntity.ok(Map.of("success", true, "message", "Post locked", "data", post));
     }
 
     @DeleteMapping("/listings/{postId}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> deleteListing(@PathVariable Long postId, @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser) {
+    public ResponseEntity<?> deleteListing(@PathVariable Long postId,
+            @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser) {
         Post post = postService.adminRejectPost(postId, currentUser.getId(), "deleted by admin");
         return ResponseEntity.ok(Map.of("success", true, "message", "Post deleted", "data", post));
     }
@@ -384,7 +387,7 @@ public class AdminController {
     @PutMapping("/transactions/{transactionId}/cancel")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> cancelTransaction(@PathVariable Long transactionId,
-                                               @RequestParam(required = false) String reason) {
+            @RequestParam(required = false) String reason) {
         walletService.cancelTransaction(transactionId, reason);
         return ResponseEntity.ok(Map.of("success", true, "message", "Transaction cancelled"));
     }
@@ -393,7 +396,7 @@ public class AdminController {
     @GetMapping("/reports/pending")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> listPendingReports(@RequestParam(defaultValue = "0") int page,
-                                                @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(defaultValue = "20") int size) {
         Pageable pageable = PageRequest.of(page, size);
         var result = userReportService.listPendingReports(pageable);
         return ResponseEntity.ok(Map.of("success", true, "data", result));
@@ -402,8 +405,8 @@ public class AdminController {
     @PutMapping("/reports/{reportId}/resolve")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> resolveReport(@PathVariable Long reportId,
-                                           @RequestParam String resolution,
-                                           @RequestParam(required = false) String adminNote) {
+            @RequestParam String resolution,
+            @RequestParam(required = false) String adminNote) {
         try {
             Report.ReportStatus status = Report.ReportStatus.valueOf(resolution.toUpperCase());
             Report updated = userReportService.resolveReport(reportId, status, adminNote);
@@ -416,8 +419,8 @@ public class AdminController {
     @GetMapping("/reports/type/{type}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> listReportsByType(@PathVariable String type,
-                                               @RequestParam(defaultValue = "0") int page,
-                                               @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
         try {
             Report.ReportType t = Report.ReportType.valueOf(type.toUpperCase());
             Pageable pageable = PageRequest.of(page, size);
@@ -432,7 +435,7 @@ public class AdminController {
     @GetMapping("/inspections/pending")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> listPendingInspections(@RequestParam(defaultValue = "0") int page,
-                                                    @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(defaultValue = "20") int size) {
         Pageable pageable = PageRequest.of(page, size);
         var result = inspectionRepository.findByStatus(InspectionRequest.RequestStatus.INSPECTED, pageable);
         return ResponseEntity.ok(Map.of("success", true, "data", result));
@@ -441,8 +444,9 @@ public class AdminController {
     @PutMapping("/inspections/{inspectionId}/reject")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> rejectInspection(@PathVariable Long inspectionId,
-                                               @RequestParam(required = false) String reason) {
-        InspectionReport report = inspectionService.adminRejectInspection(inspectionId, reason);
+            @RequestParam(required = false) String reason,
+            @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser) {
+        InspectionReport report = inspectionService.adminRejectInspection(inspectionId, currentUser.getId(), reason);
         return ResponseEntity.ok(Map.of("success", true, "data", report));
     }
 }

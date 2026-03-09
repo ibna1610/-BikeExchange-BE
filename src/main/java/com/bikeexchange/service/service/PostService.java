@@ -199,6 +199,20 @@ public class PostService {
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
+    public Post adminUpdatePostStatus(Long postId, Long adminId, String status, String reason) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new ResourceNotFoundException("Post not found"));
+        try {
+            post.setStatus(Post.PostStatus.valueOf(status.trim().toUpperCase()));
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException("Invalid post status: " + status);
+        }
+        Post saved = postRepository.save(post);
+        historyService.log("post", saved.getId(), "status_updated: " + status, adminId, reason);
+        return saved;
+    }
+
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public void deletePost(Long postId, Long sellerId) {
         Post post = getSellerPost(postId, sellerId);
         post.setStatus(Post.PostStatus.CANCELLED);
