@@ -6,7 +6,7 @@ import com.bikeexchange.dto.response.PointTransactionDto;
 import com.bikeexchange.model.PointTransaction;
 import com.bikeexchange.model.UserWallet;
 import com.bikeexchange.security.UserPrincipal;
-import com.bikeexchange.service.WalletService;
+import com.bikeexchange.service.service.WalletService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -52,7 +52,7 @@ public class WalletController {
     public ResponseEntity<?> getTransactions(
             @AuthenticationPrincipal UserPrincipal currentUser,
             @RequestParam(name = "userId", required = false) Long userIdParam,
-            @Parameter(description = "Filter by transaction types: DEPOSIT, WITHDRAW, SPEND, EARN, ESCROW_HOLD, ESCROW_RELEASE, COMMISSION", example = "DEPOSIT") @RequestParam(name = "type", required = false) java.util.List<String> typeParams) {
+            @Parameter(example = "DEPOSIT") @RequestParam(name = "type", required = false) java.util.List<String> typeParams) {
         Long userId = currentUser != null ? currentUser.getId() : userIdParam;
         if (userId == null) {
             return ResponseEntity.badRequest()

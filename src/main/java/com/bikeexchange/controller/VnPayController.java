@@ -1,8 +1,7 @@
 package com.bikeexchange.controller;
 
 import com.bikeexchange.config.VNPAYConfig;
-import com.bikeexchange.service.VnPayService;
-import io.swagger.v3.oas.annotations.tags.Tag;
+import com.bikeexchange.service.service.VnPayService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -31,7 +30,7 @@ public class VnPayController {
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Create VNPay Payment URL", description = "Generates a URL to redirect user to VNPay for wallet deposit.")
     public ResponseEntity<?> createPayment(
-            @Parameter(description = "Amount in VND to deposit", example = "50000") @RequestParam("amount") Long amount,
+            @Parameter(example = "50000") @RequestParam("amount") Long amount,
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser,
             HttpServletRequest request) {
         Long userId = currentUser.getId();

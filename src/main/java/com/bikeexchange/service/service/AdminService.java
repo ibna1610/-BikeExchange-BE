@@ -1,4 +1,4 @@
-package com.bikeexchange.service;
+package com.bikeexchange.service.service;
 
 import com.bikeexchange.model.*;
 import com.bikeexchange.repository.*;

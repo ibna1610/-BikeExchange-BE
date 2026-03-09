@@ -1,4 +1,4 @@
-package com.bikeexchange.service;
+package com.bikeexchange.service.service;
 
 import com.bikeexchange.dto.request.SellerPostCreateRequest;
 import com.bikeexchange.dto.request.SellerPostUpdateRequest;

@@ -1,7 +1,7 @@
-package com.bikeexchange.service.impl;
+package com.bikeexchange.service.service.impl;
 
 import com.bikeexchange.model.User;
-import com.bikeexchange.service.EmailService;
+import com.bikeexchange.service.service.EmailService;
 import jakarta.mail.internet.MimeMessage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
