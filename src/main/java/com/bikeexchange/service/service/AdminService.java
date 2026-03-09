@@ -27,6 +27,9 @@ public class AdminService {
     @Autowired
     private InspectionRepository inspectionRepository;
 
+    @Autowired
+    private com.bikeexchange.repository.UserReportRepository userReportRepository;
+
     public Map<String, Object> getDashboardMetrics() {
         Map<String, Object> metrics = new HashMap<>();
 
@@ -72,5 +75,34 @@ public class AdminService {
         metrics.put("inspectionStatistics", inspectionStats);
 
         return metrics;
+    }
+
+    public Map<String, Long> getInspectionMetrics() {
+        Map<String, Long> inspectionStats = new HashMap<>();
+        List<InspectionRequest> allInspections = inspectionRepository.findAll();
+        inspectionStats.put("requested", allInspections.stream()
+                .filter(i -> i.getStatus() == InspectionRequest.RequestStatus.REQUESTED).count());
+        inspectionStats.put("assigned", allInspections.stream()
+                .filter(i -> i.getStatus() == InspectionRequest.RequestStatus.ASSIGNED).count());
+        inspectionStats.put("inspected", allInspections.stream()
+                .filter(i -> i.getStatus() == InspectionRequest.RequestStatus.INSPECTED).count());
+        return inspectionStats;
+    }
+
+    public Map<String, Long> getReportMetrics() {
+        Map<String, Long> reportStats = new HashMap<>();
+        long total = userReportRepository.count();
+        long pending = userReportRepository.countByStatus(com.bikeexchange.model.Report.ReportStatus.PENDING);
+        reportStats.put("total", total);
+        reportStats.put("pending", pending);
+        return reportStats;
+    }
+
+    public long getReportsCount() {
+        return userReportRepository.count();
+    }
+
+    public long getPendingReportsCount() {
+        return userReportRepository.countByStatus(com.bikeexchange.model.Report.ReportStatus.PENDING);
     }
 }

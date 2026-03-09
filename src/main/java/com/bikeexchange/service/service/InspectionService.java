@@ -231,6 +231,39 @@ public class InspectionService {
         return report;
     }
 
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public InspectionReport adminRejectInspection(Long inspectionId, Long adminId, String reason) {
+        InspectionRequest inspection = inspectionRepository.findById(inspectionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Inspection not found"));
+
+        InspectionReport report = reportRepository.findByRequestId(inspectionId)
+                .orElseThrow(() -> new ResourceNotFoundException("No report found for this inspection"));
+
+        report.setAdminDecision(InspectionRequest.RequestStatus.REJECTED);
+        reportRepository.save(report);
+
+        inspection.setStatus(InspectionRequest.RequestStatus.REJECTED);
+        inspection.setUpdatedAt(LocalDateTime.now());
+        inspectionRepository.save(inspection);
+
+        Bike bike = inspection.getBike();
+        bike.setInspectionStatus(Bike.InspectionStatus.REJECTED);
+        bikeRepository.save(bike);
+
+        // refund fee to seller wallet
+        UserWallet sellerWallet = walletRepository.findByUserIdForUpdate(bike.getSeller().getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Seller Wallet missing"));
+        Long fee = inspection.getFeePoints();
+        sellerWallet.setFrozenPoints(sellerWallet.getFrozenPoints() - fee);
+        sellerWallet.setAvailablePoints(sellerWallet.getAvailablePoints() + fee);
+        walletRepository.save(sellerWallet);
+
+        historyService.log("inspection", inspection.getId(), "rejected", adminId, reason);
+        historyService.log("report", report.getId(), "rejected", adminId, reason);
+        historyService.log("bike", bike.getId(), "inspection_rejected", adminId, reason);
+        return report;
+    }
+
     /**
      * @deprecated Use {@link #adminApproveInspection(Long, Long)} with adminId
      *             instead.
