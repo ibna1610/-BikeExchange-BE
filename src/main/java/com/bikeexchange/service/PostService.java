@@ -141,13 +141,6 @@ public class PostService {
         wallet.setAvailablePoints(wallet.getAvailablePoints() - postFee);
         walletRepository.save(wallet);
 
-        if (listingType == Post.ListingType.VERIFIED) {
-            bike.setStatus(Bike.BikeStatus.DRAFT);
-            bike.setInspectionStatus(Bike.InspectionStatus.REQUESTED);
-        } else {
-            bike.setStatus(Bike.BikeStatus.ACTIVE);
-            bike.setInspectionStatus(Bike.InspectionStatus.NONE);
-        }
         bike.setUpdatedAt(LocalDateTime.now());
         bikeRepository.save(bike);
 
