@@ -53,11 +53,17 @@ public class BikeService {
         return bikeRepository.findByCategories_Id(categoryId, pageable);
     }
 
-    public Page<Bike> searchBikesAdvanced(String keyword, Long categoryId, List<String> statusParams,
-            Long minPrice, Long maxPrice, Integer minYear, String frameSize, Pageable pageable) {
+    public Page<Bike> searchBikesAdvanced(String keyword, Long categoryId, String status,
+            Long minPrice, Long maxPrice, Integer minYear, String frameSize, boolean sortByRating, Pageable pageable) {
+
+        if (sortByRating) {
+            pageable = org.springframework.data.domain.PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(),
+                    org.springframework.data.domain.Sort.by("seller.rating").descending());
+        }
+
         List<Bike.BikeStatus> statuses;
-        if (statusParams != null && !statusParams.isEmpty()) {
-            statuses = statusParams.stream()
+        if (status != null && !status.isBlank()) {
+            statuses = java.util.Arrays.stream(status.split(","))
                     .map(s -> {
                         try {
                             return Bike.BikeStatus.valueOf(s.trim().toUpperCase());
