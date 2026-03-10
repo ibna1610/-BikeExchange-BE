@@ -64,7 +64,9 @@ public class InspectionsController {
             @Parameter(example = "10") @RequestParam(name = "bike_id", required = false) Long bike_id,
             @Parameter(example = "3") @RequestParam(name = "sellerId", required = false) Long sellerId,
             @Parameter(example = "2") @RequestParam(name = "inspector_id", required = false) Long inspector_id,
-            @Parameter(example = "REQUESTED") @RequestParam(name = "status", required = false) InspectionRequest.RequestStatus status,
+            @Parameter(example = "REQUESTED", schema = @io.swagger.v3.oas.annotations.media.Schema(allowableValues = {
+                    "REQUESTED", "ASSIGNED", "INSPECTED", "APPROVED",
+                    "REJECTED" })) @RequestParam(name = "status", required = false) InspectionRequest.RequestStatus status,
             @Parameter(example = "2026-02-01T00:00:00") @RequestParam(name = "date_from", required = false) String date_from,
             @Parameter(example = "2026-02-28T23:59:59") @RequestParam(name = "date_to", required = false) String date_to,
             @Parameter(example = "0") @RequestParam(name = "page", defaultValue = "0") int page,
@@ -140,10 +142,12 @@ public class InspectionsController {
 
     @PutMapping("/{inspectionId}")
     @PreAuthorize("hasRole('INSPECTOR')")
-    @Operation(summary = "Update inspection status", description = "Roles: Inspector (ASSIGNED/IN_PROGRESS/INSPECTED). Must be an Inspector.")
+    @Operation(summary = "Update inspection status", description = "Roles: Inspector (ASSIGNED/REJECTED). Must be an Inspector.")
     public ResponseEntity<?> updateStatus(
             @Parameter(example = "5") @PathVariable("inspectionId") Long inspectionId,
-            @Parameter(example = "ASSIGNED") @RequestParam("status") InspectionRequest.RequestStatus status,
+            @Parameter(example = "ASSIGNED", schema = @io.swagger.v3.oas.annotations.media.Schema(allowableValues = {
+                    "REQUESTED", "ASSIGNED",
+                    "REJECTED" })) @RequestParam("status") InspectionRequest.RequestStatus status,
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser) {
         InspectionRequest inspection = inspectionRepository.findById(inspectionId)
                 .orElse(null);
