@@ -50,46 +50,28 @@ public class AdminController {
     @Autowired
     WalletService walletService;
 
-    @GetMapping("/dashboard")
+    @GetMapping("/metrics")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> getDashboardMetrics() {
-        Map<String, Object> metrics = adminService.getDashboardMetrics();
+    @Operation(summary = "Get admin metrics", description = "Retrieve metrics by type: system, inspection, or reports")
+    public ResponseEntity<?> getMetrics(
+            @Parameter(example = "system") @RequestParam(required = false) String type) {
+        Map<String, Object> data = new HashMap<>();
+        
+        if (type == null || type.isEmpty() || "system".equalsIgnoreCase(type)) {
+            data.put("system", adminService.getDashboardMetrics());
+        }
+        if (type == null || type.isEmpty() || "inspection".equalsIgnoreCase(type)) {
+            data.put("inspection", adminService.getInspectionMetrics());
+        }
+        if (type == null || type.isEmpty() || "reports".equalsIgnoreCase(type)) {
+            Map<String, Object> reportData = new HashMap<>();
+            reportData.put("metrics", adminService.getReportMetrics());
+            reportData.put("count", adminService.getReportsCount());
+            reportData.put("pendingCount", adminService.getPendingReportsCount());
+            data.put("reports", reportData);
+        }
 
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("data", metrics);
-
-        return ResponseEntity.ok(response);
-    }
-
-    @GetMapping("/metrics/system")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> getSystemMetrics() {
-        return getDashboardMetrics();
-    }
-
-    @GetMapping("/metrics/inspection")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> getInspectionMetrics() {
-        return ResponseEntity.ok(Map.of("success", true, "data", adminService.getInspectionMetrics()));
-    }
-
-    @GetMapping("/metrics/reports")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> getReportMetrics() {
-        return ResponseEntity.ok(Map.of("success", true, "data", adminService.getReportMetrics()));
-    }
-
-    @GetMapping("/metrics/reports-count")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> getReportsCount() {
-        return ResponseEntity.ok(Map.of("success", true, "count", adminService.getReportsCount()));
-    }
-
-    @GetMapping("/metrics/pending-reports-count")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> getPendingReportsCount() {
-        return ResponseEntity.ok(Map.of("success", true, "count", adminService.getPendingReportsCount()));
+        return ResponseEntity.ok(Map.of("success", true, "data", data));
     }
 
     @GetMapping("/withdrawals")
@@ -157,15 +139,24 @@ public class AdminController {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    // --- user management actions ---
-
     @GetMapping("/users")
     @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "List users", description = "List all users with optional filtering by role or search by email")
     public ResponseEntity<?> listUsers(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
-            @RequestParam(required = false) String role) {
+            @Parameter(example = "0") @RequestParam(defaultValue = "0") int page,
+            @Parameter(example = "20") @RequestParam(defaultValue = "20") int size,
+            @Parameter(example = "BUYER") @RequestParam(required = false) String role,
+            @Parameter(example = "user@example.com") @RequestParam(required = false) String search) {
+        
         Pageable pageable = PageRequest.of(page, size);
+        
+        // If search is provided, search by email
+        if (search != null && !search.isBlank()) {
+            var result = userRepository.findByEmailContainingIgnoreCase(search, pageable);
+            return ResponseEntity.ok(Map.of("success", true, "data", result));
+        }
+        
+        // If role is provided, filter by role
         if (role != null && !role.isBlank()) {
             try {
                 User.UserRole r = User.UserRole.valueOf(role.toUpperCase());
@@ -175,86 +166,39 @@ public class AdminController {
                 return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Invalid role"));
             }
         }
+        
+        // Default: list all
         var result = userRepository.findAll(pageable);
         return ResponseEntity.ok(Map.of("success", true, "data", result));
     }
 
-    @GetMapping("/users/role/{role}")
+    @PutMapping("/users/{userId}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> listUsersByRole(@PathVariable String role,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        try {
-            User.UserRole r = User.UserRole.valueOf(role.toUpperCase());
-            Pageable pageable = PageRequest.of(page, size);
-            var result = userRepository.findByRole(r, pageable);
-            return ResponseEntity.ok(Map.of("success", true, "data", result));
-        } catch (IllegalArgumentException ex) {
-            return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Invalid role"));
-        }
-    }
-
-    @GetMapping("/users/search")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> searchUsers(@RequestParam String email,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        Pageable pageable = PageRequest.of(page, size);
-        var result = userRepository.findByEmailContainingIgnoreCase(email, pageable);
-        return ResponseEntity.ok(Map.of("success", true, "data", result));
-    }
-
-    @PostMapping("/users/{userId}/activate")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> activateUser(@PathVariable Long userId) {
+    @Operation(summary = "Update user profile", description = "Update user status and/or role")
+    public ResponseEntity<?> updateUser(
+            @Parameter(example = "1") @PathVariable Long userId,
+            @Parameter(example = "ACTIVE") @RequestParam(required = false) String status,
+            @Parameter(example = "SELLER") @RequestParam(required = false) String role,
+            @Parameter(example = "Suspicious activity") @RequestParam(required = false) String reason) {
+        
         return userRepository.findById(userId).map(u -> {
-            u.setStatus("ACTIVE");
-            userRepository.save(u);
-            return ResponseEntity.ok(Map.of("success", true, "data", u));
-        }).orElseGet(() -> ResponseEntity.notFound().build());
-    }
-
-    @PostMapping("/users/{userId}/deactivate")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> deactivateUser(@PathVariable Long userId) {
-        return userRepository.findById(userId).map(u -> {
-            u.setStatus("INACTIVE");
-            userRepository.save(u);
-            return ResponseEntity.ok(Map.of("success", true, "data", u));
-        }).orElseGet(() -> ResponseEntity.notFound().build());
-    }
-
-    @PostMapping("/users/{userId}/suspend")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> suspendUser(@PathVariable Long userId, @RequestParam(required = false) String reason) {
-        return userRepository.findById(userId).map(u -> {
-            u.setStatus("SUSPENDED");
-            userRepository.save(u);
-            return ResponseEntity.ok(Map.of("success", true, "data", u, "reason", reason));
-        }).orElseGet(() -> ResponseEntity.notFound().build());
-    }
-
-    @PostMapping("/users/{userId}/role")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> changeUserRole(@PathVariable Long userId, @RequestParam String role) {
-        return userRepository.findById(userId).map(u -> {
-            try {
-                u.setRole(com.bikeexchange.model.User.UserRole.valueOf(role.toUpperCase()));
-                userRepository.save(u);
-                return ResponseEntity.ok(Map.of("success", true, "data", u));
-            } catch (IllegalArgumentException ex) {
-                return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Invalid role"));
+            // Update status if provided
+            if (status != null && !status.isBlank()) {
+                u.setStatus(status);
             }
-        }).orElseGet(() -> ResponseEntity.notFound().build());
-    }
-
-    @PostMapping("/users/{userId}/status")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> changeUserStatus(@PathVariable Long userId, @RequestParam String status) {
-        return userRepository.findById(userId).map(u -> {
-            u.setStatus(status);
+            
+            // Update role if provided
+            if (role != null && !role.isBlank()) {
+                try {
+                    u.setRole(User.UserRole.valueOf(role.toUpperCase()));
+                } catch (IllegalArgumentException ex) {
+                    return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Invalid role"));
+                }
+            }
+            
             userRepository.save(u);
-            return ResponseEntity.ok(Map.of("success", true, "data", u));
+            Map<String, Object> response = Map.of("success", true, "data", u);
+            return ResponseEntity.ok(response);
         }).orElseGet(() -> ResponseEntity.notFound().build());
     }
 
@@ -293,29 +237,13 @@ public class AdminController {
     @Autowired
     private com.bikeexchange.service.service.PostService postService;
 
-    @PostMapping("/posts/{postId}/approve")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> approvePost(@PathVariable Long postId,
-            @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser) {
-        Post post = postService.adminApprovePost(postId, currentUser.getId());
-        return ResponseEntity.ok(Map.of("success", true, "message", "Post approved", "data", post));
-    }
-
-    @PostMapping("/posts/{postId}/reject")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> rejectPost(@PathVariable Long postId, @RequestParam(required = false) String reason,
-            @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser) {
-        Post post = postService.adminRejectPost(postId, currentUser.getId(), reason);
-        return ResponseEntity.ok(Map.of("success", true, "message", "Post rejected", "data", post));
-    }
-
-    // --- listing management ---
     @GetMapping("/listings")
     @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "List all listings", description = "Retrieve bike listings with optional status filter and pagination")
     public ResponseEntity<?> listListings(
-            @RequestParam(required = false) List<String> status,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @Parameter(example = "APPROVED") @RequestParam(required = false) List<String> status,
+            @Parameter(example = "0") @RequestParam(defaultValue = "0") int page,
+            @Parameter(example = "20") @RequestParam(defaultValue = "20") int size) {
         Pageable pageable = PageRequest.of(page, size);
         var result = postService.listPosts(null, status, pageable);
         return ResponseEntity.ok(
@@ -324,35 +252,42 @@ public class AdminController {
 
     @PutMapping("/listings/{postId}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> updateListingStatus(
-            @PathVariable Long postId,
-            @RequestParam String status,
-            @RequestParam(required = false) String reason,
+    @Operation(summary = "Update listing status", description = "Approve, reject, or update listing status")
+    public ResponseEntity<?> updateListing(
+            @Parameter(example = "1") @PathVariable Long postId,
+            @Parameter(example = "APPROVED") @RequestParam String action,
+            @Parameter(example = "Bike condition is excellent") @RequestParam(required = false) String reason,
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser) {
-        Post post = postService.adminUpdatePostStatus(postId, currentUser.getId(), status, reason);
-        return ResponseEntity.ok(Map.of("success", true, "message", "Status updated", "data", post));
-    }
-
-    @PutMapping("/listings/{postId}/lock")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> lockListing(@PathVariable Long postId,
-            @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser) {
-        Post post = postService.adminRejectPost(postId, currentUser.getId(), "locked by admin");
-        return ResponseEntity.ok(Map.of("success", true, "message", "Post locked", "data", post));
+        
+        Post post;
+        
+        if ("APPROVE".equalsIgnoreCase(action)) {
+            post = postService.adminApprovePost(postId, currentUser.getId());
+        } else if ("REJECT".equalsIgnoreCase(action)) {
+            post = postService.adminRejectPost(postId, currentUser.getId(), reason);
+        } else {
+            // Generic status update
+            post = postService.adminUpdatePostStatus(postId, currentUser.getId(), action, reason);
+        }
+        
+        return ResponseEntity.ok(Map.of("success", true, "message", "Listing updated", "data", post));
     }
 
     @DeleteMapping("/listings/{postId}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> deleteListing(@PathVariable Long postId,
+    @Operation(summary = "Delete listing", description = "Soft delete a bike listing")
+    public ResponseEntity<?> deleteListing(
+            @Parameter(example = "1") @PathVariable Long postId,
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser) {
         Post post = postService.adminRejectPost(postId, currentUser.getId(), "deleted by admin");
         return ResponseEntity.ok(Map.of("success", true, "message", "Post deleted", "data", post));
     }
 
-    // --- transaction management ---
     @GetMapping("/transactions")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> listTransactions(@RequestParam(required = false) List<String> status) {
+    @Operation(summary = "List transactions", description = "Retrieve transactions with optional status filter")
+    public ResponseEntity<?> listTransactions(
+            @Parameter(example = "PENDING") @RequestParam(required = false) List<String> status) {
         List<PointTransaction.TransactionStatus> statuses = null;
         if (status != null && !status.isEmpty()) {
             statuses = status.stream()
@@ -371,19 +306,6 @@ public class AdminController {
         return ResponseEntity.ok(Map.of("success", true, "data", dtos));
     }
 
-    @GetMapping("/transactions/status/{status}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> listTransactionsByStatus(@PathVariable String status) {
-        try {
-            PointTransaction.TransactionStatus s = PointTransaction.TransactionStatus.valueOf(status.toUpperCase());
-            var txs = walletService.getAllTransactions(java.util.List.of(s));
-            List<PointTransactionDto> dtos = txs.stream().map(PointTransactionDto::from).toList();
-            return ResponseEntity.ok(Map.of("success", true, "data", dtos));
-        } catch (IllegalArgumentException ex) {
-            return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Invalid status"));
-        }
-    }
-
     @PutMapping("/transactions/{transactionId}/cancel")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> cancelTransaction(@PathVariable Long transactionId,
@@ -393,41 +315,52 @@ public class AdminController {
     }
 
     // --- report management ---
-    @GetMapping("/reports/pending")
+    @GetMapping("/reports")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> listPendingReports(@RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+    @Operation(summary = "List reports", description = "List reports with optional filtering by type, status (PENDING), and pagination")
+    public ResponseEntity<?> listReports(
+            @Parameter(example = "USER_REPORT") @RequestParam(required = false) String type,
+            @Parameter(example = "true") @RequestParam(required = false) Boolean pending,
+            @Parameter(example = "0") @RequestParam(defaultValue = "0") int page,
+            @Parameter(example = "20") @RequestParam(defaultValue = "20") int size) {
+        
         Pageable pageable = PageRequest.of(page, size);
+        
+        // If pending flag is true, get pending reports
+        if (pending != null && pending) {
+            var result = userReportService.listPendingReports(pageable);
+            return ResponseEntity.ok(Map.of("success", true, "data", result));
+        }
+        
+        // If type is provided, filter by type
+        if (type != null && !type.isBlank()) {
+            try {
+                Report.ReportType t = Report.ReportType.valueOf(type.toUpperCase());
+                var result = userReportService.listByType(t, pageable);
+                return ResponseEntity.ok(Map.of("success", true, "data", result));
+            } catch (IllegalArgumentException ex) {
+                return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Invalid type"));
+            }
+        }
+        
+        // Default: list pending reports
         var result = userReportService.listPendingReports(pageable);
         return ResponseEntity.ok(Map.of("success", true, "data", result));
     }
 
-    @PutMapping("/reports/{reportId}/resolve")
+    @PutMapping("/reports/{reportId}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> resolveReport(@PathVariable Long reportId,
-            @RequestParam String resolution,
-            @RequestParam(required = false) String adminNote) {
+    @Operation(summary = "Resolve report", description = "Update report resolution status and add admin notes")
+    public ResponseEntity<?> resolveReport(
+            @Parameter(example = "1") @PathVariable Long reportId,
+            @Parameter(example = "APPROVED") @RequestParam String resolution,
+            @Parameter(example = "Issue verified") @RequestParam(required = false) String adminNote) {
         try {
             Report.ReportStatus status = Report.ReportStatus.valueOf(resolution.toUpperCase());
             Report updated = userReportService.resolveReport(reportId, status, adminNote);
             return ResponseEntity.ok(Map.of("success", true, "data", updated));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Invalid resolution"));
-        }
-    }
-
-    @GetMapping("/reports/type/{type}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> listReportsByType(@PathVariable String type,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        try {
-            Report.ReportType t = Report.ReportType.valueOf(type.toUpperCase());
-            Pageable pageable = PageRequest.of(page, size);
-            var result = userReportService.listByType(t, pageable);
-            return ResponseEntity.ok(Map.of("success", true, "data", result));
-        } catch (IllegalArgumentException ex) {
-            return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Invalid type"));
         }
     }
 
