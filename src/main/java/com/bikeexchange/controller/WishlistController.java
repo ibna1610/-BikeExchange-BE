@@ -7,18 +7,23 @@ import com.bikeexchange.repository.BikeRepository;
 import com.bikeexchange.repository.UserRepository;
 import com.bikeexchange.repository.WishlistRepository;
 import com.bikeexchange.security.UserPrincipal;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/wishlist")
+@RequestMapping({"/buyer/wishlist", "/wishlist"})
+@Tag(name = "Buyer - Wishlist", description = "Buyer wishlist APIs. Swagger shows standard path /api/buyer/wishlist; alias /api/wishlist is kept for backward compatibility.")
+@SecurityRequirement(name = "Bearer Token")
 public class WishlistController {
 
     @Autowired
@@ -30,20 +35,32 @@ public class WishlistController {
     @Autowired
     private UserRepository userRepository;
 
-    @GetMapping
+    @GetMapping({"", "/"})
     @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "GET /api/buyer/wishlist", description = "Xem danh sach xe yeu thich cua buyer hien tai")
     public ResponseEntity<?> list(@AuthenticationPrincipal UserPrincipal currentUser) {
         List<Wishlist> items = wishlistRepository.findByBuyerId(currentUser.getId());
-        return ResponseEntity.ok(Map.of("success", true, "data", items));
+        return ResponseEntity.ok(Map.of("success", true, "message", "Wishlist retrieved successfully", "data", items));
     }
 
-    @PostMapping
+    @PostMapping({"/{bikeId}", ""})
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<?> add(@AuthenticationPrincipal UserPrincipal currentUser, @RequestParam Long bikeId) {
+    @Operation(summary = "POST /api/buyer/wishlist/{bikeId}", description = "Them xe vao wishlist. Ho tro alias cu /api/wishlist?bikeId=... de tuong thich nguoc")
+    public ResponseEntity<?> add(
+            @AuthenticationPrincipal UserPrincipal currentUser,
+            @Parameter(description = "Bike ID theo path chuan", example = "12")
+            @PathVariable(name = "bikeId", required = false) Long bikeIdFromPath,
+            @Parameter(description = "Bike ID theo query (alias cu)", example = "12")
+            @RequestParam(name = "bikeId", required = false) Long bikeIdFromQuery) {
+        Long bikeId = bikeIdFromPath != null ? bikeIdFromPath : bikeIdFromQuery;
+        if (bikeId == null) {
+            return ResponseEntity.badRequest().body(Map.of("success", false, "message", "bikeId is required"));
+        }
+
         Bike bike = bikeRepository.findById(bikeId).orElse(null);
-        if (bike == null) return ResponseEntity.notFound().build();
+        if (bike == null) return ResponseEntity.status(404).body(Map.of("success", false, "message", "Bike not found"));
         User user = userRepository.findById(currentUser.getId()).orElse(null);
-        if (user == null) return ResponseEntity.notFound().build();
+        if (user == null) return ResponseEntity.status(404).body(Map.of("success", false, "message", "User not found"));
 
         if (wishlistRepository.findByBuyerIdAndBikeId(user.getId(), bikeId).isPresent()) {
             return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Already in wishlist"));
@@ -58,9 +75,10 @@ public class WishlistController {
 
     @DeleteMapping("/{bikeId}")
     @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "DELETE /api/buyer/wishlist/{bikeId}", description = "Xoa xe khoi wishlist")
     public ResponseEntity<?> remove(@AuthenticationPrincipal UserPrincipal currentUser, @PathVariable Long bikeId) {
         var opt = wishlistRepository.findByBuyerIdAndBikeId(currentUser.getId(), bikeId);
-        if (opt.isEmpty()) return ResponseEntity.notFound().build();
+        if (opt.isEmpty()) return ResponseEntity.status(404).body(Map.of("success", false, "message", "Wishlist item not found"));
         wishlistRepository.delete(opt.get());
         return ResponseEntity.ok(Map.of("success", true, "message", "Removed from wishlist"));
     }
