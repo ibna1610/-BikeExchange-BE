@@ -12,7 +12,7 @@ import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.List;
+
 
 /**
  * Inspection Management Service
@@ -123,6 +123,73 @@ public class InspectionService {
         return requestInspection(requesterId, dto);
     }
 
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public InspectionRequest updateInspectionStatus(Long inspectionId, InspectionRequest.RequestStatus status, Long userId) {
+        InspectionRequest inspection = inspectionRepository.findById(inspectionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Inspection not found"));
+
+        if (inspection.getStatus() == InspectionRequest.RequestStatus.APPROVED || 
+            inspection.getStatus() == InspectionRequest.RequestStatus.REJECTED) {
+            throw new IllegalArgumentException("Cannot update status. Inspection has already been finalized (APPROVED/REJECTED) by admin.");
+        }
+
+        inspection.setStatus(status);
+        inspection.setUpdatedAt(LocalDateTime.now());
+
+        // If status is ASSIGNED, and no inspector assigned yet, assign the current user
+        if (status == InspectionRequest.RequestStatus.ASSIGNED && inspection.getInspector() == null) {
+            User inspector = userRepository.findById(userId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Inspector user not found"));
+            inspection.setInspector(inspector);
+        }
+
+        if (status == InspectionRequest.RequestStatus.IN_PROGRESS) {
+            inspection.setStartedAt(LocalDateTime.now());
+        } else if (status == InspectionRequest.RequestStatus.INSPECTED) {
+            inspection.setCompletedAt(LocalDateTime.now());
+        }
+
+        // Sync with Bike status
+        Bike bike = inspection.getBike();
+        switch (status) {
+            case REQUESTED -> bike.setInspectionStatus(Bike.InspectionStatus.REQUESTED);
+            case ASSIGNED, IN_PROGRESS -> bike.setInspectionStatus(Bike.InspectionStatus.IN_PROGRESS);
+            case INSPECTED -> bike.setInspectionStatus(Bike.InspectionStatus.IN_PROGRESS); // Still in progress (waiting for admin)
+            case APPROVED -> bike.setInspectionStatus(Bike.InspectionStatus.APPROVED);
+            case REJECTED -> bike.setInspectionStatus(Bike.InspectionStatus.REJECTED);
+        }
+        if (status == InspectionRequest.RequestStatus.REJECTED) {
+            performRefund(inspection);
+        }
+
+        bikeRepository.save(bike);
+        return inspectionRepository.save(inspection);
+    }
+
+    private void performRefund(InspectionRequest inspection) {
+        Bike bike = inspection.getBike();
+        UserWallet sellerWallet = walletRepository.findByUserIdForUpdate(bike.getSeller().getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Seller Wallet missing"));
+
+        Long fee = inspection.getFeePoints();
+        if (fee > 0) {
+            sellerWallet.setFrozenPoints(sellerWallet.getFrozenPoints() - fee);
+            sellerWallet.setAvailablePoints(sellerWallet.getAvailablePoints() + fee);
+            walletRepository.save(sellerWallet);
+
+            PointTransaction tx = new PointTransaction();
+            tx.setUser(sellerWallet.getUser());
+            tx.setAmount(fee);
+            tx.setType(PointTransaction.TransactionType.EARN); // Using EARN as fallback for REFUND if DB schema is not updated
+            tx.setStatus(PointTransaction.TransactionStatus.SUCCESS);
+            String ref = "Inspection refund for Bike: " + bike.getId() + " - Req: " + inspection.getId();
+            tx.setReferenceId(ref);
+            tx.setRemarks("REFUND: " + ref);
+            pointTxRepo.save(tx);
+        }
+    }
+
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public InspectionRequest assignInspector(Long inspectionId, Long inspectorId) {
         InspectionRequest inspection = inspectionRepository.findById(inspectionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Inspection not found"));
@@ -131,12 +198,7 @@ public class InspectionService {
                 .orElseThrow(() -> new ResourceNotFoundException("Inspector user not found"));
 
         inspection.setInspector(inspector);
-        inspection.setStatus(InspectionRequest.RequestStatus.ASSIGNED);
-        inspection.setUpdatedAt(LocalDateTime.now());
-
-        InspectionRequest saved = inspectionRepository.save(inspection);
-        historyService.log("inspection", saved.getId(), "assigned", inspectorId, null);
-        return saved;
+        return updateInspectionStatus(inspectionId, InspectionRequest.RequestStatus.ASSIGNED, inspectorId);
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
@@ -148,12 +210,17 @@ public class InspectionService {
             throw new IllegalArgumentException("Only the assigned inspector can submit report");
         }
 
-        inspection.setStatus(InspectionRequest.RequestStatus.INSPECTED);
-        inspection.setUpdatedAt(LocalDateTime.now());
-        inspection.setCompletedAt(LocalDateTime.now());
-        inspectionRepository.save(inspection);
+        if (inspection.getStatus() == InspectionRequest.RequestStatus.APPROVED || 
+            inspection.getStatus() == InspectionRequest.RequestStatus.REJECTED) {
+            throw new IllegalArgumentException("Cannot update report. Inspection has already been finalized (APPROVED/REJECTED) by admin.");
+        }
 
-        InspectionReport report = new InspectionReport();
+        updateInspectionStatus(inspectionId, InspectionRequest.RequestStatus.INSPECTED, inspectorId);
+
+        // Check if report already exists to avoid duplicate entry error
+        InspectionReport report = reportRepository.findByRequestId(inspectionId)
+                .orElse(new InspectionReport());
+        
         report.setRequest(inspection);
         report.setComments(request.getComments());
         report.setOverallScore(request.getOverallScore());
@@ -162,8 +229,13 @@ public class InspectionService {
         report.setWheelCondition(request.getWheelCondition());
 
         // Attach medias if present
-        if (request.getMedias() != null && !request.getMedias().isEmpty()) {
-            List<InspectionReportMedia> medias = new java.util.ArrayList<>();
+        if (request.getMedias() != null) {
+            if (report.getMedias() == null) {
+                report.setMedias(new java.util.ArrayList<>());
+            } else {
+                report.getMedias().clear();
+            }
+            
             for (int i = 0; i < request.getMedias().size(); i++) {
                 var mr = request.getMedias().get(i);
                 InspectionReportMedia m = new InspectionReportMedia();
@@ -171,9 +243,8 @@ public class InspectionService {
                 m.setUrl(mr.getUrl());
                 m.setType(InspectionReportMedia.MediaType.valueOf(mr.getType().toUpperCase()));
                 m.setSortOrder(mr.getSortOrder() != null ? mr.getSortOrder() : i);
-                medias.add(m);
+                report.getMedias().add(m);
             }
-            report.setMedias(medias);
         }
 
         InspectionReport saved = reportRepository.save(report);
@@ -236,32 +307,32 @@ public class InspectionService {
         InspectionRequest inspection = inspectionRepository.findById(inspectionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Inspection not found"));
 
-        InspectionReport report = reportRepository.findByRequestId(inspectionId)
-                .orElseThrow(() -> new ResourceNotFoundException("No report found for this inspection"));
-
-        report.setAdminDecision(InspectionRequest.RequestStatus.REJECTED);
-        reportRepository.save(report);
-
+        // Update inspection request status
         inspection.setStatus(InspectionRequest.RequestStatus.REJECTED);
         inspection.setUpdatedAt(LocalDateTime.now());
         inspectionRepository.save(inspection);
 
+        // Sync with Bike status
         Bike bike = inspection.getBike();
         bike.setInspectionStatus(Bike.InspectionStatus.REJECTED);
         bikeRepository.save(bike);
 
-        // refund fee to seller wallet
-        UserWallet sellerWallet = walletRepository.findByUserIdForUpdate(bike.getSeller().getId())
-                .orElseThrow(() -> new ResourceNotFoundException("Seller Wallet missing"));
-        Long fee = inspection.getFeePoints();
-        sellerWallet.setFrozenPoints(sellerWallet.getFrozenPoints() - fee);
-        sellerWallet.setAvailablePoints(sellerWallet.getAvailablePoints() + fee);
-        walletRepository.save(sellerWallet);
+        // Refund fee to seller wallet
+        performRefund(inspection);
 
         historyService.log("inspection", inspection.getId(), "rejected", adminId, reason);
-        historyService.log("report", report.getId(), "rejected", adminId, reason);
         historyService.log("bike", bike.getId(), "inspection_rejected", adminId, reason);
-        return report;
+
+        // Handle report if exists
+        InspectionReport report = reportRepository.findByRequestId(inspectionId).orElse(null);
+        if (report != null) {
+            report.setAdminDecision(InspectionRequest.RequestStatus.REJECTED);
+            reportRepository.save(report);
+            historyService.log("report", report.getId(), "rejected", adminId, reason);
+            return report;
+        }
+
+        return null; // Return null if no report existed, but the rejection is successful
     }
 
     /**

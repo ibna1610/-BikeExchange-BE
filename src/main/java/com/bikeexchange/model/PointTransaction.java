@@ -48,7 +48,7 @@ public class PointTransaction {
     }
 
     public enum TransactionType {
-        DEPOSIT, WITHDRAW, EARN, SPEND, ESCROW_HOLD, ESCROW_RELEASE, COMMISSION
+        DEPOSIT, WITHDRAW, EARN, SPEND, ESCROW_HOLD, ESCROW_RELEASE, COMMISSION, REFUND
     }
 
     public enum TransactionStatus {
