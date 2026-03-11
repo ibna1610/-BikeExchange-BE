@@ -8,6 +8,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -18,4 +20,8 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     Optional<Order> findByIdForUpdate(@Param("id") Long id);
 
     boolean existsByIdempotencyKey(String idempotencyKey);
+
+    // Tìm các order đang DELIVERED và deliveredAt đã quá 7 ngày (dùng cho scheduler auto-release)
+    @Query("SELECT o FROM Order o WHERE o.status = 'DELIVERED' AND o.deliveredAt < :deadline")
+    List<Order> findExpiredDeliveredOrders(@Param("deadline") LocalDateTime deadline);
 }

@@ -36,6 +36,9 @@ public class Order {
     @Column(name = "idempotency_key", unique = true, nullable = false)
     private String idempotencyKey;
 
+    @Column(name = "delivered_at")
+    private LocalDateTime deliveredAt;          // Seller đánh dấu đã giao
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
@@ -56,6 +59,13 @@ public class Order {
     }
 
     public enum OrderStatus {
-        PENDING_PAYMENT, ESCROWED, COMPLETED, DISPUTED, CANCELLED
+        PENDING_PAYMENT,
+        ESCROWED,
+        DELIVERED,           // Seller đánh dấu đã giao hàng; bắt đầu đếm 7 ngày
+        RETURN_REQUESTED,    // Buyer yêu cầu hoàn hàng (trong 7 ngày kể từ deliveredAt)
+        COMPLETED,           // Điểm giải phóng về seller
+        REFUNDED,            // Điểm hoàn về buyer sau khi seller xác nhận nhận lại hàng
+        DISPUTED,
+        CANCELLED
     }
 }
