@@ -4,6 +4,8 @@ import com.bikeexchange.model.Report;
 import com.bikeexchange.repository.UserReportRepository;
 import com.bikeexchange.service.UserReportService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,9 +30,11 @@ public class AdminReportController extends AdminBaseController {
     public ResponseEntity<?> listReports(
             @RequestParam(required = false) String type,
             @RequestParam(required = false) Boolean pending,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        Pageable pageable = PageRequest.of(page, size);
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size) {
+        int pageNo = page != null ? page : 0;
+        int pageSize = size != null ? size : 20;
+        Pageable pageable = PageRequest.of(pageNo, pageSize);
         if (pending != null && pending) {
             return ok("Reports retrieved successfully", userReportService.listPendingReports(pageable));
         }
@@ -70,10 +74,11 @@ public class AdminReportController extends AdminBaseController {
     @Operation(summary = "Đóng khiếu nại (RESOLVED / REJECTED)")
     public ResponseEntity<?> resolveReport(
             @PathVariable Long reportId,
-            @RequestParam(defaultValue = "RESOLVED") String resolution,
+            @Parameter(description = "Trang thai dong khieu nai", schema = @Schema(implementation = Report.ReportStatus.class))
+            @RequestParam(required = false) Report.ReportStatus resolution,
             @RequestParam(required = false) String adminNote) {
         try {
-            Report.ReportStatus status = Report.ReportStatus.valueOf(resolution.trim().toUpperCase());
+            Report.ReportStatus status = resolution != null ? resolution : Report.ReportStatus.RESOLVED;
             if (status != Report.ReportStatus.RESOLVED && status != Report.ReportStatus.REJECTED) {
                 return badRequest("resolution must be RESOLVED or REJECTED");
             }

@@ -9,6 +9,8 @@ import com.bikeexchange.repository.UserRepository;
 import com.bikeexchange.security.UserPrincipal;
 import com.bikeexchange.service.service.InspectionService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,36 +38,38 @@ public class AdminInspectionController extends AdminBaseController {
     @GetMapping("/inspection-requests")
     @Operation(summary = "Danh sách yêu cầu kiểm định")
     public ResponseEntity<?> listInspectionRequests(
-            @RequestParam(required = false) String status,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        Pageable pageable = PageRequest.of(page, size);
-        if (status == null || status.isBlank()) {
+            @Parameter(description = "Filter theo trang thai request", schema = @Schema(implementation = InspectionRequest.RequestStatus.class))
+            @RequestParam(required = false) InspectionRequest.RequestStatus status,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size) {
+        int pageNo = page != null ? page : 0;
+        int pageSize = size != null ? size : 20;
+        Pageable pageable = PageRequest.of(pageNo, pageSize);
+        if (status == null) {
             return ok("Inspection requests retrieved successfully", inspectionRepository.findAll(pageable));
         }
-        try {
-            InspectionRequest.RequestStatus s = InspectionRequest.RequestStatus.valueOf(status.trim().toUpperCase());
-            return ok("Inspection requests retrieved successfully", inspectionRepository.findByStatus(s, pageable));
-        } catch (IllegalArgumentException e) {
-            return badRequest("Invalid inspection status");
-        }
+        return ok("Inspection requests retrieved successfully", inspectionRepository.findByStatus(status, pageable));
     }
 
     @GetMapping("/inspection-reports")
     @Operation(summary = "Danh sách báo cáo kiểm định")
     public ResponseEntity<?> listInspectionReports(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        Pageable pageable = PageRequest.of(page, size);
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size) {
+        int pageNo = page != null ? page : 0;
+        int pageSize = size != null ? size : 20;
+        Pageable pageable = PageRequest.of(pageNo, pageSize);
         return ok("Inspection reports retrieved successfully", reportRepository.findAll(pageable));
     }
 
     @GetMapping("/inspectors")
     @Operation(summary = "Danh sách inspector")
     public ResponseEntity<?> listInspectors(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        Pageable pageable = PageRequest.of(page, size);
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size) {
+        int pageNo = page != null ? page : 0;
+        int pageSize = size != null ? size : 20;
+        Pageable pageable = PageRequest.of(pageNo, pageSize);
         return ok("Inspectors retrieved successfully",
                 userRepository.findByRole(User.UserRole.INSPECTOR, pageable));
     }
@@ -85,21 +89,24 @@ public class AdminInspectionController extends AdminBaseController {
     @Operation(summary = "Tạm ngưng inspector")
     public ResponseEntity<?> suspendInspector(
             @PathVariable Long id,
-            @RequestParam(defaultValue = "Suspended by admin") String reason) {
+            @RequestParam(required = false) String reason) {
+        String reasonValue = (reason == null || reason.isBlank()) ? "Suspended by admin" : reason;
         return userRepository.findById(id).<ResponseEntity<?>>map(user -> {
             if (user.getRole() != User.UserRole.INSPECTOR) return badRequest("User is not an inspector");
             user.setStatus("SUSPENDED");
             userRepository.save(user);
-            return ok("Inspector suspended", Map.of("inspectorId", id, "reason", reason));
+            return ok("Inspector suspended", Map.of("inspectorId", id, "reason", reasonValue));
         }).orElseGet(() -> notFound("Inspector not found"));
     }
 
     @GetMapping("/inspections/pending")
     @Operation(summary = "Danh sách kiểm định chờ xử lý")
     public ResponseEntity<?> listPendingInspections(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        Pageable pageable = PageRequest.of(page, size);
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size) {
+        int pageNo = page != null ? page : 0;
+        int pageSize = size != null ? size : 20;
+        Pageable pageable = PageRequest.of(pageNo, pageSize);
         return ok("Pending inspections retrieved successfully",
                 inspectionRepository.findByStatus(InspectionRequest.RequestStatus.INSPECTED, pageable));
     }

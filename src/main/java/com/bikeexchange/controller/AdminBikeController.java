@@ -7,6 +7,8 @@ import com.bikeexchange.dto.response.PostResponse;
 import com.bikeexchange.security.UserPrincipal;
 import com.bikeexchange.service.service.PostService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,6 +19,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -33,9 +36,11 @@ public class AdminBikeController extends AdminBaseController {
     @GetMapping("/bikes/pending")
     @Operation(summary = "Danh sách tin chờ duyệt")
     public ResponseEntity<?> listPendingBikes(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        Pageable pageable = PageRequest.of(page, size);
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size) {
+        int pageNo = page != null ? page : 0;
+        int pageSize = size != null ? size : 20;
+        Pageable pageable = PageRequest.of(pageNo, pageSize);
         return ok("Pending bikes retrieved successfully",
                 bikeRepository.findByStatus(Bike.BikeStatus.DRAFT, pageable));
     }
@@ -61,11 +66,12 @@ public class AdminBikeController extends AdminBaseController {
     @Operation(summary = "Từ chối tin")
     public ResponseEntity<?> rejectBike(
             @PathVariable Long id,
-            @RequestParam(defaultValue = "Rejected by admin") String reason) {
+            @RequestParam(required = false) String reason) {
+        String reasonValue = (reason == null || reason.isBlank()) ? "Rejected by admin" : reason;
         return bikeRepository.findById(id).<ResponseEntity<?>>map(bike -> {
             bike.setStatus(Bike.BikeStatus.CANCELLED);
             bikeRepository.save(bike);
-            return ok("Bike rejected", Map.of("bikeId", id, "reason", reason));
+            return ok("Bike rejected", Map.of("bikeId", id, "reason", reasonValue));
         }).orElseGet(() -> notFound("Bike not found"));
     }
 
@@ -73,18 +79,25 @@ public class AdminBikeController extends AdminBaseController {
     @Operation(summary = "Ẩn tin vi phạm")
     public ResponseEntity<?> hideBike(
             @PathVariable Long id,
-            @RequestParam(defaultValue = "Hidden by admin") String reason) {
-        return rejectBike(id, reason);
+            @RequestParam(required = false) String reason) {
+        String reasonValue = (reason == null || reason.isBlank()) ? "Hidden by admin" : reason;
+        return rejectBike(id, reasonValue);
     }
 
     @GetMapping("/listings")
     @Operation(summary = "Danh sách tất cả tin đăng")
     public ResponseEntity<?> listListings(
-            @RequestParam(required = false) List<String> status,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        Pageable pageable = PageRequest.of(page, size);
-        var result = postService.listPosts(null, status, pageable);
+            @Parameter(
+                description = "Filter theo trang thai tin dang",
+                    schema = @Schema(implementation = Post.PostStatus.class))
+            @RequestParam(required = false) Post.PostStatus status,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size) {
+        int pageNo = page != null ? page : 0;
+        int pageSize = size != null ? size : 20;
+        Pageable pageable = PageRequest.of(pageNo, pageSize);
+        List<String> statusFilter = status != null ? Collections.singletonList(status.name()) : null;
+        var result = postService.listPosts(null, statusFilter, pageable);
         return ok("Listings retrieved successfully", result.map(PostResponse::fromEntity));
     }
 

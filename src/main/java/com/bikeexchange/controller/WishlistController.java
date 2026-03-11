@@ -8,7 +8,6 @@ import com.bikeexchange.repository.UserRepository;
 import com.bikeexchange.repository.WishlistRepository;
 import com.bikeexchange.security.UserPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,8 +20,8 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping({"/buyer/wishlist", "/wishlist"})
-@Tag(name = "Buyer - Wishlist", description = "Buyer wishlist APIs. Swagger shows standard path /api/buyer/wishlist; alias /api/wishlist is kept for backward compatibility.")
+@RequestMapping("/buyer/wishlist")
+@Tag(name = "Buyer - Wishlist", description = "Buyer wishlist APIs")
 @SecurityRequirement(name = "Bearer Token")
 public class WishlistController {
 
@@ -35,7 +34,7 @@ public class WishlistController {
     @Autowired
     private UserRepository userRepository;
 
-    @GetMapping({"", "/"})
+    @GetMapping
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "GET /api/buyer/wishlist", description = "Xem danh sach xe yeu thich cua buyer hien tai")
     public ResponseEntity<?> list(@AuthenticationPrincipal UserPrincipal currentUser) {
@@ -43,19 +42,12 @@ public class WishlistController {
         return ResponseEntity.ok(Map.of("success", true, "message", "Wishlist retrieved successfully", "data", items));
     }
 
-    @PostMapping({"/{bikeId}", ""})
+    @PostMapping("/{bikeId}")
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "POST /api/buyer/wishlist/{bikeId}", description = "Them xe vao wishlist. Ho tro alias cu /api/wishlist?bikeId=... de tuong thich nguoc")
+    @Operation(summary = "POST /api/buyer/wishlist/{bikeId}", description = "Them xe vao wishlist")
     public ResponseEntity<?> add(
             @AuthenticationPrincipal UserPrincipal currentUser,
-            @Parameter(description = "Bike ID theo path chuan", example = "12")
-            @PathVariable(name = "bikeId", required = false) Long bikeIdFromPath,
-            @Parameter(description = "Bike ID theo query (alias cu)", example = "12")
-            @RequestParam(name = "bikeId", required = false) Long bikeIdFromQuery) {
-        Long bikeId = bikeIdFromPath != null ? bikeIdFromPath : bikeIdFromQuery;
-        if (bikeId == null) {
-            return ResponseEntity.badRequest().body(Map.of("success", false, "message", "bikeId is required"));
-        }
+            @PathVariable Long bikeId) {
 
         Bike bike = bikeRepository.findById(bikeId).orElse(null);
         if (bike == null) return ResponseEntity.status(404).body(Map.of("success", false, "message", "Bike not found"));
