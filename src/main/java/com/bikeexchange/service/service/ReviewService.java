@@ -1,7 +1,9 @@
 package com.bikeexchange.service.service;
 
+import com.bikeexchange.model.Order;
 import com.bikeexchange.model.Review;
 import com.bikeexchange.model.User;
+import com.bikeexchange.repository.OrderRepository;
 import com.bikeexchange.repository.ReviewRepository;
 import com.bikeexchange.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +20,9 @@ public class ReviewService {
 
     @Autowired
     private OrderRepository orderRepository;
+
+    @Autowired
+    private UserService userService;
 
     @Transactional
     public Review createReview(Long reviewerId, Long orderId, Integer rating, String comment) {

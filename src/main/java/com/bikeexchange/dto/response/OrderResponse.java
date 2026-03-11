@@ -2,7 +2,9 @@ package com.bikeexchange.dto.response;
 
 import com.bikeexchange.model.Order;
 import lombok.Data;
+
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 
 @Data
 public class OrderResponse {
@@ -18,6 +20,8 @@ public class OrderResponse {
     private String idempotencyKey;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private LocalDateTime deliveredAt;
+    private Long daysUntilAutoRelease;
 
     public static OrderResponse fromEntity(Order order) {
         OrderResponse res = new OrderResponse();
@@ -39,6 +43,11 @@ public class OrderResponse {
         res.setIdempotencyKey(order.getIdempotencyKey());
         res.setCreatedAt(order.getCreatedAt());
         res.setUpdatedAt(order.getUpdatedAt());
+        res.setDeliveredAt(order.getDeliveredAt());
+        if (order.getDeliveredAt() != null && order.getStatus() == Order.OrderStatus.DELIVERED) {
+            long daysPassed = ChronoUnit.DAYS.between(order.getDeliveredAt(), LocalDateTime.now());
+            res.setDaysUntilAutoRelease(Math.max(0, 7 - daysPassed));
+        }
         return res;
     }
 }

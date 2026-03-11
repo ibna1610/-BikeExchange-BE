@@ -43,38 +43,9 @@ public class OrderController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/{id}/approve")
-    @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Approve an Order", description = "Buyer confirms receipt to release escrowed points to the seller.")
-    public ResponseEntity<?> approveOrder(
-            @Parameter(example = "1") @PathVariable Long id,
-            @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser) {
-
-        Order order = orderService.approveOrder(id, currentUser.getId());
-
-        // Calculate transfer details
-        Long total = order.getAmountPoints();
-        Long adminCommission = (long) (total * 0.02);
-        Long sellerRevenue = total - adminCommission;
-
-        Map<String, Object> transferDetails = new HashMap<>();
-        transferDetails.put("sellerId", order.getBike().getSeller().getId());
-        transferDetails.put("sellerName", order.getBike().getSeller().getFullName());
-        transferDetails.put("amountReceived", sellerRevenue);
-        transferDetails.put("commission", adminCommission);
-        transferDetails.put("totalAmount", total);
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("message", "Order completed and points released to seller");
-        response.put("data", OrderResponse.fromEntity(order));
-        response.put("transferDetails", transferDetails);
-        return ResponseEntity.ok(response);
-    }
-
     @PostMapping("/{id}/cancel")
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Cancel an Order", description = "Buyer cancels the order before approval, releasing escrowed points back to buyer.")
+    @Operation(summary = "Cancel an Order", description = "Buyer cancels the order before delivery, releasing escrowed points back to buyer.")
     public ResponseEntity<?> cancelOrder(
             @Parameter(example = "1") @PathVariable Long id,
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser) {
@@ -84,6 +55,66 @@ public class OrderController {
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
         response.put("message", "Order cancelled and points released back to buyer");
+        response.put("data", OrderResponse.fromEntity(order));
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{id}/deliver")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Mark Order as Delivered", description = "Seller marks the order as delivered. Buyer then has 7 days after confirming receipt to request a return.")
+    public ResponseEntity<?> markDelivered(
+            @Parameter(example = "1") @PathVariable Long id,
+            @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser) {
+
+        Order order = orderService.markDelivered(id, currentUser.getId());
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("message", "Order marked as delivered. Waiting for buyer to confirm receipt.");
+        response.put("data", OrderResponse.fromEntity(order));
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{id}/confirm-receipt")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Confirm Receipt", description = "Buyer confirms they received the item. Points are released to seller immediately. If buyer does not confirm, points auto-release to seller after 7 days from delivery.")
+    public ResponseEntity<?> confirmReceipt(
+            @Parameter(example = "1") @PathVariable Long id,
+            @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser) {
+
+        Order order = orderService.confirmReceipt(id, currentUser.getId());
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("message", "Receipt confirmed. Points have been released to seller.");
+        response.put("data", OrderResponse.fromEntity(order));
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{id}/request-return")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Request Return", description = "Buyer requests to return the item within 7 days of delivery. Points refunded after seller confirms return.")
+    public ResponseEntity<?> requestReturn(
+            @Parameter(example = "1") @PathVariable Long id,
+            @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser) {
+
+        Order order = orderService.requestReturn(id, currentUser.getId());
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("message", "Return requested. Waiting for seller to confirm they received the item back.");
+        response.put("data", OrderResponse.fromEntity(order));
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{id}/confirm-return")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Confirm Return Received", description = "Seller confirms they received the returned item. Points are immediately refunded to buyer.")
+    public ResponseEntity<?> confirmReturn(
+            @Parameter(example = "1") @PathVariable Long id,
+            @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser) {
+
+        Order order = orderService.confirmReturn(id, currentUser.getId());
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("message", "Return confirmed. Points have been refunded to buyer.");
         response.put("data", OrderResponse.fromEntity(order));
         return ResponseEntity.ok(response);
     }
