@@ -71,4 +71,20 @@ public class OrderController {
         response.put("transferDetails", transferDetails);
         return ResponseEntity.ok(response);
     }
+
+    @PostMapping("/{id}/cancel")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Cancel an Order", description = "Buyer cancels the order before approval, releasing escrowed points back to buyer.")
+    public ResponseEntity<?> cancelOrder(
+            @Parameter(example = "1") @PathVariable Long id,
+            @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser) {
+
+        Order order = orderService.cancelOrder(id, currentUser.getId());
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("message", "Order cancelled and points released back to buyer");
+        response.put("data", OrderResponse.fromEntity(order));
+        return ResponseEntity.ok(response);
+    }
 }
