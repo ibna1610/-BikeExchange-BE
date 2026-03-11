@@ -3,6 +3,7 @@ package com.bikeexchange.service.service;
 import com.bikeexchange.dto.response.BuyerPurchaseHistoryResponse;
 import com.bikeexchange.dto.response.HistoryResponse;
 import com.bikeexchange.dto.response.OrderHistoryDetailResponse;
+import com.bikeexchange.dto.response.OrderResponse;
 import com.bikeexchange.dto.response.SellerSalesHistoryResponse;
 import com.bikeexchange.exception.InsufficientBalanceException;
 import com.bikeexchange.exception.InvalidOrderStatusException;
