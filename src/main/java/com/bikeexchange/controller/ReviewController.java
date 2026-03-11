@@ -21,10 +21,10 @@ public class ReviewController {
     @PostMapping
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> createReview(@AuthenticationPrincipal UserPrincipal currentUser,
-                                          @RequestParam Long sellerId,
+                                          @RequestParam Long orderId,
                                           @RequestParam Integer rating,
                                           @RequestParam(required = false) String comment) {
-        Review r = reviewService.createReview(currentUser.getId(), sellerId, null, rating, comment);
+        Review r = reviewService.createReview(currentUser.getId(), orderId, rating, comment);
         return ResponseEntity.ok(Map.of("success", true, "data", r));
     }
 

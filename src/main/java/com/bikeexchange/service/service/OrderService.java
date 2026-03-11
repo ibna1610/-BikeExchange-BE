@@ -136,4 +136,48 @@ public class OrderService {
         historyService.log("bike", listing.getId(), "sold", buyerId, null);
         return saved;
     }
+
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public Order cancelOrder(Long orderId, Long buyerId) {
+        Order order = orderRepository.findByIdForUpdate(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order missing"));
+
+        if (!order.getBuyer().getId().equals(buyerId)) {
+            throw new IllegalArgumentException("Only buyer can cancel");
+        }
+
+        if (order.getStatus() != Order.OrderStatus.ESCROWED) {
+            throw new InvalidOrderStatusException("Order is not in ESCROWED state");
+        }
+
+        Long amount = order.getAmountPoints();
+
+        UserWallet buyerWallet = walletRepository.findByUserIdForUpdate(buyerId)
+                .orElseThrow(() -> new ResourceNotFoundException("Buyer wallet missing"));
+
+        // Release frozen points back to available
+        buyerWallet.setFrozenPoints(buyerWallet.getFrozenPoints() - amount);
+        buyerWallet.setAvailablePoints(buyerWallet.getAvailablePoints() + amount);
+        walletRepository.save(buyerWallet);
+
+        // Log transaction
+        PointTransaction pTx = new PointTransaction();
+        pTx.setUser(buyerWallet.getUser());
+        pTx.setAmount(amount);
+        pTx.setType(PointTransaction.TransactionType.ESCROW_RELEASE);
+        pTx.setStatus(PointTransaction.TransactionStatus.SUCCESS);
+        pTx.setReferenceId("Cancel Order: " + orderId);
+        pointTxRepo.save(pTx);
+
+        order.setStatus(Order.OrderStatus.CANCELLED);
+
+        Bike listing = order.getBike();
+        listing.setStatus(Bike.BikeStatus.ACTIVE); // make available again
+        bikeRepository.save(listing);
+
+        Order saved = orderRepository.save(order);
+        historyService.log("order", saved.getId(), "cancelled", buyerId, null);
+        historyService.log("bike", listing.getId(), "available", buyerId, null);
+        return saved;
+    }
 }
