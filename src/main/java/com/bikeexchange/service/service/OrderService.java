@@ -1,17 +1,25 @@
 package com.bikeexchange.service.service;
 
+import com.bikeexchange.dto.response.BuyerPurchaseHistoryResponse;
+import com.bikeexchange.dto.response.HistoryResponse;
+import com.bikeexchange.dto.response.OrderHistoryDetailResponse;
+import com.bikeexchange.dto.response.SellerSalesHistoryResponse;
 import com.bikeexchange.exception.InsufficientBalanceException;
 import com.bikeexchange.exception.InvalidOrderStatusException;
 import com.bikeexchange.exception.ListingNotAvailableException;
 import com.bikeexchange.exception.ResourceNotFoundException;
 import com.bikeexchange.model.Bike;
+import com.bikeexchange.model.History;
 import com.bikeexchange.model.Order;
 import com.bikeexchange.model.PointTransaction;
+import com.bikeexchange.model.Review;
 import com.bikeexchange.model.User;
 import com.bikeexchange.model.UserWallet;
 import com.bikeexchange.repository.BikeRepository;
+import com.bikeexchange.repository.HistoryRepository;
 import com.bikeexchange.repository.OrderRepository;
 import com.bikeexchange.repository.PointTransactionRepository;
+import com.bikeexchange.repository.ReviewRepository;
 import com.bikeexchange.repository.UserWalletRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -19,7 +27,12 @@ import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class OrderService {
@@ -35,6 +48,12 @@ public class OrderService {
 
     @Autowired
     private PointTransactionRepository pointTxRepo;
+
+    @Autowired
+    private ReviewRepository reviewRepository;
+
+    @Autowired
+    private HistoryRepository historyRepository;
 
     @Autowired
     private HistoryService historyService;
@@ -197,6 +216,65 @@ public class OrderService {
         return orderRepository.findExpiredDeliveredOrders(deadline);
     }
 
+    @Transactional(readOnly = true)
+    public List<BuyerPurchaseHistoryResponse> getBuyerPurchaseHistory(Long buyerId, List<String> statusParams) {
+        List<Order> orders = findBuyerOrders(buyerId, statusParams);
+        if (orders.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        Map<Long, Review> reviewsByOrderId = buildReviewMap(orders);
+        Map<Long, List<HistoryResponse>> historyByOrderId = buildOrderHistoryMap(orders.stream().map(Order::getId).toList());
+
+        return orders.stream()
+            .map(order -> BuyerPurchaseHistoryResponse.from(
+                order,
+                reviewsByOrderId.get(order.getId()),
+                historyByOrderId.getOrDefault(order.getId(), List.of())))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<SellerSalesHistoryResponse> getSellerSalesHistory(Long sellerId, List<String> statusParams) {
+        List<Order> orders = findSellerOrders(sellerId, statusParams);
+        if (orders.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        Map<Long, Review> reviewsByOrderId = buildReviewMap(orders);
+        Map<Long, List<HistoryResponse>> historyByOrderId = buildOrderHistoryMap(orders.stream().map(Order::getId).toList());
+
+        return orders.stream().map(order -> {
+            SellerSalesHistoryResponse response = new SellerSalesHistoryResponse();
+            response.setOrder(OrderResponse.fromEntity(order));
+            response.setReviewed(reviewsByOrderId.containsKey(order.getId()));
+            response.setReview(reviewsByOrderId.containsKey(order.getId())
+                    ? com.bikeexchange.dto.response.ReviewSummaryResponse.fromEntity(reviewsByOrderId.get(order.getId()))
+                    : null);
+            response.setHistory(historyByOrderId.getOrDefault(order.getId(), List.of()));
+            return response;
+        }).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public OrderHistoryDetailResponse getOrderHistoryDetail(Long orderId, Long userId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
+
+        String viewerRole = resolveViewerRole(order, userId);
+        Review review = reviewRepository.findByOrderIdIn(List.of(orderId)).stream().findFirst().orElse(null);
+        java.util.List<HistoryResponse> history = buildOrderHistoryMap(List.of(orderId)).getOrDefault(orderId, List.of());
+
+        OrderHistoryDetailResponse response = new OrderHistoryDetailResponse();
+        response.setViewerRole(viewerRole);
+        response.setOrder(OrderResponse.fromEntity(order));
+        response.setReviewed(review != null);
+        response.setCanReview("BUYER".equals(viewerRole) && order.getStatus() == Order.OrderStatus.COMPLETED && review == null);
+        response.setReview(review != null ? com.bikeexchange.dto.response.ReviewSummaryResponse.fromEntity(review) : null);
+        response.setHistory(history);
+        return response;
+    }
+
     // package-accessible so DisputeService can reuse without duplicating wallet logic
     void refundToBuyer(Order order, String referenceLabel) {
         Long amount = order.getAmountPoints();
@@ -237,5 +315,75 @@ public class OrderService {
             throw new InvalidOrderStatusException(
                     "Expected status " + expected + " but was " + order.getStatus());
         }
+    }
+
+    private List<Order> findBuyerOrders(Long buyerId, List<String> statusParams) {
+        List<Order.OrderStatus> statuses = parseStatuses(statusParams);
+        if (statuses == null) {
+            return orderRepository.findByBuyerIdOrderByCreatedAtDesc(buyerId);
+        }
+        if (statuses.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return orderRepository.findByBuyerIdAndStatusInOrderByCreatedAtDesc(buyerId, statuses);
+    }
+
+    private List<Order> findSellerOrders(Long sellerId, List<String> statusParams) {
+        List<Order.OrderStatus> statuses = parseStatuses(statusParams);
+        if (statuses == null) {
+            return orderRepository.findByBikeSellerIdOrderByCreatedAtDesc(sellerId);
+        }
+        if (statuses.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return orderRepository.findByBikeSellerIdAndStatusInOrderByCreatedAtDesc(sellerId, statuses);
+    }
+
+    private List<Order.OrderStatus> parseStatuses(List<String> statusParams) {
+        if (statusParams == null || statusParams.isEmpty()) {
+            return null;
+        }
+
+        return statusParams.stream()
+                .map(value -> {
+                    try {
+                        return Order.OrderStatus.valueOf(value.trim().toUpperCase());
+                    } catch (IllegalArgumentException ex) {
+                        return null;
+                    }
+                })
+                .filter(status -> status != null)
+                .toList();
+    }
+
+    private Map<Long, List<HistoryResponse>> buildOrderHistoryMap(List<Long> orderIds) {
+        Map<Long, List<HistoryResponse>> historyByOrderId = new HashMap<>();
+        List<History> histories = historyRepository.findByEntityTypeAndEntityIdInOrderByTimestampAsc("order", orderIds);
+
+        for (History history : histories) {
+            historyByOrderId
+                    .computeIfAbsent(history.getEntityId(), ignored -> new ArrayList<>())
+                    .add(HistoryResponse.fromEntity(history));
+        }
+
+        return historyByOrderId;
+    }
+
+    private Map<Long, Review> buildReviewMap(List<Order> orders) {
+        List<Long> orderIds = orders.stream().map(Order::getId).toList();
+        return reviewRepository.findByOrderIdIn(orderIds)
+                .stream()
+                .filter(review -> review.getOrder() != null)
+                .collect(Collectors.toMap(review -> review.getOrder().getId(), review -> review, (left, right) -> left));
+    }
+
+    private String resolveViewerRole(Order order, Long userId) {
+        if (order.getBuyer().getId().equals(userId)) {
+            return "BUYER";
+        }
+        if (order.getBike().getSeller().getId().equals(userId)) {
+            return "SELLER";
+        }
+        throw new IllegalArgumentException("Only the buyer or seller of this order can view its history");
     }
 }
