@@ -35,9 +35,11 @@ public class CategoryController {
     }
 
     @GetMapping
-    public ResponseEntity<?> list(@RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        Pageable pageable = PageRequest.of(page, size);
+    public ResponseEntity<?> list(@RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size) {
+        int pageNo = page != null ? page : 0;
+        int pageSize = size != null ? size : 20;
+        Pageable pageable = PageRequest.of(pageNo, pageSize);
         Page<Category> result = categoryService.list(pageable);
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
@@ -69,9 +71,11 @@ public class CategoryController {
 
     @GetMapping("/{id}/bikes")
     public ResponseEntity<?> listBikesByCategory(@PathVariable Long id,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        Pageable pageable = PageRequest.of(page, size);
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size) {
+        int pageNo = page != null ? page : 0;
+        int pageSize = size != null ? size : 20;
+        Pageable pageable = PageRequest.of(pageNo, pageSize);
         Page<com.bikeexchange.dto.response.BikeResponse> result = categoryService.listBikesByCategory(id, pageable);
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);

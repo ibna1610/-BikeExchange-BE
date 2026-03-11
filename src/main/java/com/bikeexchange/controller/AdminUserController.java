@@ -33,11 +33,13 @@ public class AdminUserController extends AdminBaseController {
     @GetMapping("/users")
     @Operation(summary = "Danh sách người dùng")
     public ResponseEntity<?> listUsers(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size,
             @RequestParam(required = false) String role,
             @RequestParam(required = false) String search) {
-        Pageable pageable = PageRequest.of(page, size);
+        int pageNo = page != null ? page : 0;
+        int pageSize = size != null ? size : 20;
+        Pageable pageable = PageRequest.of(pageNo, pageSize);
         if (search != null && !search.isBlank()) {
             return ok("Users retrieved successfully", userRepository.findByEmailContainingIgnoreCase(search, pageable));
         }
@@ -84,11 +86,12 @@ public class AdminUserController extends AdminBaseController {
     @Operation(summary = "Khóa tài khoản")
     public ResponseEntity<?> lockUser(
             @PathVariable Long userId,
-            @RequestParam(defaultValue = "Locked by admin") String reason) {
+            @RequestParam(required = false) String reason) {
+        String reasonValue = (reason == null || reason.isBlank()) ? "Locked by admin" : reason;
         return userRepository.findById(userId).<ResponseEntity<?>>map(u -> {
             u.setStatus("LOCKED");
             userRepository.save(u);
-            return ok("User locked", Map.of("userId", userId, "reason", reason));
+            return ok("User locked", Map.of("userId", userId, "reason", reasonValue));
         }).orElseGet(() -> notFound("User not found"));
     }
 
@@ -105,11 +108,12 @@ public class AdminUserController extends AdminBaseController {
     @Operation(summary = "Xóa người dùng")
     public ResponseEntity<?> deleteUser(
             @PathVariable Long userId,
-            @RequestParam(defaultValue = "Deleted by admin") String reason) {
+            @RequestParam(required = false) String reason) {
+        String reasonValue = (reason == null || reason.isBlank()) ? "Deleted by admin" : reason;
         return userRepository.findById(userId).<ResponseEntity<?>>map(u -> {
             u.setStatus("DELETED");
             userRepository.save(u);
-            return ok("User deleted", Map.of("userId", userId, "reason", reason));
+            return ok("User deleted", Map.of("userId", userId, "reason", reasonValue));
         }).orElseGet(() -> notFound("User not found"));
     }
 
