@@ -254,14 +254,14 @@ public class InspectionService {
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
-    public InspectionReport adminApproveInspection(Long inspectionId, Long adminId) {
+    public InspectionReport adminApproveInspection(Long inspectionId, Long adminId, boolean isPassed) {
         InspectionRequest inspection = inspectionRepository.findById(inspectionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Inspection not found"));
 
         InspectionReport report = reportRepository.findByRequestId(inspectionId)
                 .orElseThrow(() -> new ResourceNotFoundException("No report found for this inspection"));
 
-        report.setAdminDecision(InspectionRequest.RequestStatus.APPROVED);
+        report.setAdminDecision(isPassed ? InspectionRequest.RequestStatus.APPROVED : InspectionRequest.RequestStatus.REJECTED);
         reportRepository.save(report);
 
         inspection.setStatus(InspectionRequest.RequestStatus.APPROVED);
@@ -269,8 +269,13 @@ public class InspectionService {
         inspectionRepository.save(inspection);
 
         Bike bike = inspection.getBike();
-        bike.setInspectionStatus(Bike.InspectionStatus.APPROVED);
-        bike.setStatus(Bike.BikeStatus.VERIFIED);
+        if (isPassed) {
+            bike.setInspectionStatus(Bike.InspectionStatus.APPROVED);
+            bike.setStatus(Bike.BikeStatus.VERIFIED);
+        } else {
+            bike.setInspectionStatus(Bike.InspectionStatus.REJECTED);
+            // Bike remains ACTIVE but inspection failed
+        }
         bikeRepository.save(bike);
 
         // Release commission to inspector
@@ -341,7 +346,7 @@ public class InspectionService {
      */
     @Deprecated
     public InspectionReport adminApproveInspection(Long inspectionId) {
-        return adminApproveInspection(inspectionId, null);
+        return adminApproveInspection(inspectionId, null, true);
     }
     
     @Transactional(readOnly = true)
