@@ -60,10 +60,35 @@ public class OrderService {
     @Autowired
     private HistoryService historyService;
 
+    @Transactional(readOnly = true)
+    public boolean isReplayRequest(Long buyerId, Long bikeId, String idempotencyKey) {
+        if (isBlank(idempotencyKey)) {
+            return false;
+        }
+        Order existingOrder = orderRepository.findByIdempotencyKey(idempotencyKey).orElse(null);
+        if (existingOrder == null) {
+            return false;
+        }
+        boolean sameBuyer = existingOrder.getBuyer() != null && existingOrder.getBuyer().getId().equals(buyerId);
+        boolean sameBike = existingOrder.getBike() != null && existingOrder.getBike().getId().equals(bikeId);
+        return sameBuyer && sameBike;
+    }
+
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public Order createOrder(Long buyerId, Long bikeId, String idempotencyKey) {
-        if (orderRepository.existsByIdempotencyKey(idempotencyKey)) {
-            throw new IllegalArgumentException("Duplicate idempotency key");
+        if (isBlank(idempotencyKey)) {
+            throw new IllegalArgumentException("idempotencyKey is required");
+        }
+
+        Order existingOrder = orderRepository.findByIdempotencyKey(idempotencyKey).orElse(null);
+        if (existingOrder != null) {
+            boolean sameBuyer = existingOrder.getBuyer() != null && existingOrder.getBuyer().getId().equals(buyerId);
+            boolean sameBike = existingOrder.getBike() != null && existingOrder.getBike().getId().equals(bikeId);
+
+            if (!sameBuyer || !sameBike) {
+                throw new IllegalArgumentException("Idempotency key already used with different payload");
+            }
+            return existingOrder;
         }
 
         Bike bike = bikeRepository.findByIdForUpdate(bikeId)
@@ -124,14 +149,43 @@ public class OrderService {
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
-    public Order markDelivered(Long orderId, Long sellerId) {
+    public Order acceptOrder(Long orderId, Long sellerId) {
         Order order = orderRepository.findByIdForUpdate(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
         assertSeller(order, sellerId);
         assertStatus(order, Order.OrderStatus.ESCROWED);
 
+        order.setStatus(Order.OrderStatus.ACCEPTED);
+        order.setAcceptedAt(LocalDateTime.now());
+        Order saved = orderRepository.save(order);
+        historyService.log("order", saved.getId(), "accepted", sellerId, null);
+        return saved;
+    }
+
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public Order markDelivered(Long orderId, Long sellerId,
+                               String shippingCarrier,
+                               String trackingCode,
+                               String shippingNote) {
+        Order order = orderRepository.findByIdForUpdate(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
+        assertSeller(order, sellerId);
+        assertStatus(order, Order.OrderStatus.ACCEPTED);
+
+        if (isBlank(shippingCarrier)) {
+            throw new IllegalArgumentException("shippingCarrier is required");
+        }
+        if (isBlank(trackingCode)) {
+            throw new IllegalArgumentException("trackingCode is required");
+        }
+
         order.setStatus(Order.OrderStatus.DELIVERED);
         order.setDeliveredAt(LocalDateTime.now());
+        order.setDeliveryProofImageUrl(null);
+        order.setDeliveryProofImageUrl2(null);
+        order.setShippingCarrier(shippingCarrier.trim());
+        order.setTrackingCode(trackingCode.trim());
+        order.setShippingNote(shippingNote == null ? null : shippingNote.trim());
         Order saved = orderRepository.save(order);
         historyService.log("order", saved.getId(), "delivered", sellerId, null);
         return saved;
@@ -150,17 +204,22 @@ public class OrderService {
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
-    public Order requestReturn(Long orderId, Long buyerId) {
+    public Order requestReturn(Long orderId, Long buyerId, String reason) {
         Order order = orderRepository.findByIdForUpdate(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
         assertBuyer(order, buyerId);
         assertStatus(order, Order.OrderStatus.DELIVERED);
+
+        if (isBlank(reason)) {
+            throw new IllegalArgumentException("Return reason is required");
+        }
 
         if (order.getDeliveredAt() == null || order.getDeliveredAt().plusDays(7).isBefore(LocalDateTime.now())) {
             throw new InvalidOrderStatusException("Return window of 7 days has expired");
         }
 
         order.setStatus(Order.OrderStatus.RETURN_REQUESTED);
+        order.setReturnReason(reason.trim());
         Order saved = orderRepository.save(order);
         historyService.log("order", saved.getId(), "return_requested", buyerId, null);
         return saved;
@@ -268,6 +327,17 @@ public class OrderService {
     }
 
     @Transactional(readOnly = true)
+    public List<OrderResponse> getSellerPendingConfirmations(Long sellerId) {
+        List<Order> orders = orderRepository.findByBikeSellerIdAndStatusInOrderByCreatedAtDesc(
+                sellerId,
+                List.of(Order.OrderStatus.ESCROWED));
+
+        return orders.stream()
+                .map(OrderResponse::fromEntity)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public OrderHistoryDetailResponse getOrderHistoryDetail(Long orderId, Long viewerId) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
@@ -336,6 +406,19 @@ public class OrderService {
             throw new InvalidOrderStatusException(
                     "Expected status " + expected + " but was " + order.getStatus());
         }
+    }
+
+    private void assertStatusIn(Order order, Order.OrderStatus... expectedStatuses) {
+        for (Order.OrderStatus expectedStatus : expectedStatuses) {
+            if (order.getStatus() == expectedStatus) {
+                return;
+            }
+        }
+        throw new InvalidOrderStatusException("Invalid status: " + order.getStatus());
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.trim().isEmpty();
     }
 
     private List<Order> findBuyerOrders(Long buyerId, List<String> statusParams) {

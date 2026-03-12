@@ -39,6 +39,27 @@ public class Order {
     @Column(name = "delivered_at")
     private LocalDateTime deliveredAt;          // Seller đánh dấu đã giao
 
+    @Column(name = "accepted_at")
+    private LocalDateTime acceptedAt;           // Seller đã nhận xử lý đơn
+
+    @Column(name = "delivery_proof_image_url", length = 500)
+    private String deliveryProofImageUrl;       // Ảnh minh chứng đã giao
+
+    @Column(name = "delivery_proof_image_url_2", length = 500)
+    private String deliveryProofImageUrl2;      // Ảnh minh chứng đã giao (ảnh 2)
+
+    @Column(name = "shipping_carrier", length = 120)
+    private String shippingCarrier;             // Đơn vị vận chuyển
+
+    @Column(name = "tracking_code", length = 120)
+    private String trackingCode;                // Mã vận đơn
+
+    @Column(name = "shipping_note", length = 500)
+    private String shippingNote;                // Ghi chú giao hàng
+
+    @Column(name = "return_reason", length = 1000)
+    private String returnReason;                // Lý do buyer yêu cầu trả hàng
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
@@ -61,6 +82,7 @@ public class Order {
     public enum OrderStatus {
         PENDING_PAYMENT,
         ESCROWED,
+        ACCEPTED,            // Seller đã accept đơn, chuẩn bị gửi hàng
         DELIVERED,           // Seller đánh dấu đã giao hàng; bắt đầu đếm 7 ngày
         RETURN_REQUESTED,    // Buyer yêu cầu hoàn hàng (trong 7 ngày kể từ deliveredAt)
         COMPLETED,           // Điểm giải phóng về seller

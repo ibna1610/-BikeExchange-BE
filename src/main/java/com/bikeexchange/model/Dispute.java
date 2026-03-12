@@ -33,6 +33,19 @@ public class Dispute {
     @Column(nullable = false)
     private DisputeStatus status;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "dispute_type", nullable = false)
+    private DisputeType disputeType;           // RETURN or GENERAL
+
+    @Column(name = "buyer_contact_address", length = 500)
+    private String buyerContactAddress;        // Địa chỉ buyer (từ return-dispute)
+
+    @Column(name = "buyer_contact_phone", length = 120)
+    private String buyerContactPhone;          // SĐT buyer
+
+    @Column(name = "buyer_contact_email", length = 255)
+    private String buyerContactEmail;          // Email buyer
+
     @Column(name = "resolution_note", columnDefinition = "TEXT")
     private String resolutionNote;
 
@@ -51,5 +64,10 @@ public class Dispute {
 
     public enum DisputeStatus {
         OPEN, INVESTIGATING, RESOLVED_REFUND, RESOLVED_RELEASE
+    }
+
+    public enum DisputeType {
+        RETURN,   // Seller không hoàn hàng trả
+        GENERAL   // Tranh chấp chung
     }
 }

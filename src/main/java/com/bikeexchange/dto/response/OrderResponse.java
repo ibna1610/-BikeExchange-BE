@@ -20,7 +20,14 @@ public class OrderResponse {
     private String idempotencyKey;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private LocalDateTime acceptedAt;
     private LocalDateTime deliveredAt;
+    private String deliveryProofImageUrl;
+    private String deliveryProofImageUrl2;
+    private String shippingCarrier;
+    private String trackingCode;
+    private String shippingNote;
+    private String returnReason;
     private Long daysUntilAutoRelease;
 
     public static OrderResponse fromEntity(Order order) {
@@ -43,7 +50,14 @@ public class OrderResponse {
         res.setIdempotencyKey(order.getIdempotencyKey());
         res.setCreatedAt(order.getCreatedAt());
         res.setUpdatedAt(order.getUpdatedAt());
+        res.setAcceptedAt(order.getAcceptedAt());
         res.setDeliveredAt(order.getDeliveredAt());
+        res.setDeliveryProofImageUrl(order.getDeliveryProofImageUrl());
+        res.setDeliveryProofImageUrl2(order.getDeliveryProofImageUrl2());
+        res.setShippingCarrier(order.getShippingCarrier());
+        res.setTrackingCode(order.getTrackingCode());
+        res.setShippingNote(order.getShippingNote());
+        res.setReturnReason(order.getReturnReason());
         if (order.getDeliveredAt() != null && order.getStatus() == Order.OrderStatus.DELIVERED) {
             long daysPassed = ChronoUnit.DAYS.between(order.getDeliveredAt(), LocalDateTime.now());
             res.setDaysUntilAutoRelease(Math.max(0, 7 - daysPassed));

@@ -149,7 +149,7 @@ Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ### **PHASE 2: BUYER - PURCHASE BIKE (3 steps)**
 
 #### **Step 6: Create Order (Lock Points in Escrow)**
-**Endpoint:** `POST /orders` (Order Management section)
+**Endpoint:** `POST /orders` (mục Quản lý đơn hàng)
 
 1. Click "Try it out"
 2. Nhập body:
@@ -204,7 +204,7 @@ Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ✅ **QUAN TRỌNG:** 100k điểm bây giờ bị khóa, chỉ còn 400k có thể dùng
 
 #### **Step 8: Approve Order (Complete Purchase)**
-**Endpoint:** `POST /orders/{id}/approve` (Order Management section)
+**Endpoint:** `POST /orders/{id}/approve` (mục Quản lý đơn hàng)
 
 1. Click "Try it out"
 2. Thay `{id}` bằng `1`
@@ -461,7 +461,7 @@ Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ✅ Buyer2 có 500k điểm
 
 #### **Step 19: Purchase Seller's Bike**
-**Endpoint:** `POST /orders` (Order Management section)
+**Endpoint:** `POST /orders` (mục Quản lý đơn hàng)
 
 1. Click "Try it out"
 2. Nhập body:
@@ -495,7 +495,7 @@ Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ✅ **📌 Note bikeId = 2 bị RESERVED**
 
 #### **Step 20: Approve Order (Seller Gets Paid!)**
-**Endpoint:** `POST /orders/{id}/approve` (Order Management section)
+**Endpoint:** `POST /orders/{id}/approve` (mục Quản lý đơn hàng)
 
 1. Click "Try it out"
 2. Thay `{id}` bằng `2`

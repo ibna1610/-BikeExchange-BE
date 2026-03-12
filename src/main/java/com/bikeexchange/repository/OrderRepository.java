@@ -21,6 +21,8 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     boolean existsByIdempotencyKey(String idempotencyKey);
 
+    Optional<Order> findByIdempotencyKey(String idempotencyKey);
+
     List<Order> findByBuyerIdOrderByCreatedAtDesc(Long buyerId);
 
     List<Order> findByBuyerIdAndStatusInOrderByCreatedAtDesc(Long buyerId, List<Order.OrderStatus> statuses);
@@ -29,7 +31,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     List<Order> findByBikeSellerIdAndStatusInOrderByCreatedAtDesc(Long sellerId, List<Order.OrderStatus> statuses);
 
-    // Tìm các order đang DELIVERED và deliveredAt đã quá 7 ngày (dùng cho scheduler auto-release)
+    // Tìm các order đang DELIVERED và deliveredAt đã quá 14 ngày (dùng cho scheduler auto-release)
     @Query("SELECT o FROM Order o WHERE o.status = 'DELIVERED' AND o.deliveredAt < :deadline")
     List<Order> findExpiredDeliveredOrders(@Param("deadline") LocalDateTime deadline);
 }
