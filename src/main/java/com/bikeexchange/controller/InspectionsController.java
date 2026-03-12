@@ -178,12 +178,13 @@ public class InspectionsController {
 
     @PostMapping("/{inspectionId}/approve")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Approve inspection request", description = "Roles: Admin. Approving marks bike as VERIFIED and releases commission.")
+    @Operation(summary = "Approve inspection request", description = "Roles: Admin. logic: result=true marks bike VERIFIED, result=false marks REJECTED (inspection fail). Both pay inspector.")
     public ResponseEntity<?> approveInspection(
             @Parameter(example = "5") @PathVariable("inspectionId") Long inspectionId,
+            @Parameter(example = "true") @RequestParam(name = "result", defaultValue = "true") boolean isPassed,
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser) {
         Long adminId = currentUser.getId();
-        InspectionReport report = inspectionService.adminApproveInspection(inspectionId, adminId);
+        InspectionReport report = inspectionService.adminApproveInspection(inspectionId, adminId, isPassed);
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
         response.put("data", InspectionReportResponse.fromEntity(report));
