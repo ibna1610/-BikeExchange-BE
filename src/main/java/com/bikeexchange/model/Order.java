@@ -30,7 +30,7 @@ public class Order {
     private Long amountPoints;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 20)
     private OrderStatus status;
 
     @Column(name = "idempotency_key", unique = true, nullable = false)
