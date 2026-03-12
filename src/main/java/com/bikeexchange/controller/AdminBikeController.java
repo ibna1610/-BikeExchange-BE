@@ -88,7 +88,7 @@ public class AdminBikeController extends AdminBaseController {
     @Operation(summary = "Danh sách tất cả tin đăng")
     public ResponseEntity<?> listListings(
             @Parameter(
-                description = "Filter theo trang thai tin dang",
+                    description = "Filter theo trang thai tin dang",
                     schema = @Schema(implementation = Post.PostStatus.class))
             @RequestParam(required = false) Post.PostStatus status,
             @RequestParam(required = false) Integer page,

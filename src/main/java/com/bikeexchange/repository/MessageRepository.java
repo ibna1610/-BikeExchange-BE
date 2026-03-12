@@ -11,6 +11,7 @@ import java.util.List;
 @Repository
 public interface MessageRepository extends JpaRepository<Message, Long> {
     Page<Message> findByConversationIdOrderByCreatedAtDesc(Long conversationId, Pageable pageable);
+    List<Message> findByConversationIdOrderByCreatedAtAsc(Long conversationId);
 
     List<Message> findByConversationIdAndIsReadFalseAndSenderIdNot(Long conversationId, Long userId);
 }

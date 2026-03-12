@@ -61,9 +61,7 @@ public class InspectionsController {
     @GetMapping
     @Operation(summary = "List inspections", description = "Filters: bike_id, inspector_id, status, date_from, date_to. Returns a paginated list.")
     public ResponseEntity<?> list(
-            @Parameter(example = "10") @RequestParam(name = "bike_id", required = false) Long bike_id,
             @Parameter(example = "3") @RequestParam(name = "sellerId", required = false) Long sellerId,
-            @Parameter(example = "2") @RequestParam(name = "inspector_id", required = false) Long inspector_id,
             @Parameter(example = "REQUESTED", schema = @io.swagger.v3.oas.annotations.media.Schema(allowableValues = {
                     "REQUESTED", "ASSIGNED", "INSPECTED", "APPROVED",
                     "REJECTED" })) @RequestParam(name = "status", required = false) InspectionRequest.RequestStatus status,
@@ -74,14 +72,8 @@ public class InspectionsController {
         Pageable pageable = PageRequest.of(page, size);
         Specification<InspectionRequest> spec = Specification.where(null);
 
-        if (bike_id != null) {
-            spec = spec.and((root, query, cb) -> cb.equal(root.get("bike").get("id"), bike_id));
-        }
         if (sellerId != null) {
             spec = spec.and((root, query, cb) -> cb.equal(root.get("bike").get("seller").get("id"), sellerId));
-        }
-        if (inspector_id != null) {
-            spec = spec.and((root, query, cb) -> cb.equal(root.get("inspector").get("id"), inspector_id));
         }
         if (status != null) {
             spec = spec.and((root, query, cb) -> cb.equal(root.get("status"), status));
@@ -140,6 +132,17 @@ public class InspectionsController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    @GetMapping("/bikes/{bikeId}/report")
+    @Operation(summary = "Get inspection report by bike ID", description = "Returns the latest inspection report for a specific bike.")
+    public ResponseEntity<?> getReportByBikeId(
+            @Parameter(example = "1") @PathVariable(name = "bikeId") Long bikeId) {
+        InspectionReport report = inspectionService.getReportByBikeId(bikeId);
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("data", InspectionReportResponse.fromEntity(report));
+        return ResponseEntity.ok(response);
+    }
+
     @PutMapping("/{inspectionId}")
     @PreAuthorize("hasRole('INSPECTOR')")
     @Operation(summary = "Update inspection status", description = "Roles: Inspector (ASSIGNED/REJECTED). Must be an Inspector.")
@@ -149,25 +152,9 @@ public class InspectionsController {
                     "REQUESTED", "ASSIGNED",
                     "REJECTED" })) @RequestParam("status") InspectionRequest.RequestStatus status,
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser) {
-        InspectionRequest inspection = inspectionRepository.findById(inspectionId)
-                .orElse(null);
-        if (inspection == null) {
-            return ResponseEntity.notFound().build();
-        }
         Long userId = currentUser.getId();
-        if (status == InspectionRequest.RequestStatus.IN_PROGRESS) {
-            inspection.setStatus(InspectionRequest.RequestStatus.IN_PROGRESS);
-            inspection.setStartedAt(LocalDateTime.now());
-        } else if (status == InspectionRequest.RequestStatus.INSPECTED) {
-            inspection.setStatus(InspectionRequest.RequestStatus.INSPECTED);
-            inspection.setCompletedAt(LocalDateTime.now());
-        } else if (status == InspectionRequest.RequestStatus.ASSIGNED) {
-            inspection = inspectionService.assignInspector(inspectionId, userId);
-        } else {
-            inspection.setStatus(status);
-            inspection.setUpdatedAt(LocalDateTime.now());
-        }
-        inspectionRepository.save(inspection);
+        InspectionRequest inspection = inspectionService.updateInspectionStatus(inspectionId, status, userId);
+        
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
         response.put("data", InspectionResponse.fromEntity(inspection));
