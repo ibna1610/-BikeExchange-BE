@@ -36,12 +36,9 @@ public class CategoryController {
     }
 
     @GetMapping
-    public ResponseEntity<?> list(@RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer size) {
-        int pageNo = page != null ? page : 0;
-        int pageSize = size != null ? size : 20;
-        Pageable pageable = PageRequest.of(pageNo, pageSize);
-        Page<Category> result = categoryService.list(pageable);
+    @Operation(summary = "List categories", description = "Get a list of all categories without pagination.")
+    public ResponseEntity<?> list() {
+        List<Category> result = categoryService.listAll();
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
         response.put("data", result);
@@ -71,13 +68,9 @@ public class CategoryController {
     }
 
     @GetMapping("/{id}/bikes")
-    public ResponseEntity<?> listBikesByCategory(@PathVariable Long id,
-            @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer size) {
-        int pageNo = page != null ? page : 0;
-        int pageSize = size != null ? size : 20;
-        Pageable pageable = PageRequest.of(pageNo, pageSize);
-        Page<com.bikeexchange.dto.response.BikeResponse> result = categoryService.listBikesByCategory(id, pageable);
+    @Operation(summary = "List bikes by category", description = "Get all bikes belonging to a specific category without pagination.")
+    public ResponseEntity<?> listBikesByCategory(@PathVariable Long id) {
+        List<com.bikeexchange.dto.response.BikeResponse> result = categoryService.listAllBikesByCategory(id);
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
         response.put("data", result);
