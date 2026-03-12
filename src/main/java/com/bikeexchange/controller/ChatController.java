@@ -7,9 +7,6 @@ import com.bikeexchange.model.Message;
 import com.bikeexchange.security.UserPrincipal;
 import com.bikeexchange.service.service.ChatService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
@@ -71,14 +68,11 @@ public class ChatController {
 
         @GetMapping("/conversations/{conversationId}/messages")
         @PreAuthorize("isAuthenticated()")
-        @Operation(summary = "Get Messages in a Conversation", description = "Retrieve a paginated list of messages for a specific conversation. Also marks messages as read.")
+        @Operation(summary = "Get Messages in a Conversation", description = "Retrieve a list of all messages for a specific conversation without pagination. Also marks messages as read.")
         public ResponseEntity<?> getMessages(
                         @Parameter(example = "1") @PathVariable(name = "conversationId") Long conversationId,
-                        @Parameter(example = "0") @RequestParam(name = "page", defaultValue = "0") int page,
-                        @Parameter(example = "50") @RequestParam(name = "size", defaultValue = "50") int size,
                         @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser) {
-                Pageable pageable = PageRequest.of(page, size);
-                Page<Message> messages = chatService.getMessages(conversationId, pageable);
+                List<Message> messages = chatService.getMessagesAll(conversationId);
 
                 // Mark as read when fetching
                 chatService.markAsRead(conversationId, currentUser.getId());

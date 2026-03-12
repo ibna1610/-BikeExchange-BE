@@ -44,6 +44,10 @@ public class ChatService {
         return messageRepository.findByConversationIdOrderByCreatedAtDesc(conversationId, pageable);
     }
 
+    public List<Message> getMessagesAll(Long conversationId) {
+        return messageRepository.findByConversationIdOrderByCreatedAtAsc(conversationId);
+    }
+
     @Transactional
     public Conversation createConversation(Long buyerId, ConversationCreateRequest request) {
         if (request.getBikeId() == null) {

@@ -54,7 +54,7 @@ public class BikeService {
     }
 
     public Page<Bike> searchBikesAdvanced(String keyword, Long categoryId, String status,
-            Long minPrice, Long maxPrice, Integer minYear, String frameSize, boolean sortByRating, Pageable pageable) {
+            Long minPrice, Long maxPrice, Long brandId, Integer minYear, String frameSize, boolean sortByRating, Pageable pageable) {
 
         if (sortByRating) {
             pageable = org.springframework.data.domain.PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(),
@@ -88,9 +88,9 @@ public class BikeService {
             return bikeRepository.searchByKeywordAndStatuses(keyword.toLowerCase(), statuses, pageable);
         }
 
-        // If price/frame filters provided, use advanced filter
-        if (minPrice != null || maxPrice != null || minYear != null || (frameSize != null && !frameSize.isBlank())) {
-            return bikeRepository.filterBikesAdvanced(minPrice, maxPrice, minYear, frameSize, pageable);
+        // If price/frame/brand filters provided, use advanced filter
+        if (minPrice != null || maxPrice != null || minYear != null || (frameSize != null && !frameSize.isBlank()) || brandId != null) {
+            return bikeRepository.filterBikesAdvanced(minPrice, maxPrice, brandId, minYear, frameSize, pageable);
         }
 
         if (categoryId != null) {
@@ -114,12 +114,8 @@ public class BikeService {
         bike.setTitle(request.getTitle());
         bike.setDescription(request.getDescription());
 
-        Brand brandEntity = brandRepository.findByName(request.getBrand())
-                .orElseGet(() -> {
-                    Brand nb = new Brand();
-                    nb.setName(request.getBrand());
-                    return brandRepository.save(nb);
-                });
+        Brand brandEntity = brandRepository.findById(request.getBrandId())
+                .orElseThrow(() -> new ResourceNotFoundException("Brand not found with ID: " + request.getBrandId()));
         bike.setBrand(brandEntity);
 
         bike.setModel(request.getModel());
@@ -199,12 +195,8 @@ public class BikeService {
         bike.setTitle(request.getTitle());
         bike.setDescription(request.getDescription());
 
-        Brand brandEntity = brandRepository.findByName(request.getBrand())
-                .orElseGet(() -> {
-                    Brand nb = new Brand();
-                    nb.setName(request.getBrand());
-                    return brandRepository.save(nb);
-                });
+        Brand brandEntity = brandRepository.findById(request.getBrandId())
+                .orElseThrow(() -> new ResourceNotFoundException("Brand not found with ID: " + request.getBrandId()));
         bike.setBrand(brandEntity);
 
         bike.setModel(request.getModel());

@@ -11,6 +11,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -28,6 +29,10 @@ public class CategoryService {
 
     public Page<Category> list(Pageable pageable) {
         return categoryRepository.findAll(pageable);
+    }
+
+    public List<Category> listAll() {
+        return categoryRepository.findAll();
     }
 
     public Optional<Category> update(Long id, Category payload) {
@@ -50,5 +55,10 @@ public class CategoryService {
     public Page<BikeResponse> listBikesByCategory(Long categoryId, Pageable pageable) {
         Page<Bike> bikes = bikeRepository.findByCategories_Id(categoryId, pageable);
         return bikes.map(BikeResponse::fromEntity);
+    }
+
+    public List<BikeResponse> listAllBikesByCategory(Long categoryId) {
+        return bikeRepository.findByCategories_Id(categoryId).stream()
+                .map(BikeResponse::fromEntity).toList();
     }
 }

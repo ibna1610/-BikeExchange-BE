@@ -4,18 +4,19 @@ import com.bikeexchange.dto.request.CategoryRequest;
 import com.bikeexchange.model.Category;
 import com.bikeexchange.service.service.CategoryService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.access.prepost.PreAuthorize;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/categories")
+@Tag(name = "Category Management", description = "APIs for managing bike categories")
 public class CategoryController {
 
     @Autowired
