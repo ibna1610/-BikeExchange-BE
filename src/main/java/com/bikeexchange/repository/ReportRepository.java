@@ -9,4 +9,5 @@ import java.util.Optional;
 @Repository
 public interface ReportRepository extends JpaRepository<InspectionReport, Long> {
     Optional<InspectionReport> findByRequestId(Long requestId);
+    Optional<InspectionReport> findFirstByRequest_Bike_IdOrderByCreatedAtDesc(Long bikeId);
 }

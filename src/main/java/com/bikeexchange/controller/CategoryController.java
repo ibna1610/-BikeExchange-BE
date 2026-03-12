@@ -4,18 +4,19 @@ import com.bikeexchange.dto.request.CategoryRequest;
 import com.bikeexchange.model.Category;
 import com.bikeexchange.service.service.CategoryService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.access.prepost.PreAuthorize;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/categories")
+@Tag(name = "Category Management", description = "APIs for managing bike categories")
 public class CategoryController {
 
     @Autowired
@@ -35,10 +36,9 @@ public class CategoryController {
     }
 
     @GetMapping
-    public ResponseEntity<?> list(@RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        Pageable pageable = PageRequest.of(page, size);
-        Page<Category> result = categoryService.list(pageable);
+    @Operation(summary = "List categories", description = "Get a list of all categories without pagination.")
+    public ResponseEntity<?> list() {
+        List<Category> result = categoryService.listAll();
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
         response.put("data", result);
@@ -68,11 +68,9 @@ public class CategoryController {
     }
 
     @GetMapping("/{id}/bikes")
-    public ResponseEntity<?> listBikesByCategory(@PathVariable Long id,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        Pageable pageable = PageRequest.of(page, size);
-        Page<com.bikeexchange.dto.response.BikeResponse> result = categoryService.listBikesByCategory(id, pageable);
+    @Operation(summary = "List bikes by category", description = "Get all bikes belonging to a specific category without pagination.")
+    public ResponseEntity<?> listBikesByCategory(@PathVariable Long id) {
+        List<com.bikeexchange.dto.response.BikeResponse> result = categoryService.listAllBikesByCategory(id);
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
         response.put("data", result);

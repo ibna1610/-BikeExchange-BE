@@ -42,10 +42,12 @@ public interface BikeRepository extends JpaRepository<Bike, Long> {
        @Query("SELECT b FROM Bike b WHERE (b.status = 'ACTIVE' OR b.status = 'VERIFIED') " +
                      "AND (:minPrice IS NULL OR b.pricePoints >= :minPrice) " +
                      "AND (:maxPrice IS NULL OR b.pricePoints <= :maxPrice) " +
+                     "AND (:brandId IS NULL OR b.brand.id = :brandId) " +
                      "AND (:minYear IS NULL OR b.year >= :minYear) " +
                      "AND (:frameSize IS NULL OR b.frameSize = :frameSize)")
        Page<Bike> filterBikesAdvanced(@Param("minPrice") Long minPrice,
                      @Param("maxPrice") Long maxPrice,
+                     @Param("brandId") Long brandId,
                      @Param("minYear") Integer minYear,
                      @Param("frameSize") String frameSize,
                      Pageable pageable);
@@ -53,6 +55,8 @@ public interface BikeRepository extends JpaRepository<Bike, Long> {
        List<Bike> findByBikeTypeAndStatus(String bikeType, Bike.BikeStatus status);
 
        Page<Bike> findByCategories_Id(Long categoryId, Pageable pageable);
+
+       java.util.List<Bike> findByCategories_Id(Long categoryId);
 
        Page<Bike> findByCategories_IdAndStatus(Long categoryId, Bike.BikeStatus status, Pageable pageable);
 
@@ -75,4 +79,6 @@ public interface BikeRepository extends JpaRepository<Bike, Long> {
                                                      @Param("keyword") String keyword,
                                                      @Param("statuses") java.util.List<Bike.BikeStatus> statuses,
                                                      Pageable pageable);
+
+       long countByBrandId(Long brandId);
 }

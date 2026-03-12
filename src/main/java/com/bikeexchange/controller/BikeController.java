@@ -38,6 +38,7 @@ public class BikeController {
             @Parameter(example = "VERIFIED") @RequestParam(name = "status", required = false) String status,
             @Parameter(example = "1000") @RequestParam(name = "price_min", required = false) Long priceMin,
             @Parameter(example = "5000") @RequestParam(name = "price_max", required = false) Long priceMax,
+            @Parameter(example = "1") @RequestParam(name = "brand_id", required = false) Long brandId,
             @Parameter(example = "2018") @RequestParam(name = "min_year", required = false) Integer minYear,
             @Parameter(example = "54cm") @RequestParam(name = "frame_size", required = false) String frameSize,
             @Parameter(example = "true") @RequestParam(name = "sort_by_rating", defaultValue = "false") boolean sortByRating,
@@ -45,7 +46,7 @@ public class BikeController {
             @Parameter(example = "20") @RequestParam(name = "size", defaultValue = "20") int size) {
         Pageable pageable = PageRequest.of(page, size);
         Page<Bike> result = bikeService.searchBikesAdvanced(keyword, categoryId, status, priceMin, priceMax,
-                minYear, frameSize, sortByRating, pageable);
+                brandId, minYear, frameSize, sortByRating, pageable);
 
         Page<com.bikeexchange.dto.response.BikeResponse> dtoPage = result
                 .map(com.bikeexchange.dto.response.BikeResponse::fromEntity);

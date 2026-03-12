@@ -343,4 +343,10 @@ public class InspectionService {
     public InspectionReport adminApproveInspection(Long inspectionId) {
         return adminApproveInspection(inspectionId, null);
     }
+    
+    @Transactional(readOnly = true)
+    public InspectionReport getReportByBikeId(Long bikeId) {
+        return reportRepository.findFirstByRequest_Bike_IdOrderByCreatedAtDesc(bikeId)
+                .orElseThrow(() -> new ResourceNotFoundException("No inspection report found for bike ID: " + bikeId));
+    }
 }

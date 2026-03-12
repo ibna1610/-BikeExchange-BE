@@ -132,6 +132,17 @@ public class InspectionsController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    @GetMapping("/bikes/{bikeId}/report")
+    @Operation(summary = "Get inspection report by bike ID", description = "Returns the latest inspection report for a specific bike.")
+    public ResponseEntity<?> getReportByBikeId(
+            @Parameter(example = "1") @PathVariable(name = "bikeId") Long bikeId) {
+        InspectionReport report = inspectionService.getReportByBikeId(bikeId);
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("data", InspectionReportResponse.fromEntity(report));
+        return ResponseEntity.ok(response);
+    }
+
     @PutMapping("/{inspectionId}")
     @PreAuthorize("hasRole('INSPECTOR')")
     @Operation(summary = "Update inspection status", description = "Roles: Inspector (ASSIGNED/REJECTED). Must be an Inspector.")

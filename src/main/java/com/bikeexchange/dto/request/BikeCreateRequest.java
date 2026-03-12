@@ -16,8 +16,8 @@ public class BikeCreateRequest {
     @Schema(description = "Detailed description of the bike's condition and features", example = "Bán xe đạp Giant Escape 3 đời 2022 màu xanh lục, còn mới 95%. Xe chính chủ, bảo dưỡng định kỳ.")
     private String description;
 
-    @Schema(description = "Brand of the bike", example = "Giant")
-    private String brand;
+    @Schema(description = "ID of the bike brand", example = "1")
+    private Long brandId;
 
     @Schema(description = "Specific model of the bike", example = "Escape 3")
     private String model;
