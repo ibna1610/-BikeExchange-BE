@@ -8,6 +8,8 @@ import com.bikeexchange.model.Order.OrderStatus;
 import com.bikeexchange.model.PointTransaction.TransactionStatus;
 import com.bikeexchange.model.PointTransaction.TransactionType;
 import com.bikeexchange.repository.*;
+import com.bikeexchange.model.Post;
+import com.bikeexchange.model.Component;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -33,6 +35,8 @@ public class DataInitializer implements CommandLineRunner {
     @Autowired private ReviewRepository reviewRepository;
     @Autowired private UserReportRepository userReportRepository;
     @Autowired private PointTransactionRepository pointTransactionRepository;
+    @Autowired private PostRepository postRepository;
+    @Autowired private ComponentRepository componentRepository;
     @Autowired private PasswordEncoder passwordEncoder;
 
     @Override
@@ -217,6 +221,37 @@ public class DataInitializer implements CommandLineRunner {
         seedPointTx(buyer1,   500L,  TransactionType.SPEND,          "INSP-1",      TransactionStatus.SUCCESS, "Phí yêu cầu kiểm định xe Giant Trance");
         seedPointTx(inspector1, 500L, TransactionType.EARN,          "INSP-1",      TransactionStatus.SUCCESS, "Phí kiểm định nhận được");
         seedPointTx(buyer4,  20_000L, TransactionType.DEPOSIT,       "DEP-B4-001", TransactionStatus.SUCCESS, "Nạp điểm qua VNPay");
+
+        // ── 12. Components (linh kiện) ──────────────────────────────────────
+        seedComponent("Shimano 105 R7000",       "Groupset 11 tốc độ tầm trung cao, phổ biến nhất trong xe road");
+        seedComponent("Shimano Ultegra R8000",    "Groupset 11 tốc độ cao cấp, nhẹ hơn 105, bán chuyên");
+        seedComponent("Shimano GRX 810",          "Groupset gravel chuyên dụng, đĩa, 11 tốc độ");
+        seedComponent("Shimano Tiagra 4700",      "Groupset 10 tốc độ entry-level, bền bỉ");
+        seedComponent("Shimano Altus M315",       "Groupset MTB entry-level 8 tốc độ");
+        seedComponent("SRAM Rival eTap AXS",      "Groupset wireless road cao cấp, 12 tốc độ");
+        seedComponent("Fox 34 Float",             "Phuộc MTB 34mm 130mm travel, Kashima coating");
+        seedComponent("RockShox Judy Silver",     "Phuộc MTB solo air 100mm, nhẹ và ổn định");
+        seedComponent("Mavic Aksium Elite",       "Bộ bánh road alloy 700c, đủ dùng cho hầu hết rider");
+        seedComponent("DT Swiss M1900",           "Vành MTB alloy 29 inch, tubeless ready");
+        seedComponent("Continental Grand Prix 5000", "Lốp road 700x25c, bám đường tốt, lăn nhẹ");
+        seedComponent("Maxxis Ardent 29x2.25",   "Lốp MTB đa năng, bám địa hình tốt");
+        seedComponent("Fizik Arione R3",          "Yên xe road carbon rail, ergonomic");
+        seedComponent("PRO Vibe 31.8 400mm",      "Ghi-đông road alloy nhẹ, drop 128mm");
+        seedComponent("Shimano MT200",            "Thắng đĩa hydraulic entry MTB");
+
+        // ── 13. Posts (tin đăng) ──────────────────────────────────────────────
+        // Mỗi bike ACTIVE/VERIFIED cần có 1 Post ACTIVE
+        seedPost(seller1, b1, "🚴 Xe đạp road Trek Émonda carbon, đi nhẹ như gió! Bán gấp do không có thời gian đạp.",      Post.ListingType.STANDARD, Post.PostStatus.ACTIVE);
+        seedPost(seller1, b2, "🏔️ Giant Trance full-sus 29er, đã qua kiểm định. Đi rừng hay trail đều Ok!",              Post.ListingType.VERIFIED, Post.PostStatus.ACTIVE);
+        seedPost(seller1, b3, "✨ Bianchi Infinito mới 98%, xe endurance hoàn hảo cho các chuyến dài.",                   Post.ListingType.STANDARD, Post.PostStatus.ACTIVE);
+        seedPost(seller2, b5, "🔵 Specialized Allez Sprint nhôm cứng, thích hợp crit race & đua nhóm.",                   Post.ListingType.STANDARD, Post.PostStatus.ACTIVE);
+        seedPost(seller2, b7, "🌿 Giant Revolt gravel carbon, mới 95%, đã kiểm định. Đi đường đất hay asphalt đều tốt!",  Post.ListingType.VERIFIED, Post.PostStatus.ACTIVE);
+        seedPost(seller2, b8, "🏙️ Polygon Urbano gấp gọn, 7 tốc độ, phù hợp đi làm kết hợp xe bus/tàu điện.",           Post.ListingType.STANDARD, Post.PostStatus.ACTIVE);
+        seedPost(seller3, b9, "⛰️ Merida Big.Nine MTB 29er nhôm, giá sinh viên, thích hợp trail nhẹ.",                   Post.ListingType.STANDARD, Post.PostStatus.ACTIVE);
+        seedPost(seller3, b11,"🔴 Trek Domane road nhôm, thắng đĩa, đi mới 1.200km. Xe đẹp, giá hợp lý!",               Post.ListingType.STANDARD, Post.PostStatus.ACTIVE);
+        // Post đã cancelled (xe sold/cancelled)
+        seedPost(seller1, b4, "Trek FX 3 Disc city bike – đã bán",         Post.ListingType.STANDARD, Post.PostStatus.CANCELLED);
+        seedPost(seller3, b10,"Fuji Roubaix 2020 – đã tháo tin",           Post.ListingType.STANDARD, Post.PostStatus.CANCELLED);
 
         System.out.println("✅ DataInitializer: seed hoàn tất.");
     }
@@ -426,5 +461,30 @@ public class DataInitializer implements CommandLineRunner {
         tx.setStatus(status);
         tx.setRemarks(remarks);
         pointTransactionRepository.save(tx);
+    }
+
+    private void seedComponent(String name, String description) {
+        boolean exists = componentRepository.findAll().stream()
+                .anyMatch(c -> c.getName().equals(name));
+        if (exists) return;
+        Component c = new Component();
+        c.setName(name);
+        c.setDescription(description);
+        componentRepository.save(c);
+    }
+
+    private void seedPost(User seller, Bike bike, String caption,
+                          Post.ListingType listingType, Post.PostStatus status) {
+        boolean exists = postRepository.findBySellerId(seller.getId(),
+                org.springframework.data.domain.Pageable.unpaged())
+                .stream().anyMatch(p -> p.getBike().getId().equals(bike.getId()));
+        if (exists) return;
+        Post p = new Post();
+        p.setSeller(seller);
+        p.setBike(bike);
+        p.setCaption(caption);
+        p.setListingType(listingType);
+        p.setStatus(status);
+        postRepository.save(p);
     }
 }
