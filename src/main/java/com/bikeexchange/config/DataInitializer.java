@@ -9,7 +9,6 @@ import com.bikeexchange.model.PointTransaction.TransactionStatus;
 import com.bikeexchange.model.PointTransaction.TransactionType;
 import com.bikeexchange.repository.*;
 import com.bikeexchange.model.Post;
-import com.bikeexchange.model.Component;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -467,7 +466,7 @@ public class DataInitializer implements CommandLineRunner {
         boolean exists = componentRepository.findAll().stream()
                 .anyMatch(c -> c.getName().equals(name));
         if (exists) return;
-        Component c = new Component();
+                com.bikeexchange.model.Component c = new com.bikeexchange.model.Component();
         c.setName(name);
         c.setDescription(description);
         componentRepository.save(c);

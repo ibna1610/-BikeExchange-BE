@@ -10,6 +10,8 @@ import java.util.List;
 public interface DisputeRepository extends JpaRepository<Dispute, Long> {
     List<Dispute> findByOrderId(Long orderId);
 
+    boolean existsByOrderIdAndStatusIn(Long orderId, List<Dispute.DisputeStatus> statuses);
+
     List<Dispute> findByReporterId(Long reporterId);
 
     List<Dispute> findByStatus(Dispute.DisputeStatus status);

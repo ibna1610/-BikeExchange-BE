@@ -1,6 +1,8 @@
 package com.bikeexchange.controller;
 
 import com.bikeexchange.dto.request.OrderCreateRequest;
+import com.bikeexchange.dto.request.OrderDeliverRequest;
+import com.bikeexchange.dto.request.OrderReturnRequest;
 import com.bikeexchange.dto.response.BuyerPurchaseHistoryResponse;
 import com.bikeexchange.dto.response.OrderHistoryDetailResponse;
 import com.bikeexchange.dto.response.OrderResponse;
@@ -26,7 +28,7 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/orders")
-@Tag(name = "Order Management", description = "APIs for buying bikes and managing purchase workflows")
+@Tag(name = "Quản Lý Đơn Hàng", description = "API mua xe đạp và quản lý quy trình mua hàng")
 @SecurityRequirement(name = "Bearer Token")
 public class OrderController {
 
@@ -35,7 +37,7 @@ public class OrderController {
 
     @GetMapping("/my-purchases")
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "[BUYER] View Purchase History", description = "Buyer views a complete purchase history. Supports optional status filtering and includes review detail, reviewability, and order timeline for each order.")
+    @Operation(summary = "[BUYER] Xem lịch sử mua hàng", description = "Người mua xem toàn bộ lịch sử mua hàng. Hỗ trợ lọc theo trạng thái (tùy chọn), bao gồm chi tiết đánh giá, khả năng đánh giá và dòng thời gian của từng đơn hàng.")
     public ResponseEntity<?> getMyPurchases(
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser,
             @Parameter(example = "COMPLETED") @RequestParam(name = "status", required = false) List<String> statusParams) {
@@ -63,7 +65,7 @@ public class OrderController {
 
     @GetMapping("/my-sales")
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "[SELLER] View Sales History", description = "Seller views a complete sales history. Supports optional status filtering and includes buyer review detail and order timeline for each order.")
+    @Operation(summary = "[SELLER] Xem lịch sử bán hàng", description = "Người bán xem toàn bộ lịch sử bán hàng. Hỗ trợ lọc theo trạng thái (tùy chọn), bao gồm chi tiết đánh giá của người mua và dòng thời gian của từng đơn hàng.")
     public ResponseEntity<?> getMySales(
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser,
             @Parameter(example = "COMPLETED") @RequestParam(name = "status", required = false) List<String> statusParams) {
@@ -88,9 +90,25 @@ public class OrderController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/pending-confirmations")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "[SELLER] Danh sách đơn cần xác nhận", description = "Người bán xem danh sách các đơn đang chờ xác nhận nhận đơn (trạng thái ESCROWED).")
+    public ResponseEntity<?> getPendingConfirmations(
+            @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser) {
+
+        List<OrderResponse> orders = orderService.getSellerPendingConfirmations(currentUser.getId());
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("message", "Pending confirmation orders retrieved successfully");
+        response.put("data", orders);
+        response.put("summary", Map.of("totalCount", orders.size(), "status", Order.OrderStatus.ESCROWED.name()));
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping("/{id}/history")
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "[BUYER/SELLER] View Order Timeline", description = "Buyer or seller views the full timeline of one order, including review detail and role-aware reviewability.")
+    @Operation(summary = "[BUYER/SELLER] Xem dòng thời gian đơn hàng", description = "Người mua hoặc người bán xem đầy đủ dòng thời gian của một đơn hàng, bao gồm chi tiết đánh giá và khả năng đánh giá theo vai trò.")
     public ResponseEntity<?> getOrderHistory(
             @Parameter(example = "1") @PathVariable Long id,
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser) {
@@ -106,23 +124,26 @@ public class OrderController {
 
     @PostMapping
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "[BUYER] Create an Order", description = "Buyer creates an order for a bike. Points will be escrowed (frozen).")
+    @Operation(summary = "[BUYER] Tạo đơn hàng", description = "Người mua tạo đơn hàng cho xe đạp. Điểm sẽ được ký quỹ (đóng băng).")
     public ResponseEntity<?> createOrder(
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser,
             @RequestBody OrderCreateRequest request) {
 
+        boolean replayed = orderService.isReplayRequest(currentUser.getId(), request.getBikeId(), request.getIdempotencyKey());
         Order order = orderService.createOrder(currentUser.getId(), request.getBikeId(), request.getIdempotencyKey());
 
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
-        response.put("message", "Order created and points escrowed successfully");
+        response.put("message", replayed
+            ? "Idempotency replay: existing order returned"
+            : "Order created and points escrowed successfully");
         response.put("data", OrderResponse.fromEntity(order));
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/{id}/cancel")
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "[BUYER] Cancel an Order", description = "Buyer cancels the order before delivery, releasing escrowed points back to buyer.")
+    @Operation(summary = "[BUYER] Hủy đơn hàng", description = "Người mua chỉ được hủy đơn khi người bán chưa accept (trạng thái ESCROWED). Điểm ký quỹ sẽ được hoàn về ví người mua.")
     public ResponseEntity<?> cancelOrder(
             @Parameter(example = "1") @PathVariable Long id,
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser) {
@@ -136,14 +157,35 @@ public class OrderController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/{id}/deliver")
+    @PostMapping("/{id}/accept")
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "[SELLER] Mark Order as Delivered", description = "Seller marks the order as delivered. Buyer has 7 days from delivery to request a return.")
-    public ResponseEntity<?> markDelivered(
+    @Operation(summary = "[SELLER] Xác nhận nhận đơn", description = "Người bán accept đơn hàng để bắt đầu xử lý giao hàng.")
+    public ResponseEntity<?> acceptOrder(
             @Parameter(example = "1") @PathVariable Long id,
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser) {
 
-        Order order = orderService.markDelivered(id, currentUser.getId());
+        Order order = orderService.acceptOrder(id, currentUser.getId());
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("message", "Seller accepted order successfully");
+        response.put("data", OrderResponse.fromEntity(order));
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{id}/deliver")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "[SELLER] Đánh dấu đã giao hàng", description = "Người bán cập nhật giao hàng mà không cần upload ảnh, chỉ cần đơn vị vận chuyển, mã vận đơn và ghi chú (tuỳ chọn). Nếu người mua không xác nhận nhận hàng, hệ thống sẽ tự giải ngân cho người bán sau 14 ngày kể từ lúc giao.")
+    public ResponseEntity<?> markDelivered(
+            @Parameter(example = "1") @PathVariable Long id,
+            @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser,
+            @RequestBody OrderDeliverRequest request) {
+
+        Order order = orderService.markDelivered(
+                id,
+                currentUser.getId(),
+                request.getShippingCarrier(),
+                request.getTrackingCode(),
+                request.getShippingNote());
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
         response.put("message", "Order marked as delivered. Waiting for buyer to confirm receipt.");
@@ -153,7 +195,7 @@ public class OrderController {
 
     @PostMapping("/{id}/confirm-receipt")
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "[BUYER] Confirm Receipt", description = "Buyer confirms receipt. Points are released to seller immediately. If buyer does not confirm, points auto-release to seller after 7 days from delivery.")
+    @Operation(summary = "[BUYER] Xác nhận đã nhận hàng", description = "Người mua xác nhận đã nhận hàng. Điểm được giải ngân cho người bán ngay lập tức. Nếu người mua không xác nhận, điểm sẽ tự động giải ngân cho người bán sau 14 ngày kể từ lúc giao.")
     public ResponseEntity<?> confirmReceipt(
             @Parameter(example = "1") @PathVariable Long id,
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser) {
@@ -168,12 +210,13 @@ public class OrderController {
 
     @PostMapping("/{id}/request-return")
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "[BUYER] Request Return", description = "Buyer requests a return within 7 days of delivery. Points are refunded after seller confirms the returned item is received.")
+    @Operation(summary = "[BUYER] Yêu cầu trả hàng", description = "Người mua yêu cầu trả hàng trong vòng 7 ngày kể từ khi giao và bắt buộc cung cấp lý do trả hàng. Điểm được hoàn sau khi người bán xác nhận đã nhận lại hàng.")
     public ResponseEntity<?> requestReturn(
             @Parameter(example = "1") @PathVariable Long id,
-            @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser) {
+            @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser,
+            @RequestBody OrderReturnRequest request) {
 
-        Order order = orderService.requestReturn(id, currentUser.getId());
+        Order order = orderService.requestReturn(id, currentUser.getId(), request.getReason());
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
         response.put("message", "Return requested. Waiting for seller to confirm they received the item back.");
@@ -183,7 +226,7 @@ public class OrderController {
 
     @PostMapping("/{id}/confirm-return")
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "[SELLER] Confirm Return Received", description = "Seller confirms the returned item is received. Points are immediately refunded to buyer.")
+    @Operation(summary = "[SELLER] Xác nhận đã nhận hàng trả", description = "Người bán xác nhận đã nhận lại hàng trả. Điểm được hoàn ngay cho người mua.")
     public ResponseEntity<?> confirmReturn(
             @Parameter(example = "1") @PathVariable Long id,
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser) {
