@@ -1,14 +1,25 @@
 # BikeExchange Backend - API Documentation
 
+## Cap nhat doi chieu API (2026-03-11)
+
+- Da bo sung file note doi chieu API muc tieu vs API hien co:
+	- `API_GAP_NOTE_2026-03-11.md`
+- File note danh dau ro 3 trang thai:
+	- `OK`: da co endpoint
+	- `EQ`: co endpoint tuong duong (khac path/method/ten)
+	- `MISS`: chua co endpoint
+- De xuat implementation theo pha da duoc ghi o cuoi file note.
+
 ## 🎯 Chức năng đã phát triển
 
 ### 1️⃣ BUYER API (`/api/buyer`)
 
 #### 📌 Wishlist Management
-- **POST** `/api/buyer/{buyerId}/wishlist/add/{bikeId}` - Thêm xe vào yêu thích
-- **DELETE** `/api/buyer/{buyerId}/wishlist/remove/{bikeId}` - Xóa xe khỏi yêu thích
-- **GET** `/api/buyer/{buyerId}/wishlist` - Xem danh sách yêu thích
-- **GET** `/api/buyer/{buyerId}/wishlist/{bikeId}` - Kiểm tra xe có trong yêu thích không
+- **GET** `/api/buyer/wishlist` - Xem danh sách xe yêu thích
+- **POST** `/api/buyer/wishlist/{bikeId}` - Thêm xe vào wishlist
+- **DELETE** `/api/buyer/wishlist/{bikeId}` - Xóa xe khỏi wishlist
+
+Ghi chu tuong thich nguoc: backend van ho tro alias cu `/api/wishlist`.
 
 #### 🔍 Search & Filter
 - **GET** `/api/buyer/search-advanced?minPrice=X&maxPrice=Y&brand=Z&bikeType=TYPE...` - Tìm kiếm & lọc nâng cao

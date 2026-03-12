@@ -4,8 +4,14 @@ import com.bikeexchange.dto.request.DisputeCreateRequest;
 import com.bikeexchange.dto.request.DisputeResolveRequest;
 import com.bikeexchange.exception.InvalidOrderStatusException;
 import com.bikeexchange.exception.ResourceNotFoundException;
-import com.bikeexchange.model.*;
-import com.bikeexchange.repository.*;
+import com.bikeexchange.model.Bike;
+import com.bikeexchange.model.Dispute;
+import com.bikeexchange.model.Order;
+import com.bikeexchange.model.User;
+import com.bikeexchange.repository.BikeRepository;
+import com.bikeexchange.repository.DisputeRepository;
+import com.bikeexchange.repository.OrderRepository;
+import com.bikeexchange.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
@@ -23,16 +29,13 @@ public class DisputeService {
     private OrderRepository orderRepository;
 
     @Autowired
-    private UserWalletRepository walletRepository;
-
-    @Autowired
     private UserRepository userRepository;
 
     @Autowired
     private BikeRepository bikeRepository;
 
     @Autowired
-    private PointTransactionRepository pointTxRepo;
+    private OrderService orderService;
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public Dispute createDispute(Long reporterId, DisputeCreateRequest request) {
@@ -44,8 +47,10 @@ public class DisputeService {
             throw new IllegalArgumentException("Only buyer or seller can open a dispute");
         }
 
-        if (order.getStatus() != Order.OrderStatus.ESCROWED) {
-            throw new InvalidOrderStatusException("Can only dispute orders that are in ESCROWED state");
+        if (order.getStatus() != Order.OrderStatus.ESCROWED
+                && order.getStatus() != Order.OrderStatus.DELIVERED
+                && order.getStatus() != Order.OrderStatus.RETURN_REQUESTED) {
+            throw new InvalidOrderStatusException("Cannot dispute an order in status: " + order.getStatus());
         }
 
         User reporter = userRepository.findById(reporterId)
@@ -60,7 +65,6 @@ public class DisputeService {
         dispute.setReason(request.getReason());
         dispute.setStatus(Dispute.DisputeStatus.OPEN);
         dispute.setCreatedAt(LocalDateTime.now());
-
         return disputeRepository.save(dispute);
     }
 
@@ -74,76 +78,28 @@ public class DisputeService {
             throw new IllegalStateException("Dispute is already resolved");
         }
 
-        Order order = dispute.getOrder();
-        // Relock the order to be safe, though Order should be in DISPUTED state
-        order = orderRepository.findByIdForUpdate(order.getId()).orElse(order);
-
-        Long amount = order.getAmountPoints();
-        User buyer = order.getBuyer();
-        User seller = order.getBike().getSeller();
-
-        UserWallet buyerWallet = walletRepository.findByUserIdForUpdate(buyer.getId())
-                .orElseThrow(() -> new ResourceNotFoundException("Buyer wallet not found"));
-
-        UserWallet sellerWallet = walletRepository.findByUserIdForUpdate(seller.getId())
-                .orElseThrow(() -> new ResourceNotFoundException("Seller wallet not found"));
+        Order order = orderRepository.findByIdForUpdate(dispute.getOrder().getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
 
         if ("REFUND".equalsIgnoreCase(request.getResolutionType())) {
-            // Refund buyer: frozen points -> available points
-            buyerWallet.setFrozenPoints(buyerWallet.getFrozenPoints() - amount);
-            buyerWallet.setAvailablePoints(buyerWallet.getAvailablePoints() + amount);
-            walletRepository.save(buyerWallet);
+            orderService.refundToBuyer(order, "Refund for Dispute: " + disputeId);
 
-            PointTransaction tx = new PointTransaction();
-            tx.setUser(buyer);
-            tx.setAmount(amount);
-            tx.setType(PointTransaction.TransactionType.ESCROW_RELEASE); // refund
-            tx.setStatus(PointTransaction.TransactionStatus.SUCCESS);
-            tx.setReferenceId("Refund for Dispute: " + disputeId);
-            pointTxRepo.save(tx);
+            Bike bike = order.getBike();
+            bike.setStatus(Bike.BikeStatus.ACTIVE);
+            bikeRepository.save(bike);
 
             order.setStatus(Order.OrderStatus.CANCELLED);
             orderRepository.save(order);
 
-            Bike bike = order.getBike();
-            bike.setStatus(Bike.BikeStatus.ACTIVE); // make available again
-            bikeRepository.save(bike);
-
             dispute.setStatus(Dispute.DisputeStatus.RESOLVED_REFUND);
-            dispute.setResolutionNote(request.getResolutionNote());
-
         } else if ("RELEASE".equalsIgnoreCase(request.getResolutionType())) {
-            // Release to seller: buyer frozen -> seller available (- commission)
-            Long commission = (long) (amount * 0.05);
-            Long sellerRevenue = amount - commission;
-
-            buyerWallet.setFrozenPoints(buyerWallet.getFrozenPoints() - amount);
-            walletRepository.save(buyerWallet);
-
-            sellerWallet.setAvailablePoints(sellerWallet.getAvailablePoints() + sellerRevenue);
-            walletRepository.save(sellerWallet);
-
-            PointTransaction tx = new PointTransaction();
-            tx.setUser(seller);
-            tx.setAmount(sellerRevenue);
-            tx.setType(PointTransaction.TransactionType.EARN);
-            tx.setStatus(PointTransaction.TransactionStatus.SUCCESS);
-            tx.setReferenceId("Release for Dispute: " + disputeId);
-            pointTxRepo.save(tx);
-
-            order.setStatus(Order.OrderStatus.COMPLETED);
-            orderRepository.save(order);
-
-            Bike bike = order.getBike();
-            bike.setStatus(Bike.BikeStatus.SOLD);
-            bikeRepository.save(bike);
-
+            orderService.releaseToSeller(order, "Release for Dispute: " + disputeId);
             dispute.setStatus(Dispute.DisputeStatus.RESOLVED_RELEASE);
-            dispute.setResolutionNote(request.getResolutionNote());
         } else {
             throw new IllegalArgumentException("Unknown resolution type: " + request.getResolutionType());
         }
 
+        dispute.setResolutionNote(request.getResolutionNote());
         dispute.setResolvedAt(LocalDateTime.now());
         return disputeRepository.save(dispute);
     }
