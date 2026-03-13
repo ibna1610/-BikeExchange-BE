@@ -1,7 +1,6 @@
 package com.bikeexchange.service.service;
 
-import com.bikeexchange.dto.request.DisputeCreateRequest;
-import com.bikeexchange.dto.request.DisputeResolveRequest;
+import com.bikeexchange.dto.request.DisputeResolutionType;
 import com.bikeexchange.dto.request.ReturnDisputeRequest;
 import com.bikeexchange.exception.InvalidOrderStatusException;
 import com.bikeexchange.exception.ResourceNotFoundException;
@@ -19,6 +18,7 @@ import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 public class DisputeService {
@@ -38,48 +38,10 @@ public class DisputeService {
     @Autowired
     private OrderService orderService;
 
-    @Transactional(isolation = Isolation.READ_COMMITTED)
-    public Dispute createDispute(Long reporterId, DisputeCreateRequest request) {
-        Order order = orderRepository.findByIdForUpdate(request.getOrderId())
-                .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
-
-        if (request.getReason() == null || request.getReason().trim().isEmpty()) {
-            throw new IllegalArgumentException("Dispute reason is required");
-        }
-
-        if (!order.getBuyer().getId().equals(reporterId)
-                && !order.getBike().getSeller().getId().equals(reporterId)) {
-            throw new IllegalArgumentException("Only buyer or seller can open a dispute");
-        }
-
-        if (order.getStatus() != Order.OrderStatus.ESCROWED
-                && order.getStatus() != Order.OrderStatus.ACCEPTED
-                && order.getStatus() != Order.OrderStatus.DELIVERED
-                && order.getStatus() != Order.OrderStatus.RETURN_REQUESTED) {
-            throw new InvalidOrderStatusException("Cannot dispute an order in status: " + order.getStatus());
-        }
-
-            boolean hasActiveDispute = disputeRepository.existsByOrderIdAndStatusIn(
-                order.getId(),
-                java.util.List.of(Dispute.DisputeStatus.OPEN, Dispute.DisputeStatus.INVESTIGATING));
-            if (hasActiveDispute) {
-                throw new IllegalStateException("This order already has an active dispute");
-            }
-
-        User reporter = userRepository.findById(reporterId)
-                .orElseThrow(() -> new ResourceNotFoundException("Reporter not found"));
-
-        order.setStatus(Order.OrderStatus.DISPUTED);
-        orderRepository.save(order);
-
-        Dispute dispute = new Dispute();
-        dispute.setOrder(order);
-        dispute.setReporter(reporter);
-        dispute.setReason(request.getReason());
-        dispute.setStatus(Dispute.DisputeStatus.OPEN);
-        dispute.setDisputeType(Dispute.DisputeType.GENERAL);
-        dispute.setCreatedAt(LocalDateTime.now());
-        return disputeRepository.save(dispute);
+    @Transactional(readOnly = true)
+    public List<Dispute> getPendingDisputes() {
+        return disputeRepository.findByStatusInOrderByCreatedAtDesc(
+                List.of(Dispute.DisputeStatus.OPEN, Dispute.DisputeStatus.INVESTIGATING));
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
@@ -138,7 +100,7 @@ public class DisputeService {
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
-    public Dispute resolveDispute(Long disputeId, DisputeResolveRequest request) {
+    public Dispute resolveDispute(Long disputeId, DisputeResolutionType resolutionType, String resolutionNote) {
         Dispute dispute = disputeRepository.findById(disputeId)
                 .orElseThrow(() -> new ResourceNotFoundException("Dispute not found"));
 
@@ -154,13 +116,12 @@ public class DisputeService {
             throw new InvalidOrderStatusException("Order is not in DISPUTED status");
         }
 
-        String resolutionType = request.getResolutionType() == null
-                ? ""
-                : request.getResolutionType().trim().toUpperCase();
+        if (resolutionType == null) {
+            throw new IllegalArgumentException("resolutionType is required");
+        }
 
         if (dispute.getDisputeType() == Dispute.DisputeType.RETURN) {
-            // Return dispute: APPROVE_REFUND or DENY
-            if ("APPROVE_REFUND".equals(resolutionType)) {
+            if (resolutionType == DisputeResolutionType.REFUND) {
                 orderService.refundToBuyer(order, "Return approved - Refund for Dispute: " + disputeId);
 
                 Bike bike = order.getBike();
@@ -171,15 +132,14 @@ public class DisputeService {
                 orderRepository.save(order);
 
                 dispute.setStatus(Dispute.DisputeStatus.RESOLVED_REFUND);
-            } else if ("DENY".equals(resolutionType)) {
+            } else if (resolutionType == DisputeResolutionType.RELEASE) {
                 orderService.releaseToSeller(order, "Return denied - Release for Dispute: " + disputeId);
                 dispute.setStatus(Dispute.DisputeStatus.RESOLVED_RELEASE);
             } else {
-                throw new IllegalArgumentException("For return disputes, resolutionType must be APPROVE_REFUND or DENY");
+                throw new IllegalArgumentException("For return disputes, resolutionType must be REFUND or RELEASE");
             }
         } else {
-            // General dispute: REFUND or RELEASE
-            if ("REFUND".equals(resolutionType)) {
+            if (resolutionType == DisputeResolutionType.REFUND) {
                 orderService.refundToBuyer(order, "Refund for Dispute: " + disputeId);
 
                 Bike bike = order.getBike();
@@ -190,14 +150,14 @@ public class DisputeService {
                 orderRepository.save(order);
 
                 dispute.setStatus(Dispute.DisputeStatus.RESOLVED_REFUND);
-            } else if ("RELEASE".equals(resolutionType)) {
+            } else if (resolutionType == DisputeResolutionType.RELEASE) {
                 orderService.releaseToSeller(order, "Release for Dispute: " + disputeId);
                 dispute.setStatus(Dispute.DisputeStatus.RESOLVED_RELEASE);
             } else {
-                throw new IllegalArgumentException("Unknown resolution type: " + request.getResolutionType());
+                throw new IllegalArgumentException("Unknown resolution type: " + resolutionType);
             }
         }
-        dispute.setResolutionNote(request.getResolutionNote());
+        dispute.setResolutionNote(resolutionNote);
         dispute.setResolvedAt(LocalDateTime.now());
         return disputeRepository.save(dispute);
     }

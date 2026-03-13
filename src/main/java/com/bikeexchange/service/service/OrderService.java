@@ -214,8 +214,8 @@ public class OrderService {
             throw new IllegalArgumentException("Return reason is required");
         }
 
-        if (order.getDeliveredAt() == null || order.getDeliveredAt().plusDays(7).isBefore(LocalDateTime.now())) {
-            throw new InvalidOrderStatusException("Return window of 7 days has expired");
+        if (order.getDeliveredAt() == null || order.getDeliveredAt().plusDays(14).isBefore(LocalDateTime.now())) {
+            throw new InvalidOrderStatusException("Return window of 14 days has expired");
         }
 
         order.setStatus(Order.OrderStatus.RETURN_REQUESTED);

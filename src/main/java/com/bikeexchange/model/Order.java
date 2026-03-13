@@ -83,8 +83,8 @@ public class Order {
         PENDING_PAYMENT,
         ESCROWED,
         ACCEPTED,            // Seller đã accept đơn, chuẩn bị gửi hàng
-        DELIVERED,           // Seller đánh dấu đã giao hàng; bắt đầu đếm 7 ngày
-        RETURN_REQUESTED,    // Buyer yêu cầu hoàn hàng (trong 7 ngày kể từ deliveredAt)
+        DELIVERED,           // Seller đánh dấu đã giao hàng; bắt đầu đếm 14 ngày
+        RETURN_REQUESTED,    // Buyer yêu cầu hoàn hàng (trong 14 ngày kể từ deliveredAt)
         COMPLETED,           // Điểm giải phóng về seller
         REFUNDED,            // Điểm hoàn về buyer sau khi seller xác nhận nhận lại hàng
         DISPUTED,
