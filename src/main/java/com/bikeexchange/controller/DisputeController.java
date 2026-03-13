@@ -1,6 +1,6 @@
 package com.bikeexchange.controller;
 
-import com.bikeexchange.dto.request.DisputeCreateRequest;
+import com.bikeexchange.dto.request.DisputeResolutionType;
 import com.bikeexchange.dto.request.DisputeResolveRequest;
 import com.bikeexchange.dto.request.ReturnDisputeRequest;
 import com.bikeexchange.model.Dispute;
@@ -19,6 +19,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import java.util.List;
 
 @RestController
 @RequestMapping
@@ -28,6 +29,20 @@ public class DisputeController {
 
     @Autowired
     private DisputeService disputeService;
+
+    @GetMapping("/admin/disputes/pending")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "[ADMIN] Lấy tất cả tranh chấp cần xử lý", description = "Trả về toàn bộ tranh chấp có trạng thái OPEN hoặc INVESTIGATING để admin xử lý.")
+    public ResponseEntity<?> getPendingDisputes() {
+        List<Dispute> disputes = disputeService.getPendingDisputes();
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("message", "Fetched pending disputes successfully");
+        response.put("data", disputes);
+
+        return ResponseEntity.ok(response);
+    }
 
     @PostMapping("/orders/{orderId}/return-dispute")
     @PreAuthorize("isAuthenticated()")
@@ -46,29 +61,18 @@ public class DisputeController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/dispute")
-    public ResponseEntity<?> createDispute(@AuthenticationPrincipal UserPrincipal currentUser,
-            @RequestBody DisputeCreateRequest request) {
-        Dispute dispute = disputeService.createDispute(currentUser.getId(), request);
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("message", "Dispute opened successfully");
-        response.put("data", dispute);
-
-        return ResponseEntity.ok(response);
-    }
-
     @PostMapping("/admin/dispute/{id}/resolve")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "[ADMIN] Xử lý tranh chấp", description = "Admin xử lý tranh chấp hoàn hàng hoặc tranh chấp chung. Hỗ trợ APPROVE_REFUND (hoàn buyer), DENY (giải ngân seller), REFUND (return chung), RELEASE (tranh chấp chung).")
+    @Operation(summary = "[ADMIN] Xử lý tranh chấp", description = "Admin xử lý tranh chấp bằng query param resolutionType (dropdown: REFUND hoặc RELEASE). Request body chỉ chứa resolutionNote.")
     public ResponseEntity<?> resolveDispute(@PathVariable Long id,
-            @RequestBody DisputeResolveRequest request) {
-        Dispute dispute = disputeService.resolveDispute(id, request);
+            @RequestParam DisputeResolutionType resolutionType,
+            @RequestBody(required = false) DisputeResolveRequest request) {
+        String resolutionNote = request == null ? null : request.getResolutionNote();
+        Dispute dispute = disputeService.resolveDispute(id, resolutionType, resolutionNote);
 
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
-        response.put("message", "Dispute resolved successfully as " + request.getResolutionType());
+        response.put("message", "Dispute resolved successfully as " + resolutionType);
         response.put("data", dispute);
 
         return ResponseEntity.ok(response);
