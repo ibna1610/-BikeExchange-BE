@@ -36,6 +36,9 @@ public class DataInitializer implements CommandLineRunner {
     @Autowired private PointTransactionRepository pointTransactionRepository;
     @Autowired private PostRepository postRepository;
     @Autowired private ComponentRepository componentRepository;
+    @Autowired private WishlistRepository wishlistRepository;
+    @Autowired private ConversationRepository conversationRepository;
+    @Autowired private MessageRepository messageRepository;
     @Autowired private PasswordEncoder passwordEncoder;
 
     @Override
@@ -190,9 +193,9 @@ public class DataInitializer implements CommandLineRunner {
 
         // ── 8. Disputes ────────────────────────────────────────────────────────
         seedDispute(o7, buyer3, "Hàng nhận được khác mô tả, bố thắng không còn hoạt động đúng",
-                Dispute.DisputeStatus.OPEN, null, null);
+                Dispute.DisputeStatus.OPEN, Dispute.DisputeType.GENERAL, null, null);
         seedDispute(o6, buyer4, "Người bán không hợp tác xác nhận hoàn hàng sau khi đã gửi lại",
-                Dispute.DisputeStatus.INVESTIGATING, "Admin đang xem xét bằng chứng hai bên", LocalDateTime.now().minusHours(12));
+                Dispute.DisputeStatus.INVESTIGATING, Dispute.DisputeType.RETURN, "Admin đang xem xét bằng chứng hai bên", LocalDateTime.now().minusHours(12));
 
         // ── 9. Reviews ────────────────────────────────────────────────────────
         seedReview(buyer1, seller1, o1, 5, "Seller rất chuyên nghiệp, xe đúng mô tả, giao hàng nhanh. Rất hài lòng!");
@@ -252,7 +255,24 @@ public class DataInitializer implements CommandLineRunner {
         seedPost(seller1, b4, "Trek FX 3 Disc city bike – đã bán",         Post.ListingType.STANDARD, Post.PostStatus.CANCELLED);
         seedPost(seller3, b10,"Fuji Roubaix 2020 – đã tháo tin",           Post.ListingType.STANDARD, Post.PostStatus.CANCELLED);
 
-        System.out.println("✅ DataInitializer: seed hoàn tất.");
+        // ── 14. Wishlists ────────────────────────────────────────────────────────────
+        seedWishlist(buyer1, b5);
+        seedWishlist(buyer1, b7);
+        seedWishlist(buyer2, b1);
+        seedWishlist(buyer2, b3);
+
+        // ── 15. Conversations & Messages ──────────────────────────────────────────
+        Conversation conv1 = seedConversation(buyer1, seller1, b1);
+        seedMessage(conv1, buyer1, "Chào bạn, xe Trek Émonda còn không ạ?");
+        seedMessage(conv1, seller1, "Chào bạn, xe vẫn còn nhé. Bạn có muốn qua xem xe không?");
+        seedMessage(conv1, buyer1, "Xe này có hỗ trợ trả góp không bạn?");
+        seedMessage(conv1, seller1, "Hiện tại mình chỉ nhận thanh toán qua hệ thống của app thôi bạn ạ.");
+
+        Conversation conv2 = seedConversation(buyer2, seller2, b7);
+        seedMessage(conv2, buyer2, "Mình quan tâm đến chiếc Giant Revolt này.");
+        seedMessage(conv2, seller2, "Vâng, chiếc này đi rất sướng, mình mới bảo dưỡng xong.");
+
+        System.out.println("✅ DataInitializer: seed hoàn tất cùng với Wishlist & Chat.");
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
@@ -324,7 +344,7 @@ public class DataInitializer implements CommandLineRunner {
         Bike bike = new Bike();
         bike.setSeller(seller);
         bike.setBrand(brand);
-        bike.setCategories(cats);
+        bike.setCategories(new HashSet<>(cats));
         bike.setTitle(title);
         bike.setDescription(description);
         bike.setModel(model);
@@ -339,7 +359,28 @@ public class DataInitializer implements CommandLineRunner {
         bike.setInspectionStatus(inspStatus);
         bike.setFeatures("Thắng đĩa, ghi-đông carbon, yên xe chất lượng cao");
         bike.setViews((int)(Math.random() * 200) + 10);
-        return bikeRepository.save(bike);
+        Bike savedBike = bikeRepository.save(bike);
+
+        // Seed some media for the bike
+        if (savedBike.getMedia() == null || savedBike.getMedia().isEmpty()) {
+            BikeMedia img1 = new BikeMedia();
+            img1.setBike(savedBike);
+            img1.setUrl("https://api.dicebear.com/7.x/identicon/svg?seed=" + title + "1");
+            img1.setType(BikeMedia.MediaType.IMAGE);
+            img1.setSortOrder(1);
+
+            BikeMedia img2 = new BikeMedia();
+            img2.setBike(savedBike);
+            img2.setUrl("https://api.dicebear.com/7.x/identicon/svg?seed=" + title + "2");
+            img2.setType(BikeMedia.MediaType.IMAGE);
+            img2.setSortOrder(2);
+
+            savedBike.getMedia().add(img1);
+            savedBike.getMedia().add(img2);
+            return bikeRepository.save(savedBike);
+        }
+
+        return savedBike;
     }
 
     private Order seedOrder(User buyer, Bike bike, long amount, OrderStatus status,
@@ -403,7 +444,7 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     private void seedDispute(Order order, User reporter, String reason,
-                             Dispute.DisputeStatus status, String resolutionNote, LocalDateTime resolvedAt) {
+                             Dispute.DisputeStatus status, Dispute.DisputeType type, String resolutionNote, LocalDateTime resolvedAt) {
         boolean exists = disputeRepository.findByOrderId(order.getId()).stream()
                 .anyMatch(d -> d.getReason().equals(reason));
         if (exists) return;
@@ -412,6 +453,7 @@ public class DataInitializer implements CommandLineRunner {
         d.setReporter(reporter);
         d.setReason(reason);
         d.setStatus(status);
+        d.setDisputeType(type);
         d.setResolutionNote(resolutionNote);
         d.setResolvedAt(resolvedAt);
         disputeRepository.save(d);
@@ -485,5 +527,39 @@ public class DataInitializer implements CommandLineRunner {
         p.setListingType(listingType);
         p.setStatus(status);
         postRepository.save(p);
+    }
+
+    private void seedWishlist(User buyer, Bike bike) {
+        if (wishlistRepository.findByBuyerIdAndBikeId(buyer.getId(), bike.getId()).isPresent()) return;
+        Wishlist w = new Wishlist();
+        w.setBuyer(buyer);
+        w.setBike(bike);
+        w.setAddedAt(LocalDateTime.now());
+        wishlistRepository.save(w);
+    }
+
+    private Conversation seedConversation(User buyer, User seller, Bike bike) {
+        return conversationRepository.findByBikeIdAndBuyerId(bike.getId(), buyer.getId())
+                .orElseGet(() -> {
+                    Conversation c = new Conversation();
+                    c.setBuyer(buyer);
+                    c.setSeller(seller);
+                    c.setBike(bike);
+                    c.setCreatedAt(LocalDateTime.now());
+                    c.setUpdatedAt(LocalDateTime.now());
+                    return conversationRepository.save(c);
+                });
+    }
+
+    private void seedMessage(Conversation conversation, User sender, String content) {
+        boolean exists = messageRepository.findByConversationIdOrderByCreatedAtAsc(conversation.getId())
+                .stream().anyMatch(m -> m.getSender().getId().equals(sender.getId()) && m.getContent().equals(content));
+        if (exists) return;
+        Message m = new Message();
+        m.setConversation(conversation);
+        m.setSender(sender);
+        m.setContent(content);
+        m.setCreatedAt(LocalDateTime.now());
+        messageRepository.save(m);
     }
 }
