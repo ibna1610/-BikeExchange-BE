@@ -41,19 +41,20 @@ public class BikeController {
             @Parameter(example = "1") @RequestParam(name = "brand_id", required = false) Long brandId,
             @Parameter(example = "2018") @RequestParam(name = "min_year", required = false) Integer minYear,
             @Parameter(example = "54cm") @RequestParam(name = "frame_size", required = false) String frameSize,
-            @Parameter(example = "true") @RequestParam(name = "sort_by_rating", defaultValue = "false") boolean sortByRating,
-            @Parameter(example = "0") @RequestParam(name = "page", defaultValue = "0") int page,
-            @Parameter(example = "20") @RequestParam(name = "size", defaultValue = "20") int size) {
-        Pageable pageable = PageRequest.of(page, size);
+            @Parameter(example = "true") @RequestParam(name = "sort_by_rating", defaultValue = "false") boolean sortByRating) {
+        // Use a large size to return "all" results (e.g., 1000)
+        Pageable pageable = PageRequest.of(0, 1000);
         Page<Bike> result = bikeService.searchBikesAdvanced(keyword, categoryId, status, priceMin, priceMax,
                 brandId, minYear, frameSize, sortByRating, pageable);
 
-        Page<com.bikeexchange.dto.response.BikeResponse> dtoPage = result
-                .map(com.bikeexchange.dto.response.BikeResponse::fromEntity);
+        java.util.List<com.bikeexchange.dto.response.BikeResponse> dtoList = result.getContent()
+                .stream()
+                .map(com.bikeexchange.dto.response.BikeResponse::fromEntity)
+                .toList();
 
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
-        response.put("data", dtoPage);
+        response.put("data", dtoList);
         return ResponseEntity.ok(response);
     }
 
@@ -103,11 +104,11 @@ public class BikeController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Delete / Archive a Bike", description = "Soft delete or mark a bike as CANCELLED. Must be the owner.")
+    @Operation(summary = "Delete / Archive a Bike", description = "Soft delete or mark a bike as CANCELLED. Must be the owner or an Admin.")
     public ResponseEntity<?> deleteBike(
             @Parameter(example = "1") @PathVariable(name = "id") Long id,
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser) {
-        bikeService.deleteBike(id, currentUser.getId());
+        bikeService.deleteBike(id, currentUser);
 
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
