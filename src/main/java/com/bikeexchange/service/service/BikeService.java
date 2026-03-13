@@ -237,11 +237,14 @@ public class BikeService {
         return saved;
     }
 
-    public void deleteBike(Long bikeId, Long sellerId) {
+    public void deleteBike(Long bikeId, com.bikeexchange.security.UserPrincipal principal) {
         Bike bike = getBikeById(bikeId);
+        Long userId = principal.getId();
+        boolean isAdmin = principal.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
 
-        if (!bike.getSeller().getId().equals(sellerId)) {
-            throw new IllegalArgumentException("Only the seller can delete this bike");
+        if (!isAdmin && !bike.getSeller().getId().equals(userId)) {
+            throw new IllegalArgumentException("Only the seller or an admin can delete this bike");
         }
 
         if (bike.getStatus() == Bike.BikeStatus.RESERVED) {
@@ -252,7 +255,7 @@ public class BikeService {
         bike.setStatus(Bike.BikeStatus.CANCELLED);
         bike.setUpdatedAt(LocalDateTime.now());
         bikeRepository.save(bike);
-        historyService.log("bike", bike.getId(), "cancelled", sellerId, null);
+        historyService.log("bike", bike.getId(), "cancelled", userId, isAdmin ? "Cancelled by Admin" : null);
     }
 
 }
