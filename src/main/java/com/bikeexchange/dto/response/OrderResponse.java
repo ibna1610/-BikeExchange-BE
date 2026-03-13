@@ -60,7 +60,7 @@ public class OrderResponse {
         res.setReturnReason(order.getReturnReason());
         if (order.getDeliveredAt() != null && order.getStatus() == Order.OrderStatus.DELIVERED) {
             long daysPassed = ChronoUnit.DAYS.between(order.getDeliveredAt(), LocalDateTime.now());
-            res.setDaysUntilAutoRelease(Math.max(0, 7 - daysPassed));
+            res.setDaysUntilAutoRelease(Math.max(0, 14 - daysPassed));
         }
         return res;
     }
