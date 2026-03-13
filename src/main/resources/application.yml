@@ -31,11 +31,7 @@ spring:
     host: smtp-relay.brevo.com
     port: 587
     username: a44240001@smtp-brevo.com
-<<<<<<< HEAD
-    password: ${BREVO_SMTP_KEY:xsmtpsib-52bc62e2021a70644dc6fe73fbdad1a24e5abb94b94b729fb0f932294595af3d-a199AS8mAkPg0j28}
-=======
-    password: ${BREVO_SMTP_KEY:xsmtpsib-52bc62e2021a70644dc6fe73fbdad1a24e5abb94b94b729fb0f932294595af3d-JILTZ4pI0JVBZJwZ}
->>>>>>> aa7f761442bfc4677409e6e6afc09ccd2885e25f
+    password: ${BREVO_SMTP_KEY:xsmtpsib-52bc62e2021a70644dc6fe73fbdad1a24e5abb94b94b729fb0f932294595af3d-eIHi5BcWZIHK4h9h}
     properties:
       mail:
         smtp:
