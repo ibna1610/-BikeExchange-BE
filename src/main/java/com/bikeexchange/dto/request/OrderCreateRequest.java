@@ -10,6 +10,6 @@ public class OrderCreateRequest {
     @Schema(description = "ID of the bike to buy", example = "10")
     private Long bikeId;
 
-    @Schema(description = "Unique key to prevent duplicate orders (Client-generated UUID recommended)", example = "333e4444-e89b-12d3-a456-426614174000")
+    @Schema(hidden = true)
     private String idempotencyKey;
 }

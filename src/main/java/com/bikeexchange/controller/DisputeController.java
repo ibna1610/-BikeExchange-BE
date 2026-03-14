@@ -30,6 +30,22 @@ public class DisputeController {
     @Autowired
     private DisputeService disputeService;
 
+    @GetMapping("/orders/my-disputes")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "[BUYER] Xem danh sách tranh chấp của tôi", description = "Người mua xem toàn bộ tranh chấp liên quan đến các đơn hàng của mình.")
+    public ResponseEntity<?> getMyDisputes(
+            @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser) {
+        List<Dispute> disputes = disputeService.getBuyerDisputes(currentUser.getId());
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("message", "Fetched buyer disputes successfully");
+        response.put("data", disputes);
+        response.put("summary", Map.of("totalCount", disputes.size()));
+
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping("/admin/disputes/pending")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "[ADMIN] Lấy tất cả tranh chấp cần xử lý", description = "Trả về toàn bộ tranh chấp có trạng thái OPEN hoặc INVESTIGATING để admin xử lý.")

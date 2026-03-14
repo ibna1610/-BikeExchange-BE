@@ -44,6 +44,11 @@ public class DisputeService {
                 List.of(Dispute.DisputeStatus.OPEN, Dispute.DisputeStatus.INVESTIGATING));
     }
 
+    @Transactional(readOnly = true)
+    public List<Dispute> getBuyerDisputes(Long buyerId) {
+        return disputeRepository.findByOrderBuyerIdOrderByCreatedAtDesc(buyerId);
+    }
+
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public Dispute createReturnDispute(Long orderId, Long buyerId, ReturnDisputeRequest request) {
         Order order = orderRepository.findByIdForUpdate(orderId)

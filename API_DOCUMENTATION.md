@@ -31,19 +31,39 @@ Ghi chu tuong thich nguoc: backend van ho tro alias cu `/api/wishlist`.
 - **GET** `/api/buyer/bikes/{bikeId}/inspections` - Xem tất cả báo cáo kiểm định của xe
 
 #### 💳 Purchase & Transaction
-- **POST** `/api/buyer/{buyerId}/purchase/{bikeId}?depositAmount=X` - Đặt mua / cọc xe
-- **GET** `/api/buyer/transaction/{transactionId}` - Theo dõi giao dịch
-- **GET** `/api/buyer/{buyerId}/transactions` - Xem tất cả giao dịch của Buyer
-- **PUT** `/api/buyer/transaction/{transactionId}/complete` - Hoàn tất giao dịch
-- **PUT** `/api/buyer/transaction/{transactionId}/cancel` - Hủy đặt cọc
+- **POST** `/api/orders` - Buyer tạo đơn hàng (escrow points)
+- **GET** `/api/orders/my-purchases` - Buyer xem lịch sử mua
+- **GET** `/api/orders/my-sales` - Seller xem lịch sử bán
+- **GET** `/api/orders/{id}/history` - Xem timeline chi tiết đơn hàng
+- **POST** `/api/orders/{id}/accept` - Seller accept đơn
+- **POST** `/api/orders/{id}/seller-cancel` - Seller hủy đơn (ESCROWED/ACCEPTED), hoàn escrow cho buyer
+- **POST** `/api/orders/{id}/deliver` - Seller đánh dấu đã giao (shipping carrier + tracking code)
+- **POST** `/api/orders/{id}/confirm-receipt` - Buyer xác nhận nhận hàng (release points cho seller)
+- **POST** `/api/orders/{id}/cancel` - Buyer hủy đơn ở trạng thái ESCROWED
+
+#### 🔁 Order Status Transition (theo từng API action)
+- **POST** `/api/orders`:
+	- Bike: `ACTIVE/VERIFIED -> RESERVED`
+	- Order: `-> ESCROWED`
+- **POST** `/api/orders/{id}/accept`: `ESCROWED -> ACCEPTED`
+- **POST** `/api/orders/{id}/seller-cancel`: `ESCROWED/ACCEPTED -> CANCELLED`, đồng thời Bike `RESERVED -> ACTIVE`
+- **POST** `/api/orders/{id}/cancel` (buyer): `ESCROWED -> CANCELLED`, đồng thời Bike `RESERVED -> ACTIVE`
+- **POST** `/api/orders/{id}/deliver`: `ACCEPTED -> DELIVERED`
+- **POST** `/api/orders/{id}/confirm-receipt`: `DELIVERED -> COMPLETED`, đồng thời Bike `RESERVED -> SOLD`
+- **POST** `/api/orders/{id}/request-return`: `DELIVERED -> RETURN_REQUESTED`
+- **POST** `/api/orders/{id}/confirm-return`: `RETURN_REQUESTED -> REFUNDED`, đồng thời Bike `RESERVED -> ACTIVE`
+- **POST** `/api/orders/{orderId}/return-dispute`: `RETURN_REQUESTED -> DISPUTED`
 
 #### ⭐ Rating & Review
-- **POST** `/api/buyer/transaction/{transactionId}/rate?rating=X&review=TEXT` - Đánh giá Seller sau giao dịch
+- **POST** `/api/reviews?orderId=X&rating=Y&comment=TEXT` - Buyer đánh giá Seller sau khi order COMPLETED
+- **GET** `/api/reviews/seller/{sellerId}` - Xem danh sách đánh giá của Seller
 
 #### 📢 Report & Dispute
 - **POST** `/api/buyer/{buyerId}/report?bikeId=X&reportedUserId=Y&reportType=FRAUD&description=TEXT` - Báo cáo vi phạm
 - **GET** `/api/buyer/{buyerId}/reports` - Xem lịch sử báo cáo của tôi
 - **PUT** `/api/buyer/transaction/{transactionId}/dispute?reason=TEXT` - Tranh chấp giao dịch
+- **GET** `/api/orders/my-disputes` - Buyer xem danh sách tranh chấp đơn hàng của mình
+- **POST** `/api/orders/{orderId}/return-dispute` - Buyer mở tranh chấp hoàn hàng khi seller không xác nhận hoàn
 
 ---
 
@@ -146,9 +166,10 @@ Ghi chu tuong thich nguoc: backend van ho tro alias cu `/api/wishlist`.
 ### ✅ Flow 3: Purchase & Transaction
 1. Buyer đặt mua (cọc)
 2. Xe chuyển sang RESERVED
-3. Seller xác nhận/từ chối
-4. Nếu chấp nhận → giao dịch COMPLETED
-5. Buyer đánh giá → Seller rating update
+3. Seller accept đơn (ESCROWED → ACCEPTED)
+4. Seller đánh dấu đã giao (ACCEPTED → DELIVERED)
+5. Buyer xác nhận nhận hàng hoặc auto-release sau 14 ngày (→ COMPLETED)
+6. Buyer đánh giá seller (chỉ khi order COMPLETED) → cập nhật rating
 
 ### ✅ Flow 4: Admin Moderation
 1. Duyệt tin đăng
