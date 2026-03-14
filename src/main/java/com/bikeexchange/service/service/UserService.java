@@ -14,6 +14,8 @@ import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.Optional;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import com.bikeexchange.dto.request.UserUpdateRequest;
 
 @Service
 @Transactional
@@ -23,6 +25,9 @@ public class UserService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     @Autowired
     private UserWalletRepository walletRepository;
@@ -45,12 +50,19 @@ public class UserService {
         return userRepository.findByEmail(email);
     }
 
-    public User updateUser(Long userId, User updatedUser) {
+    public User updateUser(Long userId, UserUpdateRequest request) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-        user.setFullName(updatedUser.getFullName());
-        user.setPhone(updatedUser.getPhone());
-        user.setAddress(updatedUser.getAddress());
+        
+        user.setFullName(request.getFullName());
+        user.setPhone(request.getPhone());
+        user.setAddress(request.getAddress());
+        
+        // If password is provided in the request, encrypt and update it
+        if (request.getPassword() != null && !request.getPassword().trim().isEmpty()) {
+            user.setPassword(passwordEncoder.encode(request.getPassword()));
+        }
+        
         return userRepository.save(user);
     }
 

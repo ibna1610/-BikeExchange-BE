@@ -44,12 +44,14 @@ public interface BikeRepository extends JpaRepository<Bike, Long> {
                      "AND (:maxPrice IS NULL OR b.pricePoints <= :maxPrice) " +
                      "AND (:brandId IS NULL OR b.brand.id = :brandId) " +
                      "AND (:minYear IS NULL OR b.year >= :minYear) " +
-                     "AND (:frameSize IS NULL OR b.frameSize = :frameSize)")
+                     "AND (:frameSize IS NULL OR b.frameSize = :frameSize) " +
+                     "AND (:sellerId IS NULL OR b.seller.id = :sellerId)")
        Page<Bike> filterBikesAdvanced(@Param("minPrice") Long minPrice,
                      @Param("maxPrice") Long maxPrice,
                      @Param("brandId") Long brandId,
                      @Param("minYear") Integer minYear,
                      @Param("frameSize") String frameSize,
+                     @Param("sellerId") Long sellerId,
                      Pageable pageable);
 
        List<Bike> findByBikeTypeAndStatus(String bikeType, Bike.BikeStatus status);
@@ -67,17 +69,23 @@ public interface BikeRepository extends JpaRepository<Bike, Long> {
 
        Page<Bike> findByCategories_IdAndStatusIn(Long categoryId, java.util.List<Bike.BikeStatus> statuses, Pageable pageable);
 
+       Page<Bike> findBySellerIdAndCategories_IdAndStatusIn(Long sellerId, Long categoryId, java.util.List<Bike.BikeStatus> statuses, Pageable pageable);
+
        @Query("SELECT b FROM Bike b WHERE b.status IN :statuses AND (" +
-               "LOWER(b.brand.name) LIKE %:keyword% OR LOWER(b.model) LIKE %:keyword% OR LOWER(b.title) LIKE %:keyword%)")
+               "LOWER(b.brand.name) LIKE %:keyword% OR LOWER(b.model) LIKE %:keyword% OR LOWER(b.title) LIKE %:keyword%) " +
+               "AND (:sellerId IS NULL OR b.seller.id = :sellerId)")
        Page<Bike> searchByKeywordAndStatuses(@Param("keyword") String keyword,
                                              @Param("statuses") java.util.List<Bike.BikeStatus> statuses,
+                                             @Param("sellerId") Long sellerId,
                                              Pageable pageable);
 
        @Query("SELECT b FROM Bike b JOIN b.categories c WHERE c.id = :categoryId AND b.status IN :statuses AND (" +
-               "LOWER(b.brand.name) LIKE %:keyword% OR LOWER(b.model) LIKE %:keyword% OR LOWER(b.title) LIKE %:keyword%)")
+               "LOWER(b.brand.name) LIKE %:keyword% OR LOWER(b.model) LIKE %:keyword% OR LOWER(b.title) LIKE %:keyword%) " +
+               "AND (:sellerId IS NULL OR b.seller.id = :sellerId)")
        Page<Bike> searchByCategoryKeywordAndStatuses(@Param("categoryId") Long categoryId,
                                                      @Param("keyword") String keyword,
                                                      @Param("statuses") java.util.List<Bike.BikeStatus> statuses,
+                                                     @Param("sellerId") Long sellerId,
                                                      Pageable pageable);
 
        long countByBrandId(Long brandId);

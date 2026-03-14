@@ -3,6 +3,7 @@ package com.bikeexchange.controller;
 import com.bikeexchange.model.User;
 import com.bikeexchange.service.service.UserService;
 import com.bikeexchange.dto.request.UpgradeToSellerRequest;
+import com.bikeexchange.dto.request.UserUpdateRequest;
 import com.bikeexchange.security.UserPrincipal;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -37,7 +38,17 @@ public class UserController {
         }
     }
 
+    @GetMapping("/me")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Get current user profile", description = "Get the profile of the currently authenticated user without passing an ID.")
+    public ResponseEntity<User> getCurrentUser(@Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser) {
+        return userService.getUserById(currentUser.getId())
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
     @GetMapping("/{userId}")
+    @Operation(summary = "Get user by ID", description = "Fetch a specific user's public profile (e.g. to view a seller's information).")
     public ResponseEntity<User> getUserById(@PathVariable Long userId) {
         return userService.getUserById(userId)
                 .map(ResponseEntity::ok)
@@ -51,11 +62,15 @@ public class UserController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    @PutMapping("/{userId}")
-    public ResponseEntity<User> updateUser(@PathVariable Long userId, @RequestBody User user) {
+    @PutMapping("/me")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Update user profile", description = "Allows updating user's full name, password, phone, and address. Uses user ID from the Auth token.")
+    public ResponseEntity<?> updateUser(
+            @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser,
+            @Valid @RequestBody UserUpdateRequest request) {
         try {
-            User updatedUser = userService.updateUser(userId, user);
-            return ResponseEntity.ok(updatedUser);
+            User updatedUser = userService.updateUser(currentUser.getId(), request);
+            return ResponseEntity.ok(Map.of("success", true, "data", updatedUser, "message", "Profile updated successfully"));
         } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();
         }

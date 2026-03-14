@@ -54,7 +54,7 @@ public class BikeService {
     }
 
     public Page<Bike> searchBikesAdvanced(String keyword, Long categoryId, String status,
-            Long minPrice, Long maxPrice, Long brandId, Integer minYear, String frameSize, boolean sortByRating, Pageable pageable) {
+            Long minPrice, Long maxPrice, Long brandId, Integer minYear, String frameSize, Long sellerId, boolean sortByRating, Pageable pageable) {
 
         if (sortByRating) {
             pageable = org.springframework.data.domain.PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(),
@@ -82,20 +82,26 @@ public class BikeService {
 
         if (keyword != null && !keyword.isBlank()) {
             if (categoryId != null) {
-                return bikeRepository.searchByCategoryKeywordAndStatuses(categoryId, keyword.toLowerCase(), statuses,
+                return bikeRepository.searchByCategoryKeywordAndStatuses(categoryId, keyword.toLowerCase(), statuses, sellerId,
                         pageable);
             }
-            return bikeRepository.searchByKeywordAndStatuses(keyword.toLowerCase(), statuses, pageable);
+            return bikeRepository.searchByKeywordAndStatuses(keyword.toLowerCase(), statuses, sellerId, pageable);
         }
 
         // If price/frame/brand filters provided, use advanced filter
         if (minPrice != null || maxPrice != null || minYear != null || (frameSize != null && !frameSize.isBlank()) || brandId != null) {
-            return bikeRepository.filterBikesAdvanced(minPrice, maxPrice, brandId, minYear, frameSize, pageable);
+            return bikeRepository.filterBikesAdvanced(minPrice, maxPrice, brandId, minYear, frameSize, sellerId, pageable);
         }
 
         if (categoryId != null) {
+            if (sellerId != null) return bikeRepository.findBySellerIdAndCategories_IdAndStatusIn(sellerId, categoryId, statuses, pageable);
             return bikeRepository.findByCategories_IdAndStatusIn(categoryId, statuses, pageable);
         }
+        
+        if (sellerId != null) {
+            return bikeRepository.findBySellerIdAndStatusIn(sellerId, statuses, pageable);
+        }
+        
         return bikeRepository.findByStatusIn(statuses, pageable);
     }
 

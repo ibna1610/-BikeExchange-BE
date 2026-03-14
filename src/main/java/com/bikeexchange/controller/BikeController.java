@@ -41,11 +41,12 @@ public class BikeController {
             @Parameter(example = "1") @RequestParam(name = "brand_id", required = false) Long brandId,
             @Parameter(example = "2018") @RequestParam(name = "min_year", required = false) Integer minYear,
             @Parameter(example = "54cm") @RequestParam(name = "frame_size", required = false) String frameSize,
+            @Parameter(example = "1") @RequestParam(name = "seller_id", required = false) Long sellerId,
             @Parameter(example = "true") @RequestParam(name = "sort_by_rating", defaultValue = "false") boolean sortByRating) {
         // Use a large size to return "all" results (e.g., 1000)
         Pageable pageable = PageRequest.of(0, 1000);
         Page<Bike> result = bikeService.searchBikesAdvanced(keyword, categoryId, status, priceMin, priceMax,
-                brandId, minYear, frameSize, sortByRating, pageable);
+                brandId, minYear, frameSize, sellerId, sortByRating, pageable);
 
         java.util.List<com.bikeexchange.dto.response.BikeResponse> dtoList = result.getContent()
                 .stream()
