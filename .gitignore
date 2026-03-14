@@ -48,3 +48,5 @@ Thumbs.db
 # Application
 *.log
 logs/
+application.yml
+application-*.yml
