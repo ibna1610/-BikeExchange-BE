@@ -36,9 +36,23 @@ Ghi chu tuong thich nguoc: backend van ho tro alias cu `/api/wishlist`.
 - **GET** `/api/orders/my-sales` - Seller xem lịch sử bán
 - **GET** `/api/orders/{id}/history` - Xem timeline chi tiết đơn hàng
 - **POST** `/api/orders/{id}/accept` - Seller accept đơn
+- **POST** `/api/orders/{id}/seller-cancel` - Seller hủy đơn (ESCROWED/ACCEPTED), hoàn escrow cho buyer
 - **POST** `/api/orders/{id}/deliver` - Seller đánh dấu đã giao (shipping carrier + tracking code)
 - **POST** `/api/orders/{id}/confirm-receipt` - Buyer xác nhận nhận hàng (release points cho seller)
 - **POST** `/api/orders/{id}/cancel` - Buyer hủy đơn ở trạng thái ESCROWED
+
+#### 🔁 Order Status Transition (theo từng API action)
+- **POST** `/api/orders`:
+	- Bike: `ACTIVE/VERIFIED -> RESERVED`
+	- Order: `-> ESCROWED`
+- **POST** `/api/orders/{id}/accept`: `ESCROWED -> ACCEPTED`
+- **POST** `/api/orders/{id}/seller-cancel`: `ESCROWED/ACCEPTED -> CANCELLED`, đồng thời Bike `RESERVED -> ACTIVE`
+- **POST** `/api/orders/{id}/cancel` (buyer): `ESCROWED -> CANCELLED`, đồng thời Bike `RESERVED -> ACTIVE`
+- **POST** `/api/orders/{id}/deliver`: `ACCEPTED -> DELIVERED`
+- **POST** `/api/orders/{id}/confirm-receipt`: `DELIVERED -> COMPLETED`, đồng thời Bike `RESERVED -> SOLD`
+- **POST** `/api/orders/{id}/request-return`: `DELIVERED -> RETURN_REQUESTED`
+- **POST** `/api/orders/{id}/confirm-return`: `RETURN_REQUESTED -> REFUNDED`, đồng thời Bike `RESERVED -> ACTIVE`
+- **POST** `/api/orders/{orderId}/return-dispute`: `RETURN_REQUESTED -> DISPUTED`
 
 #### ⭐ Rating & Review
 - **POST** `/api/reviews?orderId=X&rating=Y&comment=TEXT` - Buyer đánh giá Seller sau khi order COMPLETED
