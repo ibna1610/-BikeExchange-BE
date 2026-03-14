@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
@@ -37,7 +38,7 @@ public class VnPayService {
         vnpParams.put("vnp_Locale", "vn");
         vnpParams.put("vnp_ReturnUrl", config.getReturnUrl());
         vnpParams.put("vnp_IpAddr", ipAddr);
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
         vnpParams.put("vnp_CreateDate", now.format(FMT));
         vnpParams.put("vnp_ExpireDate", now.plusMinutes(15).format(FMT));
         return vnpParams;
@@ -87,7 +88,7 @@ public class VnPayService {
     }
 
     private String generateTxnRef(Long userId) {
-        String ts = LocalDateTime.now().format(FMT);
+        String ts = LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")).format(FMT);
         String rnd = UUID.randomUUID().toString().replace("-", "").substring(0, 8).toUpperCase();
         return "WALLET-" + userId + "-" + ts + "-" + rnd;
     }

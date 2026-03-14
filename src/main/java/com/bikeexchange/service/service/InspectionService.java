@@ -278,28 +278,14 @@ public class InspectionService {
         }
         bikeRepository.save(bike);
 
-        // Release commission to inspector
-        UserWallet inspectorWallet = walletRepository.findByUserIdForUpdate(inspection.getInspector().getId())
-                .orElseThrow(() -> new ResourceNotFoundException("Inspector Wallet missing"));
+        // Deduct fee from seller (100% goes to system platform)
         UserWallet sellerWallet = walletRepository.findByUserIdForUpdate(bike.getSeller().getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Seller Wallet missing"));
 
         Long fee = inspection.getFeePoints();
-        Long commission = (long) (fee * 0.8); // 80% to inspector, 20% system
 
         sellerWallet.setFrozenPoints(sellerWallet.getFrozenPoints() - fee);
         walletRepository.save(sellerWallet);
-
-        inspectorWallet.setAvailablePoints(inspectorWallet.getAvailablePoints() + commission);
-        walletRepository.save(inspectorWallet);
-
-        PointTransaction tx = new PointTransaction();
-        tx.setUser(inspectorWallet.getUser());
-        tx.setAmount(commission);
-        tx.setType(PointTransaction.TransactionType.EARN);
-        tx.setStatus(PointTransaction.TransactionStatus.SUCCESS);
-        tx.setReferenceId("Inspection fee: " + inspection.getId());
-        pointTxRepo.save(tx);
 
         historyService.log("inspection", inspection.getId(), "approved", adminId, null);
         historyService.log("report", report.getId(), "approved", adminId, null);
