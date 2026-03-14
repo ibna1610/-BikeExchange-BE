@@ -164,6 +164,26 @@ public class OrderService {
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
+    public Order sellerCancelOrder(Long orderId, Long sellerId) {
+        Order order = orderRepository.findByIdForUpdate(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
+        assertSeller(order, sellerId);
+        assertStatusIn(order, Order.OrderStatus.ESCROWED, Order.OrderStatus.ACCEPTED);
+
+        refundToBuyer(order, "Seller Cancel Order: " + orderId);
+
+        Bike bike = order.getBike();
+        bike.setStatus(Bike.BikeStatus.ACTIVE);
+        bikeRepository.save(bike);
+
+        order.setStatus(Order.OrderStatus.CANCELLED);
+        Order saved = orderRepository.save(order);
+        historyService.log("order", saved.getId(), "seller_cancelled", sellerId, null);
+        historyService.log("bike", bike.getId(), "available", sellerId, null);
+        return saved;
+    }
+
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public Order markDelivered(Long orderId, Long sellerId,
                                String shippingCarrier,
                                String trackingCode,
