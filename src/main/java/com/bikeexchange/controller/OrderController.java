@@ -40,7 +40,7 @@ public class OrderController {
     @Operation(summary = "[BUYER] Xem lịch sử mua hàng", description = "Người mua xem toàn bộ lịch sử mua hàng. Hỗ trợ lọc theo 1 trạng thái (dropdown, tùy chọn), bao gồm chi tiết đánh giá, khả năng đánh giá và dòng thời gian của từng đơn hàng.")
     public ResponseEntity<?> getMyPurchases(
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser,
-            @Parameter(example = "COMPLETED") @RequestParam(name = "status", required = false) Order.OrderStatus status) {
+             @RequestParam(name = "status", required = false) Order.OrderStatus status) {
 
         List<String> statusParams = status == null ? null : List.of(status.name());
 
@@ -70,7 +70,7 @@ public class OrderController {
     @Operation(summary = "[SELLER] Xem lịch sử bán hàng", description = "Người bán xem toàn bộ lịch sử bán hàng. Hỗ trợ lọc theo 1 trạng thái (dropdown, tùy chọn), bao gồm chi tiết đánh giá của người mua và dòng thời gian của từng đơn hàng.")
     public ResponseEntity<?> getMySales(
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser,
-            @Parameter(example = "COMPLETED") @RequestParam(name = "status", required = false) Order.OrderStatus status) {
+             @RequestParam(name = "status", required = false) Order.OrderStatus status) {
 
         List<String> statusParams = status == null ? null : List.of(status.name());
 
@@ -114,7 +114,7 @@ public class OrderController {
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "[BUYER/SELLER] Xem dòng thời gian đơn hàng", description = "Người mua hoặc người bán xem đầy đủ dòng thời gian của một đơn hàng, bao gồm chi tiết đánh giá và khả năng đánh giá theo vai trò.")
     public ResponseEntity<?> getOrderHistory(
-            @Parameter(example = "1") @PathVariable Long id,
+             @PathVariable Long id,
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser) {
 
         OrderHistoryDetailResponse historyDetail = orderService.getOrderHistoryDetail(id, currentUser.getId());
@@ -149,7 +149,7 @@ public class OrderController {
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "[BUYER] Hủy đơn hàng", description = "Người mua chỉ được hủy đơn khi người bán chưa accept (trạng thái ESCROWED). Điểm ký quỹ sẽ được hoàn về ví người mua.")
     public ResponseEntity<?> cancelOrder(
-            @Parameter(example = "1") @PathVariable Long id,
+             @PathVariable Long id,
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser) {
 
         Order order = orderService.cancelOrder(id, currentUser.getId());
@@ -165,7 +165,7 @@ public class OrderController {
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "[SELLER] Xác nhận nhận đơn", description = "Người bán accept đơn hàng để bắt đầu xử lý giao hàng.")
     public ResponseEntity<?> acceptOrder(
-            @Parameter(example = "1") @PathVariable Long id,
+             @PathVariable Long id,
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser) {
 
         Order order = orderService.acceptOrder(id, currentUser.getId());
@@ -180,7 +180,7 @@ public class OrderController {
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "[SELLER] Đánh dấu đã giao hàng", description = "Người bán cập nhật giao hàng mà không cần upload ảnh, chỉ cần đơn vị vận chuyển, mã vận đơn và ghi chú (tuỳ chọn). Nếu người mua không xác nhận nhận hàng, hệ thống sẽ tự giải ngân cho người bán sau 14 ngày kể từ lúc giao.")
     public ResponseEntity<?> markDelivered(
-            @Parameter(example = "1") @PathVariable Long id,
+             @PathVariable Long id,
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser,
             @RequestBody OrderDeliverRequest request) {
 
@@ -201,7 +201,7 @@ public class OrderController {
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "[BUYER] Xác nhận đã nhận hàng", description = "Người mua xác nhận đã nhận hàng. Điểm được giải ngân cho người bán ngay lập tức. Nếu người mua không xác nhận, điểm sẽ tự động giải ngân cho người bán sau 14 ngày kể từ lúc giao.")
     public ResponseEntity<?> confirmReceipt(
-            @Parameter(example = "1") @PathVariable Long id,
+             @PathVariable Long id,
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser) {
 
         Order order = orderService.confirmReceipt(id, currentUser.getId());
@@ -216,7 +216,7 @@ public class OrderController {
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "[BUYER] Yêu cầu trả hàng", description = "Chỉ áp dụng cho đơn đang DELIVERED. Người mua phải gửi yêu cầu trong vòng 14 ngày kể từ thời điểm giao và bắt buộc cung cấp lý do trả hàng. Điểm chỉ được hoàn khi người bán xác nhận đã nhận lại hàng (confirm-return). Nếu người bán không xác nhận, người mua có thể mở return dispute để admin xử lý.")
     public ResponseEntity<?> requestReturn(
-            @Parameter(example = "1") @PathVariable Long id,
+             @PathVariable Long id,
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser,
             @RequestBody OrderReturnRequest request) {
 
@@ -232,7 +232,7 @@ public class OrderController {
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "[SELLER] Xác nhận đã nhận hàng trả", description = "Người bán xác nhận đã nhận lại hàng trả. Điểm được hoàn ngay cho người mua.")
     public ResponseEntity<?> confirmReturn(
-            @Parameter(example = "1") @PathVariable Long id,
+             @PathVariable Long id,
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser) {
 
         Order order = orderService.confirmReturn(id, currentUser.getId());

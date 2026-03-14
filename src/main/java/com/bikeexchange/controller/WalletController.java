@@ -52,7 +52,7 @@ public class WalletController {
     public ResponseEntity<?> getTransactions(
             @AuthenticationPrincipal UserPrincipal currentUser,
             @RequestParam(name = "userId", required = false) Long userIdParam,
-            @Parameter(example = "DEPOSIT") @RequestParam(name = "type", required = false) java.util.List<String> typeParams) {
+             @RequestParam(name = "type", required = false) java.util.List<String> typeParams) {
         Long userId = currentUser != null ? currentUser.getId() : userIdParam;
         if (userId == null) {
             return ResponseEntity.badRequest()

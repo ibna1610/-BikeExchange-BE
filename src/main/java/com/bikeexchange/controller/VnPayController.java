@@ -30,7 +30,7 @@ public class VnPayController {
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Create VNPay Payment URL", description = "Generates a URL to redirect user to VNPay for wallet deposit.")
     public ResponseEntity<?> createPayment(
-            @Parameter(example = "50000") @RequestParam("amount") Long amount,
+             @RequestParam("amount") Long amount,
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser,
             HttpServletRequest request) {
         Long userId = currentUser.getId();
