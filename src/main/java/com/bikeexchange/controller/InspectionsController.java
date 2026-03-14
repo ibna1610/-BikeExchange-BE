@@ -61,14 +61,14 @@ public class InspectionsController {
     @GetMapping
     @Operation(summary = "List inspections", description = "Filters: bike_id, inspector_id, status, date_from, date_to. Returns a paginated list.")
     public ResponseEntity<?> list(
-            @Parameter(example = "3") @RequestParam(name = "sellerId", required = false) Long sellerId,
-            @Parameter(example = "REQUESTED", schema = @io.swagger.v3.oas.annotations.media.Schema(allowableValues = {
+             @RequestParam(name = "sellerId", required = false) Long sellerId,
+            @Parameter(schema = @io.swagger.v3.oas.annotations.media.Schema(allowableValues = {
                     "REQUESTED", "ASSIGNED", "INSPECTED", "APPROVED",
                     "REJECTED" })) @RequestParam(name = "status", required = false) InspectionRequest.RequestStatus status,
-            @Parameter(example = "2026-02-01T00:00:00") @RequestParam(name = "date_from", required = false) String date_from,
-            @Parameter(example = "2026-02-28T23:59:59") @RequestParam(name = "date_to", required = false) String date_to,
-            @Parameter(example = "0") @RequestParam(name = "page", defaultValue = "0") int page,
-            @Parameter(example = "20") @RequestParam(name = "size", defaultValue = "20") int size) {
+             @RequestParam(name = "date_from", required = false) String date_from,
+             @RequestParam(name = "date_to", required = false) String date_to,
+             @RequestParam(name = "page", defaultValue = "0") int page,
+             @RequestParam(name = "size", defaultValue = "20") int size) {
         Pageable pageable = PageRequest.of(page, size);
         Specification<InspectionRequest> spec = Specification.where(null);
 
@@ -113,7 +113,7 @@ public class InspectionsController {
     @GetMapping("/{inspectionId}")
     @Operation(summary = "Get inspection", description = "Returns inspection by id with report and history.")
     public ResponseEntity<?> getOne(
-            @Parameter(example = "5") @PathVariable(name = "inspectionId") Long inspectionId) {
+             @PathVariable(name = "inspectionId") Long inspectionId) {
         return inspectionRepository.findById(inspectionId)
                 .map(i -> {
                     InspectionResponse inspection = InspectionResponse.fromEntity(i);
@@ -135,7 +135,7 @@ public class InspectionsController {
     @GetMapping("/bikes/{bikeId}/report")
     @Operation(summary = "Get inspection report by bike ID", description = "Returns the latest inspection report for a specific bike.")
     public ResponseEntity<?> getReportByBikeId(
-            @Parameter(example = "1") @PathVariable(name = "bikeId") Long bikeId) {
+             @PathVariable(name = "bikeId") Long bikeId) {
         InspectionReport report = inspectionService.getReportByBikeId(bikeId);
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
@@ -147,8 +147,8 @@ public class InspectionsController {
     @PreAuthorize("hasRole('INSPECTOR')")
     @Operation(summary = "Update inspection status", description = "Roles: Inspector (ASSIGNED/REJECTED). Must be an Inspector.")
     public ResponseEntity<?> updateStatus(
-            @Parameter(example = "5") @PathVariable("inspectionId") Long inspectionId,
-            @Parameter(example = "ASSIGNED", schema = @io.swagger.v3.oas.annotations.media.Schema(allowableValues = {
+             @PathVariable("inspectionId") Long inspectionId,
+            @Parameter(schema = @io.swagger.v3.oas.annotations.media.Schema(allowableValues = {
                     "REQUESTED", "ASSIGNED",
                     "REJECTED" })) @RequestParam("status") InspectionRequest.RequestStatus status,
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser) {
@@ -165,7 +165,7 @@ public class InspectionsController {
     @PreAuthorize("hasRole('INSPECTOR')")
     @Operation(summary = "Submit inspection report", description = "Roles: Inspector. Include medias: [{url,type,sortOrder}]")
     public ResponseEntity<?> submitReport(
-            @Parameter(example = "5") @PathVariable("inspectionId") Long inspectionId,
+             @PathVariable("inspectionId") Long inspectionId,
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser,
             @RequestBody InspectionReportDto request) {
         Long inspectorId = currentUser.getId();
@@ -180,8 +180,8 @@ public class InspectionsController {
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Approve inspection request", description = "Roles: Admin. logic: result=true marks bike VERIFIED, result=false marks REJECTED (inspection fail). Both pay inspector.")
     public ResponseEntity<?> approveInspection(
-            @Parameter(example = "5") @PathVariable("inspectionId") Long inspectionId,
-            @Parameter(example = "true") @RequestParam(name = "result", defaultValue = "true") boolean isPassed,
+             @PathVariable("inspectionId") Long inspectionId,
+             @RequestParam(name = "result", defaultValue = "true") boolean isPassed,
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser) {
         Long adminId = currentUser.getId();
         InspectionReport report = inspectionService.adminApproveInspection(inspectionId, adminId, isPassed);

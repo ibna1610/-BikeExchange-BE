@@ -70,7 +70,7 @@ public class ChatController {
         @PreAuthorize("isAuthenticated()")
         @Operation(summary = "Get Messages in a Conversation", description = "Retrieve a list of all messages for a specific conversation without pagination. Also marks messages as read.")
         public ResponseEntity<?> getMessages(
-                        @Parameter(example = "1") @PathVariable(name = "conversationId") Long conversationId,
+                         @PathVariable(name = "conversationId") Long conversationId,
                         @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser) {
                 List<Message> messages = chatService.getMessagesAll(conversationId);
 

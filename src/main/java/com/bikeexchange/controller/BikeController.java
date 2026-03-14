@@ -33,16 +33,16 @@ public class BikeController {
     @GetMapping
     @Operation(summary = "Search and Filter Bikes", description = "Retrieve a paginated list of bikes. Filters: keyword, category_id, status (repeat param or comma-separated).")
     public ResponseEntity<?> getListings(
-            @Parameter(example = "Giant") @RequestParam(name = "keyword", required = false) String keyword,
-            @Parameter(example = "1") @RequestParam(name = "category_id", required = false) Long categoryId,
-            @Parameter(example = "VERIFIED") @RequestParam(name = "status", required = false) String status,
-            @Parameter(example = "1000") @RequestParam(name = "price_min", required = false) Long priceMin,
-            @Parameter(example = "5000") @RequestParam(name = "price_max", required = false) Long priceMax,
-            @Parameter(example = "1") @RequestParam(name = "brand_id", required = false) Long brandId,
-            @Parameter(example = "2018") @RequestParam(name = "min_year", required = false) Integer minYear,
-            @Parameter(example = "54cm") @RequestParam(name = "frame_size", required = false) String frameSize,
-            @Parameter(example = "1") @RequestParam(name = "seller_id", required = false) Long sellerId,
-            @Parameter(example = "true") @RequestParam(name = "sort_by_rating", defaultValue = "false") boolean sortByRating) {
+             @RequestParam(name = "keyword", required = false) String keyword,
+             @RequestParam(name = "category_id", required = false) Long categoryId,
+             @RequestParam(name = "status", required = false) String status,
+             @RequestParam(name = "price_min", required = false) Long priceMin,
+             @RequestParam(name = "price_max", required = false) Long priceMax,
+             @RequestParam(name = "brand_id", required = false) Long brandId,
+             @RequestParam(name = "min_year", required = false) Integer minYear,
+             @RequestParam(name = "frame_size", required = false) String frameSize,
+             @RequestParam(name = "seller_id", required = false) Long sellerId,
+             @RequestParam(name = "sort_by_rating", defaultValue = "false") boolean sortByRating) {
         // Use a large size to return "all" results (e.g., 1000)
         Pageable pageable = PageRequest.of(0, 1000);
         Page<Bike> result = bikeService.searchBikesAdvanced(keyword, categoryId, status, priceMin, priceMax,
@@ -62,7 +62,7 @@ public class BikeController {
     @GetMapping("/{id}")
     @Operation(summary = "Get Bike Details", description = "Fetch complete details of a single bike listing by its ID")
     public ResponseEntity<?> getListing(
-            @Parameter(example = "1") @PathVariable(name = "id") Long id) {
+             @PathVariable(name = "id") Long id) {
         Bike bike = bikeService.getBikeById(id);
 
         Map<String, Object> response = new HashMap<>();
@@ -91,7 +91,7 @@ public class BikeController {
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Update an Existing Bike", description = "Modify details of an existing bike. Must be the owner.")
     public ResponseEntity<?> updateBike(
-            @Parameter(example = "1") @PathVariable(name = "id") Long id,
+             @PathVariable(name = "id") Long id,
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser,
             @RequestBody BikeCreateRequest request) {
         Bike bike = bikeService.updateBike(id, currentUser.getId(), request);
@@ -107,7 +107,7 @@ public class BikeController {
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Delete / Archive a Bike", description = "Soft delete or mark a bike as CANCELLED. Must be the owner or an Admin.")
     public ResponseEntity<?> deleteBike(
-            @Parameter(example = "1") @PathVariable(name = "id") Long id,
+             @PathVariable(name = "id") Long id,
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser) {
         bikeService.deleteBike(id, currentUser);
 

@@ -48,7 +48,7 @@ public class DisputeController {
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "[BUYER] Mở tranh chấp hoàn hàng", description = "Người mua mở tranh chấp khi seller từ chối hoàn hàng trả, cung cấp lý do và thông tin liên hệ để admin xử lý.")
     public ResponseEntity<?> createReturnDispute(
-            @Parameter(example = "1") @PathVariable Long orderId,
+             @PathVariable Long orderId,
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser,
             @RequestBody ReturnDisputeRequest request) {
         Dispute dispute = disputeService.createReturnDispute(orderId, currentUser.getId(), request);
