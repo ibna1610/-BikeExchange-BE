@@ -46,7 +46,8 @@ public class EmailServiceImpl implements EmailService {
         try {
             log.info("Starting to send verification email to: {}", user.getEmail());
             MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED, StandardCharsets.UTF_8.name());
+            MimeMessageHelper helper = new MimeMessageHelper(message, MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED,
+                    StandardCharsets.UTF_8.name());
 
             Context context = new Context();
             context.setVariable("name", user.getFullName());
@@ -72,7 +73,8 @@ public class EmailServiceImpl implements EmailService {
         try {
             log.info("Starting to send password reset email to: {}", user.getEmail());
             MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED, StandardCharsets.UTF_8.name());
+            MimeMessageHelper helper = new MimeMessageHelper(message, MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED,
+                    StandardCharsets.UTF_8.name());
 
             Context context = new Context();
             context.setVariable("name", user.getFullName());
