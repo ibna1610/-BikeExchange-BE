@@ -119,6 +119,20 @@ public class DataInitializer implements CommandLineRunner {
                 "Endurance road bike nhôm, thắng đĩa, Shimano 105. Mới đi 1.200 km.",
                 "Domane AL 5", 2022, 24_000L, 1200, "GOOD",         "ROAD", "54cm", "TP.HCM",  BikeStatus.ACTIVE,    InspectionStatus.IN_PROGRESS);
 
+        // Extra bikes for order testing
+        Bike b12 = seedBike(seller1, specialized, Set.of(road),      "Specialized Tarmac SL7 Sport 2023",
+                "Road bike nhôm-carbon cân bằng tốc độ và độ êm. Đã bảo dưỡng định kỳ, sẵn sàng sử dụng.",
+                "Tarmac SL7 Sport", 2023, 52_000L, 900, "LIKE_NEW", "ROAD", "54cm", "TP.HCM", BikeStatus.ACTIVE,    InspectionStatus.NONE);
+        Bike b13 = seedBike(seller2, merida, Set.of(mountain),       "Merida One-Twenty 500 2022",
+                "MTB full-suspension linh hoạt cho trail, phuộc hoạt động tốt, xe đã qua kiểm định.",
+                "One-Twenty 500", 2022, 31_000L, 2600, "GOOD",      "MTB",  "M",    "Đà Nẵng", BikeStatus.VERIFIED,  InspectionStatus.APPROVED);
+        Bike b14 = seedBike(seller3, giant, Set.of(city),             "Giant Escape 2 City 2023",
+                "Xe city nhẹ, đi phố cực ổn định, phù hợp đi làm hằng ngày.",
+                "Escape 2", 2023, 14_500L, 1100, "GOOD",            "CITY", "M",    "TP.HCM", BikeStatus.ACTIVE,    InspectionStatus.NONE);
+        Bike b15 = seedBike(seller1, polygon, Set.of(gravel),         "Polygon Bend R5 2023",
+                "Gravel bike đa dụng, đi đường hỗn hợp tốt, đã kiểm định đạt chuẩn.",
+                "Bend R5", 2023, 26_000L, 1500, "GOOD",             "GRAVEL", "M",   "Hà Nội", BikeStatus.VERIFIED,  InspectionStatus.APPROVED);
+
         // ── 5. Orders ─────────────────────────────────────────────────────────
         // Completed order – buyer1 mua b2 (VERIFIED) từ seller1
         Order o1 = seedOrder(buyer1, b2, 35_000L, OrderStatus.COMPLETED, "IDEM-001",
@@ -251,6 +265,10 @@ public class DataInitializer implements CommandLineRunner {
         seedPost(seller2, b8, "🏙️ Polygon Urbano gấp gọn, 7 tốc độ, phù hợp đi làm kết hợp xe bus/tàu điện.",           Post.ListingType.STANDARD, Post.PostStatus.ACTIVE);
         seedPost(seller3, b9, "⛰️ Merida Big.Nine MTB 29er nhôm, giá sinh viên, thích hợp trail nhẹ.",                   Post.ListingType.STANDARD, Post.PostStatus.ACTIVE);
         seedPost(seller3, b11,"🔴 Trek Domane road nhôm, thắng đĩa, đi mới 1.200km. Xe đẹp, giá hợp lý!",               Post.ListingType.STANDARD, Post.PostStatus.ACTIVE);
+        seedPost(seller1, b12,"⚡ Specialized Tarmac SL7 Sport, xe mới đẹp, phù hợp road training và đi nhóm.",          Post.ListingType.STANDARD, Post.PostStatus.ACTIVE);
+        seedPost(seller2, b13,"🛞 Merida One-Twenty full-sus đã kiểm định, chạy trail cực mượt.",                        Post.ListingType.VERIFIED, Post.PostStatus.ACTIVE);
+        seedPost(seller3, b14,"🚲 Giant Escape city bike nhẹ, tiện đi làm và đi dạo cuối tuần.",                         Post.ListingType.STANDARD, Post.PostStatus.ACTIVE);
+        seedPost(seller1, b15,"🌄 Polygon Bend R5 gravel đã kiểm định, cân mọi cung đường hỗn hợp.",                     Post.ListingType.VERIFIED, Post.PostStatus.ACTIVE);
         // Post đã cancelled (xe sold/cancelled)
         seedPost(seller1, b4, "Trek FX 3 Disc city bike – đã bán",         Post.ListingType.STANDARD, Post.PostStatus.CANCELLED);
         seedPost(seller3, b10,"Fuji Roubaix 2020 – đã tháo tin",           Post.ListingType.STANDARD, Post.PostStatus.CANCELLED);

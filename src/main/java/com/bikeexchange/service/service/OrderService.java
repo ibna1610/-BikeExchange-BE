@@ -34,6 +34,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -76,11 +77,11 @@ public class OrderService {
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public Order createOrder(Long buyerId, Long bikeId, String idempotencyKey) {
-        if (isBlank(idempotencyKey)) {
-            throw new IllegalArgumentException("idempotencyKey is required");
-        }
+        String effectiveIdempotencyKey = isBlank(idempotencyKey)
+                ? UUID.randomUUID().toString()
+                : idempotencyKey.trim();
 
-        Order existingOrder = orderRepository.findByIdempotencyKey(idempotencyKey).orElse(null);
+        Order existingOrder = orderRepository.findByIdempotencyKey(effectiveIdempotencyKey).orElse(null);
         if (existingOrder != null) {
             boolean sameBuyer = existingOrder.getBuyer() != null && existingOrder.getBuyer().getId().equals(buyerId);
             boolean sameBike = existingOrder.getBike() != null && existingOrder.getBike().getId().equals(bikeId);
@@ -113,13 +114,13 @@ public class OrderService {
         bikeRepository.save(bike);
 
         savePointTransaction(buyerWallet.getUser(), bike.getPricePoints(),
-                PointTransaction.TransactionType.ESCROW_HOLD, "OrderKey: " + idempotencyKey);
+            PointTransaction.TransactionType.ESCROW_HOLD, "OrderKey: " + effectiveIdempotencyKey);
 
         Order order = new Order();
         order.setBuyer(buyerWallet.getUser());
         order.setBike(bike);
         order.setAmountPoints(bike.getPricePoints());
-        order.setIdempotencyKey(idempotencyKey);
+        order.setIdempotencyKey(effectiveIdempotencyKey);
         order.setStatus(Order.OrderStatus.ESCROWED);
 
         Order saved = orderRepository.save(order);

@@ -128,7 +128,7 @@ public class OrderController {
 
     @PostMapping
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "[BUYER] Tạo đơn hàng", description = "Người mua tạo đơn hàng cho xe đạp. Điểm sẽ được ký quỹ (đóng băng).")
+    @Operation(summary = "[BUYER] Tạo đơn hàng", description = "Người mua tạo đơn hàng cho xe đạp. Điểm sẽ được ký quỹ (đóng băng). Hệ thống tự sinh idempotencyKey nếu client không truyền.")
     public ResponseEntity<?> createOrder(
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser,
             @RequestBody OrderCreateRequest request) {
