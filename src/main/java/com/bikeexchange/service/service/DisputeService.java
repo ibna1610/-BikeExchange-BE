@@ -45,6 +45,12 @@ public class DisputeService {
     }
 
     @Transactional(readOnly = true)
+    public List<Dispute> getResolvedDisputes() {
+        return disputeRepository.findByStatusInOrderByResolvedAtDesc(
+                List.of(Dispute.DisputeStatus.RESOLVED_REFUND, Dispute.DisputeStatus.RESOLVED_RELEASE, Dispute.DisputeStatus.REJECTED));
+    }
+
+    @Transactional(readOnly = true)
     public List<Dispute> getBuyerDisputes(Long buyerId) {
         return disputeRepository.findByOrderBuyerIdOrderByCreatedAtDesc(buyerId);
     }
@@ -163,6 +169,35 @@ public class DisputeService {
             }
         }
         dispute.setResolutionNote(resolutionNote);
+        dispute.setResolvedAt(LocalDateTime.now());
+        return disputeRepository.save(dispute);
+    }
+
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public Dispute rejectDispute(Long disputeId, String resolutionNote) {
+        Dispute dispute = disputeRepository.findById(disputeId)
+                .orElseThrow(() -> new ResourceNotFoundException("Dispute not found"));
+
+        if (dispute.getStatus() != Dispute.DisputeStatus.OPEN
+                && dispute.getStatus() != Dispute.DisputeStatus.INVESTIGATING) {
+            throw new IllegalStateException("Dispute is already resolved");
+        }
+
+        if (resolutionNote == null || resolutionNote.trim().isEmpty()) {
+            throw new IllegalArgumentException("resolutionNote is required when rejecting dispute");
+        }
+
+        Order order = orderRepository.findByIdForUpdate(dispute.getOrder().getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
+
+        if (order.getStatus() != Order.OrderStatus.DISPUTED) {
+            throw new InvalidOrderStatusException("Order is not in DISPUTED status");
+        }
+
+        orderService.releaseToSeller(order, "Dispute rejected by admin: " + disputeId);
+
+        dispute.setStatus(Dispute.DisputeStatus.REJECTED);
+        dispute.setResolutionNote(resolutionNote.trim());
         dispute.setResolvedAt(LocalDateTime.now());
         return disputeRepository.save(dispute);
     }

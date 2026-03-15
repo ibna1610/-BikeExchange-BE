@@ -63,7 +63,7 @@ public class Dispute {
     }
 
     public enum DisputeStatus {
-        OPEN, INVESTIGATING, RESOLVED_REFUND, RESOLVED_RELEASE
+        OPEN, INVESTIGATING, RESOLVED_REFUND, RESOLVED_RELEASE, REJECTED
     }
 
     public enum DisputeType {
