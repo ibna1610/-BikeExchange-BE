@@ -154,8 +154,8 @@ public class DataInitializer implements CommandLineRunner {
         Order o5 = seedOrder(buyer2, b5, 28_000L, OrderStatus.DELIVERED, "IDEM-005",
                 LocalDateTime.now().minusDays(3), LocalDateTime.now().minusDays(5));
 
-        // Return requested
-        Order o6 = seedOrder(buyer4, b3, 70_000L, OrderStatus.RETURN_REQUESTED, "IDEM-006",
+        // Disputed (đã mở return dispute)
+        Order o6 = seedOrder(buyer4, b3, 70_000L, OrderStatus.DISPUTED, "IDEM-006",
                 LocalDateTime.now().minusDays(5), LocalDateTime.now().minusDays(8));
 
         // Disputed
@@ -209,7 +209,7 @@ public class DataInitializer implements CommandLineRunner {
         seedDispute(o7, buyer3, "Hàng nhận được khác mô tả, bố thắng không còn hoạt động đúng",
                 Dispute.DisputeStatus.OPEN, Dispute.DisputeType.GENERAL, null, null);
         seedDispute(o6, buyer4, "Người bán không hợp tác xác nhận hoàn hàng sau khi đã gửi lại",
-                Dispute.DisputeStatus.INVESTIGATING, Dispute.DisputeType.RETURN, "Admin đang xem xét bằng chứng hai bên", LocalDateTime.now().minusHours(12));
+                Dispute.DisputeStatus.INVESTIGATING, Dispute.DisputeType.RETURN, "Admin đang xem xét bằng chứng hai bên", null);
 
         // ── 9. Reviews ────────────────────────────────────────────────────────
         seedReview(buyer1, seller1, o1, 5, "Seller rất chuyên nghiệp, xe đúng mô tả, giao hàng nhanh. Rất hài lòng!");
@@ -403,10 +403,21 @@ public class DataInitializer implements CommandLineRunner {
 
     private Order seedOrder(User buyer, Bike bike, long amount, OrderStatus status,
                             String idempotencyKey, LocalDateTime deliveredAt, LocalDateTime createdAt) {
-        if (orderRepository.existsByIdempotencyKey(idempotencyKey)) return
-                orderRepository.findAll().stream()
-                        .filter(o -> idempotencyKey.equals(o.getIdempotencyKey()))
-                        .findFirst().orElseThrow();
+                if (orderRepository.existsByIdempotencyKey(idempotencyKey)) {
+                        Order existing = orderRepository.findAll().stream()
+                                        .filter(o -> idempotencyKey.equals(o.getIdempotencyKey()))
+                                        .findFirst().orElseThrow();
+                        existing.setBuyer(buyer);
+                        existing.setBike(bike);
+                        existing.setAmountPoints(amount);
+                        existing.setStatus(status);
+                        existing.setDeliveredAt(deliveredAt);
+                        if (createdAt != null) {
+                                existing.setCreatedAt(createdAt);
+                        }
+                        existing.setUpdatedAt(LocalDateTime.now());
+                        return orderRepository.save(existing);
+                }
         Order o = new Order();
         o.setBuyer(buyer);
         o.setBike(bike);
@@ -463,9 +474,21 @@ public class DataInitializer implements CommandLineRunner {
 
     private void seedDispute(Order order, User reporter, String reason,
                              Dispute.DisputeStatus status, Dispute.DisputeType type, String resolutionNote, LocalDateTime resolvedAt) {
-        boolean exists = disputeRepository.findByOrderId(order.getId()).stream()
-                .anyMatch(d -> d.getReason().equals(reason));
-        if (exists) return;
+        Optional<Dispute> existing = disputeRepository.findByOrderId(order.getId()).stream()
+                .filter(d -> d.getReason().equals(reason))
+                .findFirst();
+        if (existing.isPresent()) {
+            Dispute d = existing.get();
+            d.setOrder(order);
+            d.setReporter(reporter);
+            d.setReason(reason);
+            d.setStatus(status);
+            d.setDisputeType(type);
+            d.setResolutionNote(resolutionNote);
+            d.setResolvedAt(resolvedAt);
+            disputeRepository.save(d);
+            return;
+        }
         Dispute d = new Dispute();
         d.setOrder(order);
         d.setReporter(reporter);

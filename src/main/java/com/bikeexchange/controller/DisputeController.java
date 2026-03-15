@@ -1,5 +1,6 @@
 package com.bikeexchange.controller;
 
+import com.bikeexchange.dto.response.DisputeSummaryResponse;
 import com.bikeexchange.dto.request.DisputeResolutionType;
 import com.bikeexchange.dto.request.DisputeResolveRequest;
 import com.bikeexchange.dto.request.ReturnDisputeRequest;
@@ -36,12 +37,15 @@ public class DisputeController {
     public ResponseEntity<?> getMyDisputes(
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser) {
         List<Dispute> disputes = disputeService.getBuyerDisputes(currentUser.getId());
+        List<DisputeSummaryResponse> disputeSummaries = disputes.stream()
+            .map(DisputeSummaryResponse::fromEntity)
+            .toList();
 
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
         response.put("message", "Fetched buyer disputes successfully");
-        response.put("data", disputes);
-        response.put("summary", Map.of("totalCount", disputes.size()));
+        response.put("data", disputeSummaries);
+        response.put("summary", Map.of("totalCount", disputeSummaries.size()));
 
         return ResponseEntity.ok(response);
     }
@@ -51,11 +55,33 @@ public class DisputeController {
     @Operation(summary = "[ADMIN] Lấy tất cả tranh chấp cần xử lý", description = "Trả về toàn bộ tranh chấp có trạng thái OPEN hoặc INVESTIGATING để admin xử lý.")
     public ResponseEntity<?> getPendingDisputes() {
         List<Dispute> disputes = disputeService.getPendingDisputes();
+        List<DisputeSummaryResponse> disputeSummaries = disputes.stream()
+                .map(DisputeSummaryResponse::fromEntity)
+                .toList();
 
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
         response.put("message", "Fetched pending disputes successfully");
-        response.put("data", disputes);
+        response.put("data", disputeSummaries);
+        response.put("summary", Map.of("totalCount", disputeSummaries.size()));
+
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/admin/disputes/resolved")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "[ADMIN] Lấy tất cả tranh chấp đã xử lý", description = "Trả về toàn bộ tranh chấp đã xử lý với trạng thái RESOLVED_REFUND hoặc RESOLVED_RELEASE.")
+    public ResponseEntity<?> getResolvedDisputes() {
+        List<Dispute> disputes = disputeService.getResolvedDisputes();
+        List<DisputeSummaryResponse> disputeSummaries = disputes.stream()
+                .map(DisputeSummaryResponse::fromEntity)
+                .toList();
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("message", "Fetched resolved disputes successfully");
+        response.put("data", disputeSummaries);
+        response.put("summary", Map.of("totalCount", disputeSummaries.size()));
 
         return ResponseEntity.ok(response);
     }
@@ -68,11 +94,12 @@ public class DisputeController {
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser,
             @RequestBody ReturnDisputeRequest request) {
         Dispute dispute = disputeService.createReturnDispute(orderId, currentUser.getId(), request);
+        DisputeSummaryResponse disputeSummary = DisputeSummaryResponse.fromEntity(dispute);
 
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
         response.put("message", "Return dispute opened successfully. Admin will review and make a decision.");
-        response.put("data", dispute);
+        response.put("data", disputeSummary);
 
         return ResponseEntity.ok(response);
     }
@@ -85,11 +112,29 @@ public class DisputeController {
             @RequestBody(required = false) DisputeResolveRequest request) {
         String resolutionNote = request == null ? null : request.getResolutionNote();
         Dispute dispute = disputeService.resolveDispute(id, resolutionType, resolutionNote);
+        DisputeSummaryResponse disputeSummary = DisputeSummaryResponse.fromEntity(dispute);
 
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
         response.put("message", "Dispute resolved successfully as " + resolutionType);
-        response.put("data", dispute);
+        response.put("data", disputeSummary);
+
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/admin/dispute/{id}/reject")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "[ADMIN] Từ chối tranh chấp", description = "Admin từ chối tranh chấp (không đủ bằng chứng/không hợp lệ). Bắt buộc truyền resolutionNote.")
+    public ResponseEntity<?> rejectDispute(@PathVariable Long id,
+            @RequestBody DisputeResolveRequest request) {
+        String resolutionNote = request == null ? null : request.getResolutionNote();
+        Dispute dispute = disputeService.rejectDispute(id, resolutionNote);
+        DisputeSummaryResponse disputeSummary = DisputeSummaryResponse.fromEntity(dispute);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("message", "Dispute rejected successfully");
+        response.put("data", disputeSummary);
 
         return ResponseEntity.ok(response);
     }
