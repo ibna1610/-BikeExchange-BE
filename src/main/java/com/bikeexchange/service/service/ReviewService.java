@@ -54,7 +54,7 @@ public class ReviewService {
 
         // Recalculate seller rating (simple average)
         var reviews = reviewRepository.findBySellerIdOrderByCreatedAtDesc(seller.getId());
-        double avg = reviews.stream().mapToInt(Review::getRating).average().orElse(5.0);
+        double avg = reviews.stream().mapToInt(Review::getRating).average().orElse(0.0);
         userService.updateUserRating(seller.getId(), avg);
 
         return saved;

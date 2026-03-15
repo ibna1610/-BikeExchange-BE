@@ -39,7 +39,7 @@ public class User {
     @Column(nullable = false)
     private UserRole role;
 
-    @Column(name = "rating", columnDefinition = "DECIMAL(3,2) DEFAULT 5.0")
+    @Column(name = "rating", columnDefinition = "DECIMAL(3,2) DEFAULT 0.0")
     private Double rating;
 
     @Column(name = "total_bikes_sold", columnDefinition = "INT DEFAULT 0")
@@ -75,7 +75,7 @@ public class User {
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
         totalBikesSold = 0;
-        rating = 5.0;
+        rating = 0.0;
         isVerified = false;
         if (status == null)
             status = "UNVERIFIED";

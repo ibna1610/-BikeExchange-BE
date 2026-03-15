@@ -75,7 +75,7 @@ Added the following fields to support seller information:
         "shopDescription": "Quality bikes for everyone",
         "upgradedToSellerAt": "2026-03-02T10:30:00",
         "status": "ACTIVE",
-        "rating": 5.0,
+        "rating": 0.0,
         "isVerified": false
     }
 }
