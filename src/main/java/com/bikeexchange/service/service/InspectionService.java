@@ -264,7 +264,7 @@ public class InspectionService {
         report.setAdminDecision(isPassed ? InspectionRequest.RequestStatus.APPROVED : InspectionRequest.RequestStatus.REJECTED);
         reportRepository.save(report);
 
-        inspection.setStatus(InspectionRequest.RequestStatus.APPROVED);
+        inspection.setStatus(isPassed ? InspectionRequest.RequestStatus.APPROVED : InspectionRequest.RequestStatus.REJECTED);
         inspection.setUpdatedAt(LocalDateTime.now());
         inspectionRepository.save(inspection);
 
@@ -274,7 +274,7 @@ public class InspectionService {
             bike.setStatus(Bike.BikeStatus.VERIFIED);
         } else {
             bike.setInspectionStatus(Bike.InspectionStatus.REJECTED);
-            // Bike remains ACTIVE but inspection failed
+            bike.setStatus(Bike.BikeStatus.ACTIVE); // Reset to ACTIVE if rejected
         }
         bikeRepository.save(bike);
 
@@ -306,6 +306,7 @@ public class InspectionService {
         // Sync with Bike status
         Bike bike = inspection.getBike();
         bike.setInspectionStatus(Bike.InspectionStatus.REJECTED);
+        bike.setStatus(Bike.BikeStatus.ACTIVE); // Reset to ACTIVE if rejected
         bikeRepository.save(bike);
 
         // Refund fee to seller wallet
