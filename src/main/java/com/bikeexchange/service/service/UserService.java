@@ -21,7 +21,7 @@ import com.bikeexchange.dto.request.UserUpdateRequest;
 @Transactional
 public class UserService {
     // Seller upgrade fee in points
-    private static final Long SELLER_UPGRADE_FEE = 10000L;
+    private static final Long SELLER_UPGRADE_FEE = 50000L;
 
     @Autowired
     private UserRepository userRepository;
