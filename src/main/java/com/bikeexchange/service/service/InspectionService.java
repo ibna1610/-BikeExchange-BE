@@ -46,7 +46,7 @@ public class InspectionService {
     @Autowired
     private HistoryService historyService;
 
-    private static final Long INSPECTION_FEE = 100L; // 100 points (~100k VND)
+    private static final Long INSPECTION_FEE = 200000L; // 200,000 points (~200k-200M VND depending on scale)
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public InspectionRequest requestInspection(Long requesterId, InspectionRequestDto dto) {
