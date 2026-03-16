@@ -125,6 +125,7 @@ public class UserService {
         user.setRole(User.UserRole.SELLER);
         user.setShopName(shopName);
         user.setShopDescription(shopDescription);
+        user.setRating(0.0); // Reset rating to 0.0 for new seller
         user.setUpgradedToSellerAt(LocalDateTime.now());
         
         return userRepository.save(user);
