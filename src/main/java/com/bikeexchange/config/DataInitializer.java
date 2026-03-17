@@ -43,6 +43,7 @@ public class DataInitializer implements CommandLineRunner {
 
     @Override
     @Transactional
+        @SuppressWarnings("unused")
     public void run(String... args) throws Exception {
         // ── 1. Users ──────────────────────────────────────────────────────────
         User admin      = seedUser("admin@bikeexchange.com",      "Nguyễn Quản Trị",   "0901000001", "12 Lê Lợi, Q.1, TP.HCM",          User.UserRole.ADMIN,     "ACTIVE", 0L);
@@ -55,6 +56,7 @@ public class DataInitializer implements CommandLineRunner {
         User buyer2     = seedUser("buyer2@bikeexchange.com",     "Hoàng Thị Lan",      "0901000008", "30 Nam Kỳ Khởi Nghĩa, Q.3, TP.HCM",User.UserRole.BUYER,     "ACTIVE", 80_000L);
         User buyer3     = seedUser("buyer3@bikeexchange.com",     "Đinh Văn Khách",     "0901000009", "55 Hai Bà Trưng, Q.1, TP.HCM",     User.UserRole.BUYER,     "ACTIVE", 60_000L);
         User buyer4     = seedUser("buyer4@bikeexchange.com",     "Bùi Xuân Mua",       "0901000010", "11 Lý Thường Kiệt, Q.5, TP.HCM",   User.UserRole.BUYER,     "ACTIVE", 20_000L);
+        seedUser("guest1@bikeexchange.com",  "Khách Dùng Thử",    "0901000018", "Không có địa chỉ cố định",            User.UserRole.GUEST,     "ACTIVE", 0L);
         // legacy accounts
         seedUser("seller@bikeexchange.com",    "Sample Seller",    "0987654321", "System Default Address", User.UserRole.SELLER,    "ACTIVE", 1_000L);
         seedUser("buyer@bikeexchange.com",     "Sample Buyer",     "0987654321", "System Default Address", User.UserRole.BUYER,     "ACTIVE", 1_000L);
@@ -100,7 +102,7 @@ public class DataInitializer implements CommandLineRunner {
                 "Allez Sprint Comp", 2022, 28_000L, 1800, "GOOD",  "ROAD", "54cm", "Hà Nội",  BikeStatus.ACTIVE,    InspectionStatus.REQUESTED);
         Bike b6 = seedBike(seller2, scott, Set.of(mountain),        "Scott Scale 940 2021",
                 "MTB hardtail 29 inch, khung Alloy HMX, phuộc RockShox Judy. Đi 5.000 km.",
-                "Scale 940", 2021, 22_000L, 5000, "FAIR",          "MTB",  "L",    "Đà Nẵng", BikeStatus.DRAFT,     InspectionStatus.NONE);
+                "Scale 940", 2021, 22_000L, 5000, "FAIR",          "MTB",  "L",    "Đà Nẵng", BikeStatus.DRAFT,     InspectionStatus.REJECTED);
         Bike b7 = seedBike(seller2, giant, Set.of(road, gravel),    "Giant Revolt Advanced 2 2023",
                 "Gravel bike khung carbon, groupset Shimano GRX, bánh 700c. Chỉ đi 800 km.",
                 "Revolt Advanced 2", 2023, 42_000L, 800, "LIKE_NEW","GRAVEL","M",  "TP.HCM",  BikeStatus.VERIFIED,  InspectionStatus.APPROVED);
@@ -132,6 +134,9 @@ public class DataInitializer implements CommandLineRunner {
         Bike b15 = seedBike(seller1, polygon, Set.of(gravel),         "Polygon Bend R5 2023",
                 "Gravel bike đa dụng, đi đường hỗn hợp tốt, đã kiểm định đạt chuẩn.",
                 "Bend R5", 2023, 26_000L, 1500, "GOOD",             "GRAVEL", "M",   "Hà Nội", BikeStatus.VERIFIED,  InspectionStatus.APPROVED);
+        Bike b16 = seedBike(seller2, scott, Set.of(mountain),          "Scott Spark 970 2022 (Reserved)",
+                "Xe sample cho trạng thái RESERVED để kiểm thử đầy đủ.",
+                "Spark 970", 2022, 33_000L, 1900, "GOOD",           "MTB",  "M",    "TP.HCM", BikeStatus.RESERVED,  InspectionStatus.NONE);
 
         // ── 5. Orders ─────────────────────────────────────────────────────────
         // Completed order – buyer1 mua b2 (VERIFIED) từ seller1
@@ -165,6 +170,18 @@ public class DataInitializer implements CommandLineRunner {
         // Cancelled
         Order o8 = seedOrder(buyer4, b10,  9_000L, OrderStatus.CANCELLED, "IDEM-008",
                 null, LocalDateTime.now().minusDays(7));
+
+        // Full-case cho seller2 + đủ tất cả order status
+        Order o9 = seedOrder(buyer1, b8, 8_500L, OrderStatus.ESCROWED, "IDEM-009",
+                null, LocalDateTime.now().minusHours(10));
+        Order o10 = seedOrder(buyer2, b13, 31_000L, OrderStatus.ACCEPTED, "IDEM-010",
+                null, LocalDateTime.now().minusDays(1));
+        Order o11 = seedOrder(buyer3, b5, 28_000L, OrderStatus.RETURN_REQUESTED, "IDEM-011",
+                LocalDateTime.now().minusDays(1), LocalDateTime.now().minusDays(4));
+        Order o12 = seedOrder(buyer4, b16, 33_000L, OrderStatus.REFUNDED, "IDEM-012",
+                LocalDateTime.now().minusDays(6), LocalDateTime.now().minusDays(12));
+        Order o13 = seedOrder(buyer2, b1, 45_000L, OrderStatus.PENDING_PAYMENT, "IDEM-013",
+                null, LocalDateTime.now().minusMinutes(45));
 
         // ── 6. Inspection requests ────────────────────────────────────────────
         InspectionRequest ir1 = seedInspectionRequest(b2, inspector1, RequestStatus.INSPECTED,
@@ -210,6 +227,12 @@ public class DataInitializer implements CommandLineRunner {
                 Dispute.DisputeStatus.OPEN, Dispute.DisputeType.GENERAL, null, null);
         seedDispute(o6, buyer4, "Người bán không hợp tác xác nhận hoàn hàng sau khi đã gửi lại",
                 Dispute.DisputeStatus.INVESTIGATING, Dispute.DisputeType.RETURN, "Admin đang xem xét bằng chứng hai bên", null);
+        seedDispute(o11, buyer3, "Buyer yêu cầu trả hàng và cần admin vào cuộc",
+                Dispute.DisputeStatus.RESOLVED_RELEASE, Dispute.DisputeType.RETURN, "Kết luận: release điểm cho seller", LocalDateTime.now().minusHours(20));
+        seedDispute(o12, buyer4, "Buyer nhận hoàn điểm đầy đủ sau trả hàng",
+                Dispute.DisputeStatus.RESOLVED_REFUND, Dispute.DisputeType.RETURN, "Kết luận: hoàn tiền cho buyer", LocalDateTime.now().minusDays(2));
+        seedDispute(o13, buyer2, "Mở tranh chấp khi chưa escrow là không hợp lệ",
+                Dispute.DisputeStatus.REJECTED, Dispute.DisputeType.GENERAL, "Từ chối vì đơn chưa thanh toán", LocalDateTime.now().minusMinutes(30));
 
         // ── 9. Reviews ────────────────────────────────────────────────────────
         seedReview(buyer1, seller1, o1, 5, "Seller rất chuyên nghiệp, xe đúng mô tả, giao hàng nhanh. Rất hài lòng!");
@@ -222,6 +245,7 @@ public class DataInitializer implements CommandLineRunner {
         seedUserReport(buyer3, null, seller3, Report.ReportType.SPAM,              "Tài khoản này spam tin nhắn đề nghị mua ngoài app",                   Report.ReportStatus.RESOLVED,  "Đã cảnh báo người dùng");
         seedUserReport(buyer4, b8, null,    Report.ReportType.INAPPROPRIATE,       "Mô tả xe có ngôn ngữ không phù hợp",                                  Report.ReportStatus.PENDING,   null);
         seedUserReport(buyer1, null, seller2, Report.ReportType.OFFENSIVE_LANGUAGE,"Người bán dùng ngôn ngữ xúc phạm trong chat",                         Report.ReportStatus.REJECTED,  "Xem xét lại không đủ bằng chứng");
+        seedUserReport(buyer2, b16, seller2, Report.ReportType.OTHER,               "Case báo cáo OTHER để test đầy đủ enum report",                       Report.ReportStatus.REVIEWING, "Đang xác minh thêm thông tin");
 
         // ── 11. Point transactions ────────────────────────────────────────────
         seedPointTx(buyer1, 100_000L, TransactionType.DEPOSIT,       "DEP-B1-001", TransactionStatus.SUCCESS, "Nạp điểm qua VNPay");
@@ -237,6 +261,11 @@ public class DataInitializer implements CommandLineRunner {
         seedPointTx(buyer1,   500L,  TransactionType.SPEND,          "INSP-1",      TransactionStatus.SUCCESS, "Phí yêu cầu kiểm định xe Giant Trance");
         seedPointTx(inspector1, 500L, TransactionType.EARN,          "INSP-1",      TransactionStatus.SUCCESS, "Phí kiểm định nhận được");
         seedPointTx(buyer4,  20_000L, TransactionType.DEPOSIT,       "DEP-B4-001", TransactionStatus.SUCCESS, "Nạp điểm qua VNPay");
+        seedPointTx(seller2,  5_000L, TransactionType.WITHDRAW,      "WD-S2-001",  TransactionStatus.SUCCESS, "Rút điểm về tài khoản ngân hàng");
+        seedPointTx(admin,       660L, TransactionType.COMMISSION,   "COM-ORD-012",TransactionStatus.SUCCESS, "Hoa hồng nền tảng từ đơn hoàn tất");
+        seedPointTx(buyer4,   33_000L, TransactionType.REFUND,       "RF-ORD-012", TransactionStatus.SUCCESS, "Hoàn điểm cho đơn refunded");
+        seedPointTx(buyer2,   10_000L, TransactionType.DEPOSIT,      "DEP-PENDING-1", TransactionStatus.PENDING, "Giao dịch nạp đang chờ cổng thanh toán");
+        seedPointTx(buyer2,   10_000L, TransactionType.DEPOSIT,      "DEP-FAILED-1",  TransactionStatus.FAILED,  "Giao dịch nạp thất bại do timeout");
 
         // ── 12. Components (linh kiện) ──────────────────────────────────────
         seedComponent("Shimano 105 R7000",       "Groupset 11 tốc độ tầm trung cao, phổ biến nhất trong xe road");
@@ -263,6 +292,7 @@ public class DataInitializer implements CommandLineRunner {
         seedPost(seller2, b5, "🔵 Specialized Allez Sprint nhôm cứng, thích hợp crit race & đua nhóm.",                   Post.ListingType.STANDARD, Post.PostStatus.ACTIVE);
         seedPost(seller2, b7, "🌿 Giant Revolt gravel carbon, mới 95%, đã kiểm định. Đi đường đất hay asphalt đều tốt!",  Post.ListingType.VERIFIED, Post.PostStatus.ACTIVE);
         seedPost(seller2, b8, "🏙️ Polygon Urbano gấp gọn, 7 tốc độ, phù hợp đi làm kết hợp xe bus/tàu điện.",           Post.ListingType.STANDARD, Post.PostStatus.ACTIVE);
+        seedPost(seller2, b16,"🧪 Scott Spark 970 dùng test trạng thái RESERVED và flow order nâng cao.",                 Post.ListingType.STANDARD, Post.PostStatus.ACTIVE);
         seedPost(seller3, b9, "⛰️ Merida Big.Nine MTB 29er nhôm, giá sinh viên, thích hợp trail nhẹ.",                   Post.ListingType.STANDARD, Post.PostStatus.ACTIVE);
         seedPost(seller3, b11,"🔴 Trek Domane road nhôm, thắng đĩa, đi mới 1.200km. Xe đẹp, giá hợp lý!",               Post.ListingType.STANDARD, Post.PostStatus.ACTIVE);
         seedPost(seller1, b12,"⚡ Specialized Tarmac SL7 Sport, xe mới đẹp, phù hợp road training và đi nhóm.",          Post.ListingType.STANDARD, Post.PostStatus.ACTIVE);
