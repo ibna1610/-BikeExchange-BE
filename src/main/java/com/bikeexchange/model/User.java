@@ -76,7 +76,8 @@ public class User {
         updatedAt = LocalDateTime.now();
         totalBikesSold = 0;
         rating = 0.0;
-        isVerified = false;
+        if (isVerified == null)
+            isVerified = false;
         if (status == null)
             status = "UNVERIFIED";
     }
