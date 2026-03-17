@@ -129,6 +129,42 @@ public class AuthController {
                 return new ResponseEntity<>(response, HttpStatus.CREATED);
         }
 
+        @PostMapping("/register-no-verify")
+        @Transactional
+        @Operation(summary = "Register New User Without Verification", description = "Creates a new buyer account and activates it immediately without email verification")
+        public ResponseEntity<?> registerUserNoVerify(
+                        @org.springframework.web.bind.annotation.RequestBody RegisterRequest signUpRequest) {
+                if (userRepository.existsByEmail(signUpRequest.getEmail())) {
+                        return new ResponseEntity<>(Collections.singletonMap("message", "Email is already taken!"),
+                                        HttpStatus.BAD_REQUEST);
+                }
+
+                User user = new User();
+                user.setEmail(signUpRequest.getEmail());
+                user.setPassword(passwordEncoder.encode(signUpRequest.getPassword()));
+                user.setFullName(signUpRequest.getFullName());
+                user.setPhone(signUpRequest.getPhone());
+                user.setAddress(signUpRequest.getAddress());
+                user.setRole(User.UserRole.BUYER);
+                user.setIsVerified(true);
+                user.setStatus("ACTIVE");
+
+                User savedUser = userRepository.save(user);
+
+                // Create Wallet for the new user
+                UserWallet wallet = new UserWallet();
+                wallet.setUser(savedUser);
+                wallet.setAvailablePoints(0L);
+                wallet.setFrozenPoints(0L);
+                walletRepository.save(wallet);
+
+                Map<String, Object> response = new HashMap<>();
+                response.put("success", true);
+                response.put("message", "User registered and activated successfully.");
+
+                return new ResponseEntity<>(response, HttpStatus.CREATED);
+        }
+
         @PostMapping("/verify")
         @Transactional
         @Operation(summary = "Verify Email", description = "Verify user's email using the token sent to them")
