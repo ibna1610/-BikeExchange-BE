@@ -27,6 +27,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -93,34 +94,52 @@ public class AuthController {
         @Operation(summary = "Register New User", description = "Creates a new buyer account on the platform")
         public ResponseEntity<?> registerUser(
                         @org.springframework.web.bind.annotation.RequestBody RegisterRequest signUpRequest) {
-                if (userRepository.existsByEmail(signUpRequest.getEmail())) {
+                Optional<User> existingUserOpt = userRepository.findByEmail(signUpRequest.getEmail());
+                User user;
+                if (existingUserOpt.isPresent()) {
+                    user = existingUserOpt.get();
+                    if (Boolean.TRUE.equals(user.getIsVerified())) {
                         return new ResponseEntity<>(Collections.singletonMap("message", "Email is already taken!"),
                                         HttpStatus.BAD_REQUEST);
+                    }
+                    // User exists but is not verified, update info and password
+                    user.setPassword(passwordEncoder.encode(signUpRequest.getPassword()));
+                    user.setFullName(signUpRequest.getFullName());
+                    user.setPhone(signUpRequest.getPhone());
+                    user.setAddress(signUpRequest.getAddress());
+                    user.setRole(User.UserRole.BUYER);
+                } else {
+                    user = new User();
+                    user.setEmail(signUpRequest.getEmail());
+                    user.setPassword(passwordEncoder.encode(signUpRequest.getPassword()));
+                    user.setFullName(signUpRequest.getFullName());
+                    user.setPhone(signUpRequest.getPhone());
+                    user.setAddress(signUpRequest.getAddress());
+                    user.setRole(User.UserRole.BUYER);
                 }
-
-                User user = new User();
-                user.setEmail(signUpRequest.getEmail());
-                user.setPassword(passwordEncoder.encode(signUpRequest.getPassword()));
-                user.setFullName(signUpRequest.getFullName());
-                user.setPhone(signUpRequest.getPhone());
-                user.setAddress(signUpRequest.getAddress());
-                user.setRole(User.UserRole.BUYER);
 
                 User savedUser = userRepository.save(user);
 
-                // Create and save verification token
-                VerificationToken token = new VerificationToken(savedUser, VerificationToken.TokenType.VERIFICATION);
+                // Find existing verification token or create a new one
+                VerificationToken token = tokenRepository.findByUserAndType(savedUser, VerificationToken.TokenType.VERIFICATION)
+                                .orElseGet(() -> new VerificationToken(savedUser, VerificationToken.TokenType.VERIFICATION));
+                
+                // Refresh token value and expiry for new registration attempt
+                token.setToken(java.util.UUID.randomUUID().toString());
+                token.setExpiryDate(java.time.LocalDateTime.now().plusHours(24));
                 tokenRepository.save(token);
 
                 // Send verification email
                 emailService.sendVerificationEmail(savedUser, token.getToken());
 
-                // Create Wallet for the new user
-                UserWallet wallet = new UserWallet();
-                wallet.setUser(savedUser);
-                wallet.setAvailablePoints(0L);
-                wallet.setFrozenPoints(0L);
-                walletRepository.save(wallet);
+                // Create Wallet for the new user if it doesn't exist
+                if (!walletRepository.existsById(savedUser.getId())) {
+                    UserWallet wallet = new UserWallet();
+                    wallet.setUser(savedUser);
+                    wallet.setAvailablePoints(0L);
+                    wallet.setFrozenPoints(0L);
+                    walletRepository.save(wallet);
+                }
 
                 Map<String, Object> response = new HashMap<>();
                 response.put("success", true);
