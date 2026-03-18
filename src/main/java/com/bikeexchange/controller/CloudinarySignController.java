@@ -15,7 +15,7 @@ import java.util.Map;
  * More secure than frontend direct upload
  */
 @RestController
-@RequestMapping("/api/cloudinary")
+@RequestMapping("/cloudinary")
 public class CloudinarySignController {
 
     @Autowired

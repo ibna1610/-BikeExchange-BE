@@ -69,6 +69,7 @@ app:
   name: BikeExchange
 
 cloudinary:
+  url: ${CLOUDINARY_URL:}
   cloud-name: ${CLOUDINARY_CLOUD_NAME:}
   api-key: ${CLOUDINARY_API_KEY:}
   api-secret: ${CLOUDINARY_API_SECRET:}
