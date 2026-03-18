@@ -174,7 +174,7 @@ public class AuthController {
                                 .orElse(null);
 
                 if (verificationToken == null) {
-                        return new ResponseEntity<>(Collections.singletonMap("message", "Invalid token!"),
+                        return new ResponseEntity<>(Collections.singletonMap("message", "Invalid token hoặc token đã được sử dụng."),
                                         HttpStatus.BAD_REQUEST);
                 }
 
@@ -188,7 +188,7 @@ public class AuthController {
                 user.setStatus("ACTIVE");
                 userRepository.save(user);
 
-                tokenRepository.deleteByUserAndType(user, VerificationToken.TokenType.VERIFICATION);
+                tokenRepository.deleteByIdSafe(verificationToken.getId());
 
                 return ResponseEntity.ok(Collections.singletonMap("message", "Account verified successfully!"));
         }
