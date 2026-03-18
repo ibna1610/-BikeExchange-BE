@@ -31,7 +31,7 @@ spring:
     host: smtp-relay.brevo.com
     port: 587
     username: a44240001@smtp-brevo.com
-    password: ${BREVO_SMTP_KEY:your_brevo_smtp_key_here}
+    password: ${BREVO_SMTP_KEY}
     properties:
       mail:
         smtp:
@@ -59,15 +59,15 @@ logging:
     org.springframework.web: INFO
 
 app:
-  jwtSecret: ${JWT_SECRET:your_jwt_secret_key_here_at_least_64_chars}
+  jwtSecret: ${JWT_SECRET}
   jwtExpirationMs: ${JWT_EXPIRATION_MS:86400000}
   frontend.url: ${FRONTEND_URL:http://localhost:5173}
   forgot-password.url: ${FORGOT_PASSWORD_URL:http://localhost:5173/reset-password}
   name: BikeExchange
 
 vnpay:
-  tmnCode: ${VNP_TMN_CODE:your_vnpay_tmn_code_here}
-  hashSecret: ${VNP_HASH_SECRET:your_vnpay_hash_secret_here}
+  tmnCode: ${VNP_TMN_CODE}
+  hashSecret: ${VNP_HASH_SECRET}
   payUrl: https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
   #returnUrl: ${VNP_RETURN_URL:http://localhost:8080/api/vnpay/vnpay-payment-return}
   returnUrl: ${VNP_RETURN_URL:http://localhost:5173/payment-success}
