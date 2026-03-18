@@ -33,7 +33,7 @@ public class ReviewService {
             throw new IllegalArgumentException("Rating must be between 1 and 5");
         }
 
-        Order order = orderRepository.findById(orderId)
+        Order order = orderRepository.findByIdForUpdate(orderId)
             .orElseThrow(() -> new IllegalArgumentException("Order not found"));
 
         if (order.getBuyer() == null || !order.getBuyer().getId().equals(reviewerId)) {
