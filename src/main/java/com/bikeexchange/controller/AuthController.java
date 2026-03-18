@@ -222,10 +222,13 @@ public class AuthController {
                                         HttpStatus.NOT_FOUND);
                 }
 
-                // Delete any existing reset tokens
-                tokenRepository.deleteByUserAndType(user, VerificationToken.TokenType.PASSWORD_RESET);
-
-                VerificationToken token = new VerificationToken(user, VerificationToken.TokenType.PASSWORD_RESET);
+                // Find existing reset token or create a new one
+                VerificationToken token = tokenRepository.findByUserAndType(user, VerificationToken.TokenType.PASSWORD_RESET)
+                                .orElseGet(() -> new VerificationToken(user, VerificationToken.TokenType.PASSWORD_RESET));
+                
+                // Refresh token value and expiry
+                token.setToken(java.util.UUID.randomUUID().toString());
+                token.setExpiryDate(java.time.LocalDateTime.now().plusHours(24));
                 tokenRepository.save(token);
 
                 emailService.sendResetPasswordEmail(user, token.getToken());
