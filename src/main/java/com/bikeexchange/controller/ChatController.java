@@ -123,8 +123,7 @@ public class ChatController {
                         // Save to DB
                         Message savedMessage = chatService.sendMessage(senderId, request);
 
-                        // Determine receiver (either from request if new convo, or from savedMessage
-                        // conversation)
+                        // Determine receiver from the saved message's conversation
                         Long receiverId = savedMessage.getConversation().getBuyer().getId().equals(senderId)
                                         ? savedMessage.getConversation().getSeller().getId()
                                         : savedMessage.getConversation().getBuyer().getId();

@@ -8,11 +8,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 @Schema(description = "Request payload for sending a chat message")
 public class MessageSendRequest {
 
-    @Schema(description = "ID of the existing conversation. If null, a new conversation will be created.", example = "1", nullable = true)
+    @Schema(description = "ID of the existing conversation.", example = "1")
     private Long conversationId;
-
-    @Schema(description = "ID of the bike. Required if conversationId is not provided", example = "1", nullable = true)
-    private Long bikeId;
 
     @Schema(description = "Content of the message", example = "Chào bạn, xe này còn thương lượng được không ạ?")
     private String content;

@@ -97,42 +97,12 @@ public class ChatService {
 
         Conversation conversation;
 
-        if (request.getConversationId() != null) {
-            conversation = conversationRepository.findById(request.getConversationId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Conversation not found"));
-        } else if (request.getBikeId() != null) {
-            // Check if conversation already exists for this listing and current user as
-            // buyer
-            Optional<Conversation> existing = conversationRepository.findByBikeIdAndBuyerId(request.getBikeId(),
-                    senderId);
-            if (existing.isPresent()) {
-                conversation = existing.get();
-            } else {
-                Bike listing = bikeRepository.findById(request.getBikeId())
-                        .orElseThrow(() -> new ResourceNotFoundException("Bike listing not found"));
-
-                if (listing.getDeletedAt() != null) {
-                    throw new IllegalStateException("Cannot send message for a deleted bike");
-                }
-
-                conversation = new Conversation();
-                conversation.setBike(listing);
-
-                // If sender is NOT the seller, then sender is buyer, receiver is seller
-                if (!listing.getSeller().getId().equals(senderId)) {
-                    conversation.setBuyer(sender);
-                    conversation.setSeller(listing.getSeller());
-                } else {
-                    // Seller initiating chat - from requirements we assume this shouldn't happen
-                    // without a conversationId or we don't have receiverId anymore.
-                    throw new IllegalArgumentException(
-                            "Sellers cannot initiate new chats without a target receiverId (removed). Please start from listing.");
-                }
-                conversation.setCreatedAt(LocalDateTime.now());
-            }
-        } else {
-            throw new IllegalArgumentException("Either conversationId or bikeId must be provided");
+        if (request.getConversationId() == null) {
+            throw new IllegalArgumentException("conversationId is required to send a message");
         }
+
+        conversation = conversationRepository.findById(request.getConversationId())
+                .orElseThrow(() -> new ResourceNotFoundException("Conversation not found"));
 
         conversation.setUpdatedAt(LocalDateTime.now());
         conversation = conversationRepository.save(conversation);
