@@ -3,8 +3,10 @@ package com.bikeexchange.service;
 import com.bikeexchange.dto.request.BikeCreateRequest;
 import com.bikeexchange.model.Bike;
 import com.bikeexchange.model.BikeMedia;
+import com.bikeexchange.model.Brand;
 import com.bikeexchange.model.User;
 import com.bikeexchange.repository.BikeRepository;
+import com.bikeexchange.repository.BrandRepository;
 import com.bikeexchange.repository.UserRepository;
 import com.bikeexchange.exception.ResourceNotFoundException;
 import lombok.extern.slf4j.Slf4j;
@@ -15,6 +17,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -29,6 +32,9 @@ public class BikeUploadService {
     private UserRepository userRepository;
 
     @Autowired
+    private BrandRepository brandRepository;
+
+    @Autowired
     private CloudinaryService cloudinaryService;
 
     /**
@@ -37,6 +43,9 @@ public class BikeUploadService {
      */
     @Transactional
     public Bike createBikeWithImages(Long sellerId, BikeCreateRequest request, List<MultipartFile> imageFiles) throws IOException {
+        List<String> uploadedPublicIds = new ArrayList<>();
+
+        try {
         // Get seller
         User seller = userRepository.findById(sellerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Seller not found with ID: " + sellerId));
@@ -51,6 +60,14 @@ public class BikeUploadService {
         bike.setSeller(seller);
         bike.setTitle(request.getTitle());
         bike.setDescription(request.getDescription());
+
+        if (request.getBrandId() == null) {
+            throw new IllegalArgumentException("Brand is required");
+        }
+        Brand brand = brandRepository.findById(request.getBrandId())
+            .orElseThrow(() -> new ResourceNotFoundException("Brand not found with ID: " + request.getBrandId()));
+        bike.setBrand(brand);
+
         bike.setModel(request.getModel());
         bike.setYear(request.getYear());
         bike.setPricePoints(request.getPricePoints());
@@ -86,6 +103,10 @@ public class BikeUploadService {
             try {
                 // Upload to Cloudinary
                 Map<String, Object> uploadResult = cloudinaryService.uploadFile(imageFile, cloudinaryFolder);
+                String publicId = (String) uploadResult.get("public_id");
+                if (publicId != null && !publicId.isBlank()) {
+                    uploadedPublicIds.add(publicId);
+                }
 
                 // Create BikeMedia entry with Cloudinary URL
                 BikeMedia bikeMedia = new BikeMedia();
@@ -118,6 +139,23 @@ public class BikeUploadService {
                 sellerId, request.getTitle(), seller.getAddress(), savedBike.getMedia().size());
 
         return savedBike;
+        } catch (IOException | RuntimeException e) {
+            if (!uploadedPublicIds.isEmpty()) {
+                cleanupUploadedFiles(uploadedPublicIds, sellerId);
+            }
+            throw e;
+        }
+    }
+
+    private void cleanupUploadedFiles(List<String> publicIds, Long sellerId) {
+        for (String publicId : publicIds) {
+            try {
+                cloudinaryService.deleteFile(publicId);
+                log.info("Rolled back uploaded image for seller {}: {}", sellerId, publicId);
+            } catch (IOException cleanupError) {
+                log.warn("Failed to rollback Cloudinary image {} for seller {}: {}", publicId, sellerId, cleanupError.getMessage());
+            }
+        }
     }
 
     /**

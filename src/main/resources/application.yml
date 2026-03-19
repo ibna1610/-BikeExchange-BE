@@ -1,7 +1,4 @@
 spring:
-  config:
-    import: optional:file:.env[.properties]
-
   application:
     name: BikeExchange-Backend
 
@@ -30,11 +27,16 @@ spring:
   mvc:
     throw-exception-if-no-handler-found: true
 
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 100MB
+
   mail:
     host: smtp-relay.brevo.com
     port: 587
     username: a44240001@smtp-brevo.com
-    password: ${BREVO_SMTP_KEY:dev-brevo-key}
+    password: ${BREVO_SMTP_KEY:REPLACE_WITH_REAL_BREVO_SMTP_KEY}
     properties:
       mail:
         smtp:
@@ -68,16 +70,10 @@ app:
   forgot-password.url: ${FORGOT_PASSWORD_URL:http://localhost:5173/reset-password}
   name: BikeExchange
 
-cloudinary:
-  url: ${CLOUDINARY_URL:}
-  cloud-name: ${CLOUDINARY_CLOUD_NAME:}
-  api-key: ${CLOUDINARY_API_KEY:}
-  api-secret: ${CLOUDINARY_API_SECRET:}
-
 vnpay:
   tmnCode: ${VNP_TMN_CODE:DEV_TMN_CODE}
   hashSecret: ${VNP_HASH_SECRET:DEV_HASH_SECRET}
   payUrl: https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
   #returnUrl: ${VNP_RETURN_URL:http://localhost:8080/api/vnpay/vnpay-payment-return}
   returnUrl: ${VNP_RETURN_URL:http://localhost:5173/payment-success}
-  ipnUrl: ${VNP_IPN_URL:http://localhost:8080/api/vnpay/ipn}
+  ipnUrl: ${VNP_IPN_URL:http://localhost:8080/api/vnpay/ipn} 
