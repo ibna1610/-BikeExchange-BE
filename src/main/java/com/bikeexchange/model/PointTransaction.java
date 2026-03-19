@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "point_transactions")
+@Table(name = "point_transactions_new")
 @JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
 public class PointTransaction {
     @Id
@@ -26,7 +26,7 @@ public class PointTransaction {
     private Long amount;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 255)
     private TransactionType type;
 
     @Column(name = "reference_id")

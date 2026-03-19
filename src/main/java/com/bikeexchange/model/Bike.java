@@ -64,7 +64,7 @@ public class Bike {
     private String location;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
+    @Column(nullable = false, length = 255)
     private BikeStatus status;
 
     @Enumerated(EnumType.STRING)

@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "disputes")
+@Table(name = "disputes_new")
 @JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
 public class Dispute {
     @Id
@@ -30,11 +30,11 @@ public class Dispute {
     private String reason;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 50)
+    @Column(nullable = false, length = 500)
     private DisputeStatus status;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "dispute_type", nullable = false, length = 50)
+    @Column(name = "dispute_type", nullable = false, length = 100)
     private DisputeType disputeType;           // RETURN or GENERAL
 
     @Column(name = "buyer_contact_address", length = 500)

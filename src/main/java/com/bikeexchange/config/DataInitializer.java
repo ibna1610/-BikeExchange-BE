@@ -46,10 +46,11 @@ public class DataInitializer implements CommandLineRunner {
         @SuppressWarnings("unused")
     public void run(String... args) throws Exception {
         // ── 1. Users ──────────────────────────────────────────────────────────
+        System.out.println("Seeding Users...");
         User admin      = seedUser("admin@bikeexchange.com",      "Nguyễn Quản Trị",   "0901000001", "12 Lê Lợi, Q.1, TP.HCM",          User.UserRole.ADMIN,     "ACTIVE", 0L);
         User seller1    = seedUser("seller1@bikeexchange.com",    "Trần Văn Bán",       "0901000002", "45 Nguyễn Huệ, Q.1, TP.HCM",       User.UserRole.SELLER,    "ACTIVE", 50_000L);
-        User seller2    = seedUser("seller2@bikeexchange.com",    "Lê Thị Shop",        "0901000003", "88 Điện Biên Phủ, Q.3, TP.HCM",    User.UserRole.SELLER,    "ACTIVE", 30_000L);
-        User seller3    = seedUser("seller3@bikeexchange.com",    "Phạm Xe Đạp",        "0901000004", "22 Cách Mạng Tháng 8, Q.10, TP.HCM",User.UserRole.SELLER,   "ACTIVE", 15_000L);
+        User seller2    = seedUser("seller2@bikeexchange.com",    "Trần Thị Bán",       "0901000003", "88 Điện Biên Phủ, Q.3, TP.HCM",    User.UserRole.SELLER,    "ACTIVE", 30_000L);
+        User seller3    = seedUser("seller3@bikeexchange.com",    "Lê Thị Shop",        "0901000004", "22 Cách Mạng Tháng 8, Q.10, TP.HCM",User.UserRole.SELLER,   "ACTIVE", 15_000L);
         User inspector1 = seedUser("inspector@bikeexchange.com",  "Võ Kiểm Định",       "0901000005", "5 Trường Chinh, Q.TB, TP.HCM",     User.UserRole.INSPECTOR, "ACTIVE", 5_000L);
         User inspector2 = seedUser("inspector2@bikeexchange.com", "Đặng Kỹ Thuật",      "0901000006", "99 Tô Hiến Thành, Q.10, TP.HCM",   User.UserRole.INSPECTOR, "ACTIVE", 3_000L);
         User buyer1     = seedUser("buyer1@bikeexchange.com",     "Nguyễn Mua Hàng",    "0901000007", "17 Bùi Thị Xuân, Q.1, TP.HCM",     User.UserRole.BUYER,     "ACTIVE", 100_000L);
@@ -62,6 +63,7 @@ public class DataInitializer implements CommandLineRunner {
         seedUser("buyer@bikeexchange.com",     "Sample Buyer",     "0987654321", "System Default Address", User.UserRole.BUYER,     "ACTIVE", 1_000L);
 
         // ── 2. Brands ─────────────────────────────────────────────────────────
+        System.out.println("Seeding Brands...");
         Brand trek       = seedBrand("Trek",        "Hãng xe đạp hàng đầu Mỹ, nổi tiếng với xe road và mountain");
         Brand giant      = seedBrand("Giant",       "Thương hiệu xe đạp lớn nhất thế giới xuất xứ Đài Loan");
         Brand specialized= seedBrand("Specialized", "Thương hiệu cao cấp từ Mỹ, chuyên xe road & MTB");
@@ -72,6 +74,7 @@ public class DataInitializer implements CommandLineRunner {
         Brand fuji       = seedBrand("Fuji",        "Hãng xe Nhật Bản với lịch sử hơn 100 năm");
 
         // ── 3. Categories ─────────────────────────────────────────────────────
+        System.out.println("Seeding Categories...");
         Category road      = seedCategory("Road",          "Xe đạp đường trường tốc độ cao",         "https://cdn.example.com/cat-road.jpg");
         Category mountain  = seedCategory("Mountain",      "Xe đạp leo núi địa hình",                "https://cdn.example.com/cat-mountain.jpg");
         Category city      = seedCategory("City/Urban",    "Xe đạp đô thị, đi lại hàng ngày",       "https://cdn.example.com/cat-city.jpg");
@@ -82,6 +85,7 @@ public class DataInitializer implements CommandLineRunner {
         Category kids      = seedCategory("Kids",          "Xe dành cho trẻ em",                     "https://cdn.example.com/cat-kids.jpg");
 
         // ── 4. Bikes ──────────────────────────────────────────────────────────
+        System.out.println("Seeding Bikes...");
         // Seller 1 – bikes in various statuses
         Bike b1 = seedBike(seller1, trek,  Set.of(road),     "Trek Émonda SL 6 2022",
                 "Xe đường trường nhẹ, khung carbon, groupset Shimano 105. Đã đi 2.000 km, còn rất mới.",
@@ -139,6 +143,7 @@ public class DataInitializer implements CommandLineRunner {
                 "Spark 970", 2022, 33_000L, 1900, "GOOD",           "MTB",  "M",    "TP.HCM", BikeStatus.RESERVED,  InspectionStatus.NONE);
 
         // ── 5. Orders ─────────────────────────────────────────────────────────
+        System.out.println("Seeding Orders...");
         // Completed order – buyer1 mua b2 (VERIFIED) từ seller1
         Order o1 = seedOrder(buyer1, b2, 35_000L, OrderStatus.COMPLETED, "IDEM-001",
                 LocalDateTime.now().minusDays(20), LocalDateTime.now().minusDays(13));
@@ -184,6 +189,7 @@ public class DataInitializer implements CommandLineRunner {
                 null, LocalDateTime.now().minusMinutes(45));
 
         // ── 6. Inspection requests ────────────────────────────────────────────
+        System.out.println("Seeding Inspection Requests...");
         InspectionRequest ir1 = seedInspectionRequest(b2, inspector1, RequestStatus.INSPECTED,
                 500L, LocalDate.now().minusDays(25), "MORNING",
                 "45 Nguyễn Huệ, Q.1", "0901000002", "Kiểm tra tổng thể xe trước bán",
@@ -215,6 +221,7 @@ public class DataInitializer implements CommandLineRunner {
                 LocalDateTime.now().minusDays(30), LocalDateTime.now().minusDays(29));
 
         // ── 7. Inspection reports ─────────────────────────────────────────────
+        System.out.println("Seeding Inspection Reports...");
         seedInspectionReport(ir1, "TỐT – không uốn cong, không nứt", "Shimano 105 đầy đủ, còn ~70%", "Bánh trước vành còn tốt, lốp ~60%", 82, RequestStatus.APPROVED,
                 "Xe đạt chất lượng, khuyến nghị thay lốp trong 500 km tới");
         seedInspectionReport(ir2, "RẤT TỐT – carbon không có vết nứt", "GRX đầy đủ, còn ~90%",         "Bánh 700c mới, lốp còn ~90%",       94, RequestStatus.APPROVED,
@@ -223,6 +230,7 @@ public class DataInitializer implements CommandLineRunner {
                 "Từ chối: vành sau biến dạng, cần sửa trước khi đăng bán");
 
         // ── 8. Disputes ────────────────────────────────────────────────────────
+        System.out.println("Seeding Disputes...");
         seedDispute(o7, buyer3, "Hàng nhận được khác mô tả, bố thắng không còn hoạt động đúng",
                 Dispute.DisputeStatus.OPEN, Dispute.DisputeType.GENERAL, null, null);
         seedDispute(o6, buyer4, "Người bán không hợp tác xác nhận hoàn hàng sau khi đã gửi lại",
@@ -234,12 +242,15 @@ public class DataInitializer implements CommandLineRunner {
         seedDispute(o13, buyer2, "Mở tranh chấp khi chưa escrow là không hợp lệ",
                 Dispute.DisputeStatus.REJECTED, Dispute.DisputeType.GENERAL, "Từ chối vì đơn chưa thanh toán", LocalDateTime.now().minusMinutes(30));
 
+        System.out.println("Seeded Disputes.");
         // ── 9. Reviews ────────────────────────────────────────────────────────
+        System.out.println("Seeding Reviews...");
         seedReview(buyer1, seller1, o1, 5, "Seller rất chuyên nghiệp, xe đúng mô tả, giao hàng nhanh. Rất hài lòng!");
         seedReview(buyer2, seller1, o2, 4, "Xe tốt, seller nhiệt tình. Giao hàng hơi chậm một ngày nhưng vẫn ok.");
         seedReview(buyer3, seller2, o3, 5, "Xe hoàn hảo, đúng tình trạng mô tả. Seller rất uy tín, sẽ mua lại lần sau.");
 
         // ── 10. User Reports ──────────────────────────────────────────────────
+        System.out.println("Seeding User Reports...");
         seedUserReport(buyer1, b6, null,    Report.ReportType.FRAUD,               "Ảnh xe không khớp với thực tế, nghi ngờ hàng giả",                    Report.ReportStatus.PENDING,   null);
         seedUserReport(buyer2, b10, null,   Report.ReportType.FAKE_ITEM,           "Xe rao bán nhưng không có thực, gọi không ai bắt máy",                 Report.ReportStatus.REVIEWING, "Admin đang liên hệ người bán");
         seedUserReport(buyer3, null, seller3, Report.ReportType.SPAM,              "Tài khoản này spam tin nhắn đề nghị mua ngoài app",                   Report.ReportStatus.RESOLVED,  "Đã cảnh báo người dùng");
@@ -248,6 +259,7 @@ public class DataInitializer implements CommandLineRunner {
         seedUserReport(buyer2, b16, seller2, Report.ReportType.OTHER,               "Case báo cáo OTHER để test đầy đủ enum report",                       Report.ReportStatus.REVIEWING, "Đang xác minh thêm thông tin");
 
         // ── 11. Point transactions ────────────────────────────────────────────
+        System.out.println("Seeding Point Transactions...");
         seedPointTx(buyer1, 100_000L, TransactionType.DEPOSIT,       "DEP-B1-001", TransactionStatus.SUCCESS, "Nạp điểm qua VNPay");
         seedPointTx(buyer1,  45_000L, TransactionType.ESCROW_HOLD,   "ORD-4",       TransactionStatus.SUCCESS, "Khóa điểm đặt mua xe Trek Émonda");
         seedPointTx(buyer1,  35_000L, TransactionType.ESCROW_HOLD,   "ORD-1",       TransactionStatus.SUCCESS, "Khóa điểm đặt mua xe Giant Trance");
@@ -268,6 +280,7 @@ public class DataInitializer implements CommandLineRunner {
         seedPointTx(buyer2,   10_000L, TransactionType.DEPOSIT,      "DEP-FAILED-1",  TransactionStatus.FAILED,  "Giao dịch nạp thất bại do timeout");
 
         // ── 12. Components (linh kiện) ──────────────────────────────────────
+        System.out.println("Seeding Components...");
         seedComponent("Shimano 105 R7000",       "Groupset 11 tốc độ tầm trung cao, phổ biến nhất trong xe road");
         seedComponent("Shimano Ultegra R8000",    "Groupset 11 tốc độ cao cấp, nhẹ hơn 105, bán chuyên");
         seedComponent("Shimano GRX 810",          "Groupset gravel chuyên dụng, đĩa, 11 tốc độ");
@@ -285,6 +298,7 @@ public class DataInitializer implements CommandLineRunner {
         seedComponent("Shimano MT200",            "Thắng đĩa hydraulic entry MTB");
 
         // ── 13. Posts (tin đăng) ──────────────────────────────────────────────
+        System.out.println("Seeding Posts...");
         // Mỗi bike ACTIVE/VERIFIED cần có 1 Post ACTIVE
         seedPost(seller1, b1, "🚴 Xe đạp road Trek Émonda carbon, đi nhẹ như gió! Bán gấp do không có thời gian đạp.",      Post.ListingType.STANDARD, Post.PostStatus.ACTIVE);
         seedPost(seller1, b2, "🏔️ Giant Trance full-sus 29er, đã qua kiểm định. Đi rừng hay trail đều Ok!",              Post.ListingType.VERIFIED, Post.PostStatus.ACTIVE);
@@ -304,6 +318,7 @@ public class DataInitializer implements CommandLineRunner {
         seedPost(seller3, b10,"Fuji Roubaix 2020 – đã tháo tin",           Post.ListingType.STANDARD, Post.PostStatus.CANCELLED);
 
         // ── 14. Wishlists ────────────────────────────────────────────────────────────
+        System.out.println("Seeding Wishlists...");
         seedWishlist(buyer1, b5);
         seedWishlist(buyer1, b7);
         seedWishlist(buyer2, b1);
@@ -509,9 +524,6 @@ public class DataInitializer implements CommandLineRunner {
                 .findFirst();
         if (existing.isPresent()) {
             Dispute d = existing.get();
-            d.setOrder(order);
-            d.setReporter(reporter);
-            d.setReason(reason);
             d.setStatus(status);
             d.setDisputeType(type);
             d.setResolutionNote(resolutionNote);

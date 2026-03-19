@@ -54,7 +54,7 @@ public class User {
     @Column(name = "is_verified", columnDefinition = "BOOLEAN DEFAULT FALSE")
     private Boolean isVerified;
 
-    @Column(name = "status", columnDefinition = "VARCHAR(20) DEFAULT 'UNVERIFIED'")
+    @Column(name = "status", columnDefinition = "VARCHAR(255) DEFAULT 'UNVERIFIED'")
     private String status;
 
     @Column(name = "deleted_at")

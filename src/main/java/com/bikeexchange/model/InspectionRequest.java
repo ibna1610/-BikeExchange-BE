@@ -29,7 +29,7 @@ public class InspectionRequest {
     private User inspector;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 50)
+    @Column(nullable = false, length = 255)
     private RequestStatus status;
 
     @Column(name = "fee_points", nullable = false)

@@ -32,7 +32,7 @@ public class Report {
     private User user; // optional - reported user
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "report_type", length = 30)
+    @Column(name = "report_type", length = 255)
     private ReportType reportType;
 
     @Column(columnDefinition = "TEXT")
@@ -42,7 +42,7 @@ public class Report {
     private String adminNote;
 
     @Enumerated(EnumType.STRING)
-    @Column(length = 20)
+    @Column(length = 255)
     private ReportStatus status;
 
     @Column(name = "created_at", nullable = false)
