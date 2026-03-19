@@ -30,11 +30,11 @@ public class Dispute {
     private String reason;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 50)
     private DisputeStatus status;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "dispute_type", nullable = false)
+    @Column(name = "dispute_type", nullable = false, length = 50)
     private DisputeType disputeType;           // RETURN or GENERAL
 
     @Column(name = "buyer_contact_address", length = 500)
