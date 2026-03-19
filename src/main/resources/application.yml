@@ -42,7 +42,7 @@ spring:
           starttls:
             enable: true
             required: true
-    from-email: ${MAIL_FROM_EMAIL:${spring.mail.username}}
+    from-email: chinsucuc@gmail.com
 
 server:
   servlet:
