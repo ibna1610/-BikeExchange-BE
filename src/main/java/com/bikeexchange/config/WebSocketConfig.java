@@ -41,14 +41,17 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         config.setUserDestinationPrefix("/user");
     }
 
+    @org.springframework.beans.factory.annotation.Value("${app.frontend.url}")
+    private String frontendUrl;
+
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint("/ws")
-                .setAllowedOriginPatterns("*")
+                .setAllowedOrigins(frontendUrl)
                 .withSockJS(); // Fallback mode
 
         registry.addEndpoint("/ws")
-                .setAllowedOriginPatterns("*"); // Raw WebSocket
+                .setAllowedOrigins(frontendUrl); // Raw WebSocket
     }
 
     @Override
