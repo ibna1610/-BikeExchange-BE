@@ -20,9 +20,6 @@ import com.bikeexchange.dto.request.UserUpdateRequest;
 @Service
 @Transactional
 public class UserService {
-    // Seller upgrade fee in points
-    private static final Long SELLER_UPGRADE_FEE = 50000L;
-
     @Autowired
     private UserRepository userRepository;
 
@@ -34,6 +31,9 @@ public class UserService {
 
     @Autowired
     private PointTransactionRepository pointTxRepo;
+
+    @Autowired
+    private OrderRuleConfigService orderRuleConfigService;
 
     public User registerUser(User user) {
         if (userRepository.existsByEmail(user.getEmail())) {
@@ -89,6 +89,18 @@ public class UserService {
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public User upgradeToSeller(Long userId, String shopName, String shopDescription) {
+        String normalizedShopName = shopName == null ? "" : shopName.trim();
+        String normalizedShopDescription = shopDescription == null ? "" : shopDescription.trim();
+
+        if (normalizedShopName.length() < 3 || normalizedShopName.length() > 100) {
+            throw new IllegalArgumentException("Shop name must be between 3 and 100 characters");
+        }
+        if (normalizedShopDescription.length() < 20 || normalizedShopDescription.length() > 500) {
+            throw new IllegalArgumentException("Shop description must be between 20 and 500 characters");
+        }
+
+        long sellerUpgradeFee = orderRuleConfigService.getSellerUpgradeFee();
+
         // 1. Verify user exists and is BUYER
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
@@ -101,20 +113,20 @@ public class UserService {
         UserWallet wallet = walletRepository.findByUserIdForUpdate(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Wallet not found for userId: " + userId));
         
-        if (wallet.getAvailablePoints() < SELLER_UPGRADE_FEE) {
+        if (wallet.getAvailablePoints() < sellerUpgradeFee) {
             throw new InsufficientBalanceException(
-                    "Insufficient balance to upgrade to seller. Required: " + SELLER_UPGRADE_FEE + 
+                "Insufficient balance to upgrade to seller. Required: " + sellerUpgradeFee +
                     " points, Available: " + wallet.getAvailablePoints() + " points");
         }
         
         // 3. Deduct fee from wallet
-        wallet.setAvailablePoints(wallet.getAvailablePoints() - SELLER_UPGRADE_FEE);
+        wallet.setAvailablePoints(wallet.getAvailablePoints() - sellerUpgradeFee);
         walletRepository.save(wallet);
         
         // 4. Create transaction record for fee
         PointTransaction feeTx = new PointTransaction();
         feeTx.setUser(user);
-        feeTx.setAmount(SELLER_UPGRADE_FEE);
+        feeTx.setAmount(sellerUpgradeFee);
         feeTx.setType(PointTransaction.TransactionType.SPEND);
         feeTx.setStatus(PointTransaction.TransactionStatus.SUCCESS);
         feeTx.setReferenceId("Seller Upgrade Fee");
@@ -123,11 +135,16 @@ public class UserService {
         
         // 5. Update user role and seller info
         user.setRole(User.UserRole.SELLER);
-        user.setShopName(shopName);
-        user.setShopDescription(shopDescription);
+        user.setShopName(normalizedShopName);
+        user.setShopDescription(normalizedShopDescription);
         user.setRating(0.0); // Reset rating to 0.0 for new seller
         user.setUpgradedToSellerAt(LocalDateTime.now());
         
         return userRepository.save(user);
+    }
+
+    @Transactional(readOnly = true)
+    public long getSellerUpgradeFee() {
+        return orderRuleConfigService.getSellerUpgradeFee();
     }
 }

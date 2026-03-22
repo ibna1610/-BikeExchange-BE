@@ -1,10 +1,13 @@
 package com.bikeexchange.controller;
 
+import com.bikeexchange.dto.request.AdminOrderRuleUpdateRequest;
 import com.bikeexchange.dto.response.OrderResponse;
 import com.bikeexchange.dto.response.PointTransactionDto;
 import com.bikeexchange.model.Order;
+import com.bikeexchange.model.OrderRuleConfig;
 import com.bikeexchange.model.PointTransaction;
 import com.bikeexchange.repository.OrderRepository;
+import com.bikeexchange.service.service.OrderRuleConfigService;
 import com.bikeexchange.service.service.WalletService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -29,6 +32,36 @@ public class AdminOrderController extends AdminBaseController {
 
     @Autowired private OrderRepository orderRepository;
     @Autowired private WalletService walletService;
+    @Autowired private OrderRuleConfigService orderRuleConfigService;
+
+    @GetMapping("/order-rules")
+    @Operation(summary = "Xem cấu hình business rule của order")
+    public ResponseEntity<?> getOrderRules() {
+        OrderRuleConfig config = orderRuleConfigService.getCurrentRules();
+        Map<String, Object> data = new HashMap<>();
+        data.put("commissionRate", config.getCommissionRate());
+        data.put("sellerUpgradeFee", config.getSellerUpgradeFee());
+        data.put("returnWindowDays", config.getReturnWindowDays());
+        return ok("Order rules retrieved successfully", data);
+    }
+
+    @PutMapping("/order-rules")
+    @Operation(summary = "Cập nhật cấu hình business rule của order")
+    public ResponseEntity<?> updateOrderRules(@RequestBody AdminOrderRuleUpdateRequest request) {
+        try {
+            OrderRuleConfig config = orderRuleConfigService.updateRules(
+                    request.getCommissionRate(),
+                    request.getSellerUpgradeFee(),
+                    request.getReturnWindowDays());
+            Map<String, Object> data = new HashMap<>();
+            data.put("commissionRate", config.getCommissionRate());
+            data.put("sellerUpgradeFee", config.getSellerUpgradeFee());
+            data.put("returnWindowDays", config.getReturnWindowDays());
+            return ok("Order rules updated successfully", data);
+        } catch (IllegalArgumentException e) {
+            return badRequest(e.getMessage());
+        }
+    }
 
     @GetMapping("/orders")
     @Operation(summary = "Danh sách tất cả giao dịch")
@@ -100,18 +133,19 @@ public class AdminOrderController extends AdminBaseController {
     @GetMapping("/fees")
     @Operation(summary = "Danh sách phí hệ thống")
     public ResponseEntity<?> listSystemFees() {
+        double commissionRate = orderRuleConfigService.getCommissionRate();
         List<Order> completed = orderRepository.findAll().stream()
                 .filter(o -> o.getStatus() == Order.OrderStatus.COMPLETED).toList();
         long totalCommission = 0L;
         List<Map<String, Object>> rows = new ArrayList<>();
         for (Order o : completed) {
             long amount = o.getAmountPoints() != null ? o.getAmountPoints() : 0L;
-            long fee = Math.round(amount * 0.05);
+            long fee = Math.round(amount * commissionRate);
             totalCommission += fee;
             Map<String, Object> row = new HashMap<>();
             row.put("orderId", o.getId());
             row.put("amountPoints", amount);
-            row.put("commissionRate", 0.05);
+            row.put("commissionRate", commissionRate);
             row.put("commissionFee", fee);
             rows.add(row);
         }

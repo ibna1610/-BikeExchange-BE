@@ -14,6 +14,9 @@ public class OrderScheduler {
     @Autowired
     private OrderService orderService;
 
+    @Autowired
+    private OrderRuleConfigService orderRuleConfigService;
+
     /**
      * Chạy mỗi giờ.
      * Tìm các order ở trạng thái DELIVERED mà deliveredAt đã quá 14 ngày
@@ -22,7 +25,8 @@ public class OrderScheduler {
      */
     @Scheduled(cron = "0 0 * * * *")
     public void autoReleaseExpiredOrders() {
-        LocalDateTime deadline = LocalDateTime.now().minusDays(14);
+        int returnWindowDays = orderRuleConfigService.getReturnWindowDays();
+        LocalDateTime deadline = LocalDateTime.now().minusDays(returnWindowDays);
         List<Order> expiredOrders = orderService.findExpiredDeliveredOrders(deadline);
 
         for (Order order : expiredOrders) {

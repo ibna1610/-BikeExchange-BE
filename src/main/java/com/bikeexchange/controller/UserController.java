@@ -115,10 +115,20 @@ public class UserController {
                         .body(Map.of("success", false, "message", "You must agree to the terms and conditions"));
             }
 
+            if (!"XAC NHAN NANG CAP SELLER".equalsIgnoreCase(request.getConfirmPhrase().trim())) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("success", false, "message", "Invalid confirmation phrase"));
+            }
+
+            if (!request.isAcceptBusinessResponsibility()) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("success", false, "message", "You must accept business responsibility"));
+            }
+
             User upgradedUser = userService.upgradeToSeller(userId, request.getShopName(), request.getShopDescription());
             return ResponseEntity.ok(Map.of(
                 "success", true,
-                "message", "User successfully upgraded to seller (50,000 points fee charged)",
+                "message", "User successfully upgraded to seller",
                 "data", upgradedUser
             ));
         } catch (com.bikeexchange.exception.InsufficientBalanceException e) {
@@ -134,6 +144,17 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("success", false, "message", "An error occurred during upgrade"));
         }
+    }
+
+    @GetMapping("/upgrade-to-seller-fee")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Get current fee for upgrading from Buyer to Seller")
+    public ResponseEntity<?> getUpgradeToSellerFee() {
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Upgrade fee retrieved successfully",
+                "data", Map.of("sellerUpgradeFee", userService.getSellerUpgradeFee())
+        ));
     }
 
     public record UserStats(Integer totalBikesSold, Double rating, Boolean isVerified) {

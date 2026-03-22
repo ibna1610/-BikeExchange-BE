@@ -193,7 +193,7 @@ public class OrderController {
 
     @PostMapping("/{id}/deliver")
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "[SELLER] Đánh dấu đã giao hàng", description = "Người bán cập nhật giao hàng mà không cần upload ảnh, chỉ cần đơn vị vận chuyển, mã vận đơn và ghi chú (tuỳ chọn). Nếu người mua không xác nhận nhận hàng, hệ thống sẽ tự giải ngân cho người bán sau 14 ngày kể từ lúc giao. Transition: ACCEPTED -> DELIVERED.")
+    @Operation(summary = "[SELLER] Đánh dấu đã gửi hàng", description = "Người bán nhập đơn vị vận chuyển, mã vận đơn và ghi chú (tuỳ chọn) để đánh dấu đã gửi cho đơn vị vận chuyển. Transition: ACCEPTED -> SHIPPED.")
     public ResponseEntity<?> markDelivered(
              @PathVariable Long id,
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser,
@@ -205,6 +205,21 @@ public class OrderController {
                 request.getShippingCarrier(),
                 request.getTrackingCode(),
                 request.getShippingNote());
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("message", "Order marked as shipped. Please confirm delivered when the buyer receives the item.");
+        response.put("data", OrderResponse.fromEntity(order));
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{id}/confirm-delivery")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "[SELLER] Xác nhận đã giao hàng", description = "Người bán xác nhận hàng đã giao thành công tới người mua (không tích hợp tracking bên thứ 3). Bắt đầu đếm 14 ngày để buyer xác nhận nhận hàng hoặc hệ thống tự giải ngân. Transition: SHIPPED -> DELIVERED.")
+    public ResponseEntity<?> confirmDelivery(
+             @PathVariable Long id,
+            @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser) {
+
+        Order order = orderService.confirmDelivered(id, currentUser.getId());
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
         response.put("message", "Order marked as delivered. Waiting for buyer to confirm receipt.");

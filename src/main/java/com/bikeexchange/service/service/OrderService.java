@@ -35,10 +35,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
 public class OrderService {
+
+    private static final Pattern GHN_TRACKING_PATTERN = Pattern.compile("^GHN[0-9A-Z]{8,20}$", Pattern.CASE_INSENSITIVE);
+    private static final Pattern GHTK_TRACKING_PATTERN = Pattern.compile("^(GHTK[0-9A-Z]{6,20}|S[0-9]{8,20})$", Pattern.CASE_INSENSITIVE);
+    private static final Pattern VTP_TRACKING_PATTERN = Pattern.compile("^VTP[0-9A-Z]{6,20}$", Pattern.CASE_INSENSITIVE);
+    private static final Pattern JT_TRACKING_PATTERN = Pattern.compile("^(JT[0-9A-Z]{8,20}|JNT[0-9A-Z]{8,20})$", Pattern.CASE_INSENSITIVE);
 
     @Autowired
     private OrderRepository orderRepository;
@@ -60,6 +66,9 @@ public class OrderService {
 
     @Autowired
     private HistoryService historyService;
+
+    @Autowired
+    private OrderRuleConfigService orderRuleConfigService;
 
     @Transactional(readOnly = true)
     public boolean isReplayRequest(Long buyerId, Long bikeId, String idempotencyKey) {
@@ -196,17 +205,31 @@ public class OrderService {
         if (isBlank(shippingCarrier)) {
             throw new IllegalArgumentException("shippingCarrier is required");
         }
-        if (isBlank(trackingCode)) {
-            throw new IllegalArgumentException("trackingCode is required");
-        }
 
-        order.setStatus(Order.OrderStatus.DELIVERED);
-        order.setDeliveredAt(LocalDateTime.now());
+        validateTrackingCodeSyntax(shippingCarrier, trackingCode);
+        validateTrackingCodeDuplicate(shippingCarrier, trackingCode);
+
+        order.setStatus(Order.OrderStatus.SHIPPED);
+        order.setDeliveredAt(null);
         order.setDeliveryProofImageUrl(null);
         order.setDeliveryProofImageUrl2(null);
         order.setShippingCarrier(shippingCarrier.trim());
-        order.setTrackingCode(trackingCode.trim());
+        order.setTrackingCode(isBlank(trackingCode) ? null : trackingCode.trim());
         order.setShippingNote(shippingNote == null ? null : shippingNote.trim());
+        Order saved = orderRepository.save(order);
+        historyService.log("order", saved.getId(), "shipped", sellerId, null);
+        return saved;
+    }
+
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public Order confirmDelivered(Long orderId, Long sellerId) {
+        Order order = orderRepository.findByIdForUpdate(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
+        assertSeller(order, sellerId);
+        assertStatus(order, Order.OrderStatus.SHIPPED);
+
+        order.setStatus(Order.OrderStatus.DELIVERED);
+        order.setDeliveredAt(LocalDateTime.now());
         Order saved = orderRepository.save(order);
         historyService.log("order", saved.getId(), "delivered", sellerId, null);
         return saved;
@@ -235,8 +258,9 @@ public class OrderService {
             throw new IllegalArgumentException("Return reason is required");
         }
 
-        if (order.getDeliveredAt() == null || order.getDeliveredAt().plusDays(14).isBefore(LocalDateTime.now())) {
-            throw new InvalidOrderStatusException("Return window of 14 days has expired");
+        int returnWindowDays = orderRuleConfigService.getReturnWindowDays();
+        if (order.getDeliveredAt() == null || order.getDeliveredAt().plusDays(returnWindowDays).isBefore(LocalDateTime.now())) {
+            throw new InvalidOrderStatusException("Return window of " + returnWindowDays + " days has expired");
         }
 
         order.setStatus(Order.OrderStatus.RETURN_REQUESTED);
@@ -269,8 +293,8 @@ public class OrderService {
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public void releaseToSeller(Order order, String referenceLabel) {
         Long total = order.getAmountPoints();
-        Long commission = (long) (total * 0.02);
-        Long sellerRevenue = total - commission;
+        double commissionRate = orderRuleConfigService.getCommissionRate();
+        Long sellerRevenue = Math.round(total * (1.0d - commissionRate));
 
         UserWallet buyerWallet = walletRepository.findByUserIdForUpdate(order.getBuyer().getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Buyer wallet not found"));
@@ -440,6 +464,49 @@ public class OrderService {
 
     private boolean isBlank(String value) {
         return value == null || value.trim().isEmpty();
+    }
+
+    private void validateTrackingCodeSyntax(String shippingCarrier, String trackingCode) {
+        String carrier = shippingCarrier == null ? "" : shippingCarrier.trim().toUpperCase();
+        if (carrier.isEmpty()) {
+            return;
+        }
+
+        String code = trackingCode == null ? "" : trackingCode.trim().toUpperCase();
+
+        if ("OTHER".equals(carrier)) {
+            return;
+        }
+
+        if (code.isEmpty()) {
+            throw new IllegalArgumentException("trackingCode is required for carrier " + carrier);
+        }
+
+        boolean valid;
+        switch (carrier) {
+            case "GHN" -> valid = GHN_TRACKING_PATTERN.matcher(code).matches();
+            case "GHTK" -> valid = GHTK_TRACKING_PATTERN.matcher(code).matches();
+            case "VTP" -> valid = VTP_TRACKING_PATTERN.matcher(code).matches();
+            case "J&T", "JNT", "JT" -> valid = JT_TRACKING_PATTERN.matcher(code).matches();
+            default -> valid = true;
+        }
+
+        if (!valid) {
+            throw new IllegalArgumentException("Invalid trackingCode format for carrier " + carrier);
+        }
+    }
+
+    private void validateTrackingCodeDuplicate(String shippingCarrier, String trackingCode) {
+        String carrier = shippingCarrier == null ? "" : shippingCarrier.trim();
+        String code = trackingCode == null ? "" : trackingCode.trim();
+
+        if (carrier.isEmpty() || code.isEmpty()) {
+            return;
+        }
+
+        if (orderRepository.existsByShippingCarrierIgnoreCaseAndTrackingCodeIgnoreCase(carrier, code)) {
+            throw new IllegalArgumentException("trackingCode already exists for carrier " + carrier.toUpperCase());
+        }
     }
 
     private List<Order> findBuyerOrders(Long buyerId, List<String> statusParams) {

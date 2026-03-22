@@ -23,6 +23,8 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     Optional<Order> findByIdempotencyKey(String idempotencyKey);
 
+    boolean existsByShippingCarrierIgnoreCaseAndTrackingCodeIgnoreCase(String shippingCarrier, String trackingCode);
+
     List<Order> findByBuyerIdOrderByCreatedAtDesc(Long buyerId);
 
     List<Order> findByBuyerIdAndStatusInOrderByCreatedAtDesc(Long buyerId, List<Order.OrderStatus> statuses);

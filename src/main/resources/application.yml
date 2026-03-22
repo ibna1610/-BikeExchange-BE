@@ -27,16 +27,11 @@ spring:
   mvc:
     throw-exception-if-no-handler-found: true
 
-  servlet:
-    multipart:
-      max-file-size: 20MB
-      max-request-size: 100MB
-
   mail:
     host: smtp-relay.brevo.com
     port: 587
     username: a44240001@smtp-brevo.com
-    password: ${BREVO_SMTP_KEY:REPLACE_WITH_REAL_BREVO_SMTP_KEY}
+    password: ${BREVO_SMTP_KEY:}
     properties:
       mail:
         smtp:
@@ -64,16 +59,16 @@ logging:
     org.springframework.web: INFO
 
 app:
-  jwtSecret: ${JWT_SECRET:dev-jwt-secret-change-me-in-env-2026-dev-jwt-secret-change-me}
+  jwtSecret: ${JWT_SECRET:926D96C90030DD58429D2751AC1BDBBC926D96C90030DD58429D2751AC1BDBBC}
   jwtExpirationMs: ${JWT_EXPIRATION_MS:86400000}
   frontend.url: ${FRONTEND_URL:http://localhost:5173}
   forgot-password.url: ${FORGOT_PASSWORD_URL:http://localhost:5173/reset-password}
   name: BikeExchange
 
 vnpay:
-  tmnCode: ${VNP_TMN_CODE:DEV_TMN_CODE}
-  hashSecret: ${VNP_HASH_SECRET:DEV_HASH_SECRET}
+  tmnCode: ${VNP_TMN_CODE:B2H6WZFU}
+  hashSecret: ${VNP_HASH_SECRET:PCC5IVNXNSUTMNJ1BA92NBI1MXB50C2P}
   payUrl: https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
   #returnUrl: ${VNP_RETURN_URL:http://localhost:8080/api/vnpay/vnpay-payment-return}
   returnUrl: ${VNP_RETURN_URL:http://localhost:5173/payment-success}
-  ipnUrl: ${VNP_IPN_URL:http://localhost:8080/api/vnpay/ipn} 
+  ipnUrl: ${VNP_IPN_URL:http://localhost:8080/api/vnpay/ipn}
