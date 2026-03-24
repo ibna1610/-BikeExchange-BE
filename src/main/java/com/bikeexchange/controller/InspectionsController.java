@@ -161,6 +161,18 @@ public class InspectionsController {
         return ResponseEntity.ok(response);
     }
 
+    @PostMapping("/{inspectionId}/reject")
+    @PreAuthorize("hasRole('INSPECTOR')")
+    @Operation(summary = "Reject inspection request (Inspector)", description = "Roles: Inspector. Cancels the request and refunds the seller.")
+    public ResponseEntity<?> rejectByInspector(
+            @PathVariable("inspectionId") Long inspectionId,
+            @RequestBody com.bikeexchange.dto.request.InspectionRejectRequest request,
+            @AuthenticationPrincipal UserPrincipal currentUser) {
+        Long inspectorId = currentUser.getId();
+        InspectionRequest inspection = inspectionService.inspectorRejectRequest(inspectionId, request.getReason(), inspectorId);
+        return ResponseEntity.ok(Map.of("success", true, "data", InspectionResponse.fromEntity(inspection)));
+    }
+
     @PostMapping("/{inspectionId}/report")
     @PreAuthorize("hasRole('INSPECTOR')")
     @Operation(summary = "Submit inspection report", description = "Roles: Inspector. Include medias: [{url,type,sortOrder}]")

@@ -169,6 +169,30 @@ public class InspectionService {
         return inspectionRepository.save(inspection);
     }
 
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public InspectionRequest inspectorRejectRequest(Long inspectionId, String reason, Long inspectorId) {
+        InspectionRequest inspection = inspectionRepository.findById(inspectionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Inspection not found"));
+
+        if (inspection.getStatus() == InspectionRequest.RequestStatus.APPROVED || 
+            inspection.getStatus() == InspectionRequest.RequestStatus.REJECTED) {
+            throw new IllegalArgumentException("Cannot reject. Inspection has already been finalized.");
+        }
+
+        inspection.setStatus(InspectionRequest.RequestStatus.REJECTED);
+        inspection.setRejectionReason(reason);
+        inspection.setUpdatedAt(LocalDateTime.now());
+
+        Bike bike = inspection.getBike();
+        bike.setInspectionStatus(Bike.InspectionStatus.REJECTED);
+        bikeRepository.save(bike);
+
+        performRefund(inspection);
+
+        historyService.log("inspection", inspection.getId(), "rejected_by_inspector", inspectorId, reason);
+        return inspectionRepository.save(inspection);
+    }
+
     private void performRefund(InspectionRequest inspection) {
         Bike bike = inspection.getBike();
         UserWallet sellerWallet = walletRepository.findByUserIdForUpdate(bike.getSeller().getId())
