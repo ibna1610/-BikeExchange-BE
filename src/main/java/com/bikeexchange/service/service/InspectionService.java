@@ -46,7 +46,8 @@ public class InspectionService {
     @Autowired
     private HistoryService historyService;
 
-    private static final Long INSPECTION_FEE = 200000L; // 200,000 points (~200k-200M VND depending on scale)
+    @Autowired
+    private OrderRuleConfigService orderRuleConfigService;
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public InspectionRequest requestInspection(Long requesterId, InspectionRequestDto dto) {
@@ -68,20 +69,22 @@ public class InspectionService {
         UserWallet wallet = walletRepository.findByUserIdForUpdate(requesterId)
                 .orElseThrow(() -> new ResourceNotFoundException("Wallet missing"));
 
-        if (wallet.getAvailablePoints() < INSPECTION_FEE) {
+        long inspectionFee = orderRuleConfigService.getInspectionFee();
+
+        if (wallet.getAvailablePoints() < inspectionFee) {
             throw new InsufficientBalanceException(
-                    "Not enough points to request inspection. Required: " + INSPECTION_FEE);
+                    "Not enough points to request inspection. Required: " + inspectionFee);
         }
 
         // Deduct points
-        wallet.setAvailablePoints(wallet.getAvailablePoints() - INSPECTION_FEE);
-        wallet.setFrozenPoints(wallet.getFrozenPoints() + INSPECTION_FEE);
+        wallet.setAvailablePoints(wallet.getAvailablePoints() - inspectionFee);
+        wallet.setFrozenPoints(wallet.getFrozenPoints() + inspectionFee);
         walletRepository.save(wallet);
 
         // Transaction log
         PointTransaction tx = new PointTransaction();
         tx.setUser(wallet.getUser());
-        tx.setAmount(INSPECTION_FEE);
+        tx.setAmount(inspectionFee);
         tx.setType(PointTransaction.TransactionType.ESCROW_HOLD);
         tx.setStatus(PointTransaction.TransactionStatus.SUCCESS);
         tx.setReferenceId("Inspection req for Bike: " + bikeId);
@@ -95,7 +98,7 @@ public class InspectionService {
         InspectionRequest inspection = new InspectionRequest();
         inspection.setBike(bike);
         inspection.setStatus(InspectionRequest.RequestStatus.REQUESTED);
-        inspection.setFeePoints(INSPECTION_FEE);
+        inspection.setFeePoints(inspectionFee);
         inspection.setCreatedAt(LocalDateTime.now());
 
         // Set scheduling / availability fields from DTO

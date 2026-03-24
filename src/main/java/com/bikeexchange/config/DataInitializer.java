@@ -39,12 +39,17 @@ public class DataInitializer implements CommandLineRunner {
     @Autowired private WishlistRepository wishlistRepository;
     @Autowired private ConversationRepository conversationRepository;
     @Autowired private MessageRepository messageRepository;
+    @Autowired private OrderRuleConfigRepository orderRuleConfigRepository;
     @Autowired private PasswordEncoder passwordEncoder;
 
     @Override
     @Transactional
         @SuppressWarnings("unused")
     public void run(String... args) throws Exception {
+        // ── 0. System Config ────────────────────────────────────────────────
+        System.out.println("Seeding System Config...");
+        seedOrderRuleConfig();
+
         // ── 1. Users ──────────────────────────────────────────────────────────
         System.out.println("Seeding Users...");
         User admin      = seedUser("admin@bikeexchange.com",      "Nguyễn Quản Trị",   "0901000001", "12 Lê Lợi, Q.1, TP.HCM",          User.UserRole.ADMIN,     "ACTIVE", 0L);
@@ -644,5 +649,37 @@ public class DataInitializer implements CommandLineRunner {
         m.setContent(content);
         m.setCreatedAt(LocalDateTime.now());
         messageRepository.save(m);
+    }
+
+    private void seedOrderRuleConfig() {
+        OrderRuleConfig config = orderRuleConfigRepository.findById(OrderRuleConfig.SINGLETON_ID)
+                .orElse(null);
+        
+        if (config == null) {
+            config = new OrderRuleConfig();
+            config.setId(OrderRuleConfig.SINGLETON_ID);
+            config.setCommissionRate(0.02d);
+            config.setSellerUpgradeFee(50000L);
+            config.setReturnWindowDays(14);
+            config.setBikePostFee(5000L);
+            config.setInspectionFee(200000L);
+            orderRuleConfigRepository.save(config);
+            System.out.println("Seeded Default OrderRuleConfig");
+        } else {
+            // Repair existing config if missing new fields
+            boolean updated = false;
+            if (config.getBikePostFee() == null || config.getBikePostFee() <= 0) {
+                config.setBikePostFee(5000L);
+                updated = true;
+            }
+            if (config.getInspectionFee() == null || config.getInspectionFee() <= 0) {
+                config.setInspectionFee(200000L);
+                updated = true;
+            }
+            if (updated) {
+                orderRuleConfigRepository.save(config);
+                System.out.println("Updated existing OrderRuleConfig with missing fields");
+            }
+        }
     }
 }
