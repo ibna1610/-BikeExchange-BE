@@ -1,8 +1,8 @@
 package com.bikeexchange.controller;
 
-import com.bikeexchange.dto.request.AdminOrderRuleUpdateRequest;
 import com.bikeexchange.dto.response.OrderResponse;
 import com.bikeexchange.dto.response.PointTransactionDto;
+import com.bikeexchange.dto.request.OrderRuleConfigRequest;
 import com.bikeexchange.model.Order;
 import com.bikeexchange.model.OrderRuleConfig;
 import com.bikeexchange.model.PointTransaction;
@@ -42,22 +42,84 @@ public class AdminOrderController extends AdminBaseController {
         data.put("commissionRate", config.getCommissionRate());
         data.put("sellerUpgradeFee", config.getSellerUpgradeFee());
         data.put("returnWindowDays", config.getReturnWindowDays());
+        data.put("bikePostFee", config.getBikePostFee());
+        data.put("inspectionFee", config.getInspectionFee());
         return ok("Order rules retrieved successfully", data);
     }
 
     @PutMapping("/order-rules")
     @Operation(summary = "Cập nhật cấu hình business rule của order")
-    public ResponseEntity<?> updateOrderRules(@RequestBody AdminOrderRuleUpdateRequest request) {
+    public ResponseEntity<?> updateOrderRules(@RequestBody OrderRuleConfigRequest request) {
         try {
             OrderRuleConfig config = orderRuleConfigService.updateRules(
                     request.getCommissionRate(),
                     request.getSellerUpgradeFee(),
-                    request.getReturnWindowDays());
+                    request.getReturnWindowDays(),
+                    null,
+                    null
+            );
             Map<String, Object> data = new HashMap<>();
             data.put("commissionRate", config.getCommissionRate());
             data.put("sellerUpgradeFee", config.getSellerUpgradeFee());
             data.put("returnWindowDays", config.getReturnWindowDays());
+            data.put("bikePostFee", config.getBikePostFee());
+            data.put("inspectionFee", config.getInspectionFee());
             return ok("Order rules updated successfully", data);
+        } catch (IllegalArgumentException e) {
+            return badRequest(e.getMessage());
+        }
+    }
+
+    @PutMapping("/order-rules/commission-rate")
+    @Operation(summary = "Cập nhật tỷ lệ hoa hồng")
+    public ResponseEntity<?> updateCommissionRate(@RequestParam Double commissionRate) {
+        try {
+            OrderRuleConfig config = orderRuleConfigService.updateRules(commissionRate, null, null, null, null);
+            return ok("Commission rate updated successfully", Map.of("commissionRate", config.getCommissionRate()));
+        } catch (IllegalArgumentException e) {
+            return badRequest(e.getMessage());
+        }
+    }
+
+    @PutMapping("/order-rules/seller-upgrade-fee")
+    @Operation(summary = "Cập nhật phí nâng cấp người bán")
+    public ResponseEntity<?> updateSellerUpgradeFee(@RequestParam Long sellerUpgradeFee) {
+        try {
+            OrderRuleConfig config = orderRuleConfigService.updateRules(null, sellerUpgradeFee, null, null, null);
+            return ok("Seller upgrade fee updated successfully", Map.of("sellerUpgradeFee", config.getSellerUpgradeFee()));
+        } catch (IllegalArgumentException e) {
+            return badRequest(e.getMessage());
+        }
+    }
+
+    @PutMapping("/order-rules/return-window-days")
+    @Operation(summary = "Cập nhật số ngày cho phép trả hàng")
+    public ResponseEntity<?> updateReturnWindowDays(@RequestParam Integer returnWindowDays) {
+        try {
+            OrderRuleConfig config = orderRuleConfigService.updateRules(null, null, returnWindowDays, null, null);
+            return ok("Return window days updated successfully", Map.of("returnWindowDays", config.getReturnWindowDays()));
+        } catch (IllegalArgumentException e) {
+            return badRequest(e.getMessage());
+        }
+    }
+
+    @PutMapping("/order-rules/bike-post-fee")
+    @Operation(summary = "Cập nhật phí đăng xe")
+    public ResponseEntity<?> updateBikePostFee(@RequestParam Long bikePostFee) {
+        try {
+            OrderRuleConfig config = orderRuleConfigService.updateRules(null, null, null, bikePostFee, null);
+            return ok("Bike post fee updated successfully", Map.of("bikePostFee", config.getBikePostFee()));
+        } catch (IllegalArgumentException e) {
+            return badRequest(e.getMessage());
+        }
+    }
+
+    @PutMapping("/order-rules/inspection-fee")
+    @Operation(summary = "Cập nhật phí kiểm định")
+    public ResponseEntity<?> updateInspectionFee(@RequestParam Long inspectionFee) {
+        try {
+            OrderRuleConfig config = orderRuleConfigService.updateRules(null, null, null, null, inspectionFee);
+            return ok("Inspection fee updated successfully", Map.of("inspectionFee", config.getInspectionFee()));
         } catch (IllegalArgumentException e) {
             return badRequest(e.getMessage());
         }

@@ -29,6 +29,12 @@ public class OrderRuleConfig {
     @Column(name = "return_window_days", nullable = false)
     private Integer returnWindowDays;
 
+    @Column(name = "bike_post_fee", nullable = false)
+    private Long bikePostFee;
+
+    @Column(name = "inspection_fee", nullable = false)
+    private Long inspectionFee;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 

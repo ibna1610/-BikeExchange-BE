@@ -42,6 +42,9 @@ public class BikeService {
     @Autowired
     private PointTransactionRepository pointTxRepo;
 
+    @Autowired
+    private OrderRuleConfigService orderRuleConfigService;
+
     public Page<Bike> searchBikes(String keyword, Pageable pageable) {
         if (keyword != null && !keyword.isBlank()) {
             return bikeRepository.searchAllStatuses(keyword, pageable);
@@ -160,13 +163,13 @@ public class BikeService {
             bike.setCategories(categories);
         }
 
-        // Deduct 5000 points for posting a new bike
-        long postFee = 5000L;
+        // Deduct points for posting a new bike from admin config
+        long postFee = orderRuleConfigService.getBikePostFee();
         UserWallet wallet = walletRepository.findByUserIdForUpdate(sellerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Wallet not found for seller"));
 
         if (wallet.getAvailablePoints() < postFee) {
-            throw new InsufficientBalanceException("Số dư không đủ. Bạn cần 5000 điểm để đăng xe mới.");
+            throw new InsufficientBalanceException("Số dư không đủ. Bạn cần " + postFee + " điểm để đăng xe mới.");
         }
 
         wallet.setAvailablePoints(wallet.getAvailablePoints() - postFee);
