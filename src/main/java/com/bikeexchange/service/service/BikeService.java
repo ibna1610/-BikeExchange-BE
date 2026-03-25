@@ -163,16 +163,25 @@ public class BikeService {
             bike.setCategories(categories);
         }
 
-        // Deduct points for posting a new bike from admin config
-        long postFee = orderRuleConfigService.getBikePostFee();
+        // Deduct points for posting a new bike
         UserWallet wallet = walletRepository.findByUserIdForUpdate(sellerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Wallet not found for seller"));
 
-        if (wallet.getAvailablePoints() < postFee) {
-            throw new InsufficientBalanceException("Số dư không đủ. Bạn cần " + postFee + " điểm để đăng xe mới.");
-        }
+        long postFee = 0;
+        String remarks = "Phí đăng tin xe đạp mới";
 
-        wallet.setAvailablePoints(wallet.getAvailablePoints() - postFee);
+        if (wallet.getRemainingFreePosts() > 0) {
+            // Use a free post sloth
+            wallet.setRemainingFreePosts(wallet.getRemainingFreePosts() - 1);
+            remarks = "Dùng lượt đăng bài ưu đãi (Combo)";
+        } else {
+            postFee = orderRuleConfigService.getBikePostFee();
+            if (wallet.getAvailablePoints() < postFee) {
+                throw new InsufficientBalanceException("Số dư không đủ. Bạn cần " + postFee + " điểm để đăng xe mới.");
+            }
+            wallet.setAvailablePoints(wallet.getAvailablePoints() - postFee);
+        }
+        
         walletRepository.save(wallet);
 
         // Record the transaction
@@ -182,7 +191,7 @@ public class BikeService {
         tx.setType(PointTransaction.TransactionType.SPEND);
         tx.setStatus(PointTransaction.TransactionStatus.SUCCESS);
         tx.setReferenceId("BIKE_POST_FEE_" + bike.getId());
-        tx.setRemarks("Phí đăng tin xe đạp mới");
+        tx.setRemarks(remarks);
         pointTxRepo.save(tx);
 
         Bike saved = bikeRepository.save(bike);

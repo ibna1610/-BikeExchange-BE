@@ -110,4 +110,17 @@ public class WalletController {
 
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/combos")
+    public ResponseEntity<?> getActiveCombos() {
+        return ResponseEntity.ok(Map.of("success", true, "data", walletService.getActiveCombos()));
+    }
+
+    @PreAuthorize("isAuthenticated()")
+    @PostMapping("/buy-combo/{comboId}")
+    public ResponseEntity<?> buyListingCombo(@AuthenticationPrincipal UserPrincipal currentUser,
+            @PathVariable("comboId") Long comboId) {
+        UserWallet wallet = walletService.buyListingCombo(currentUser.getId(), comboId);
+        return ResponseEntity.ok(Map.of("success", true, "message", "Combo purchased successfully", "data", wallet));
+    }
 }
