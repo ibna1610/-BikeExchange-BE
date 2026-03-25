@@ -2,8 +2,10 @@ package com.bikeexchange.service.service;
 
 import com.bikeexchange.exception.InsufficientBalanceException;
 import com.bikeexchange.exception.ResourceNotFoundException;
+import com.bikeexchange.model.ListingCombo;
 import com.bikeexchange.model.PointTransaction;
 import com.bikeexchange.model.UserWallet;
+import com.bikeexchange.repository.ListingComboRepository;
 import com.bikeexchange.repository.PointTransactionRepository;
 import com.bikeexchange.repository.UserWalletRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +23,9 @@ public class WalletService {
 
     @Autowired
     private PointTransactionRepository pointTxRepo;
+
+    @Autowired
+    private ListingComboRepository listingComboRepository;
 
     public UserWallet getWallet(Long userId) {
         return walletRepository.findById(userId)
@@ -168,5 +173,44 @@ public class WalletService {
         tx.setStatus(PointTransaction.TransactionStatus.FAILED);
         tx.setRemarks(reason);
         pointTxRepo.save(tx);
+    }
+
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public UserWallet buyListingCombo(Long userId, Long comboId) {
+        ListingCombo combo = listingComboRepository.findById(comboId)
+                .orElseThrow(() -> new ResourceNotFoundException("Combo not found"));
+        
+        if (!combo.isActive()) {
+            throw new IllegalArgumentException("Combo is not currently active");
+        }
+
+        UserWallet wallet = walletRepository.findByUserIdForUpdate(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Wallet not found"));
+
+        if (wallet.getAvailablePoints() < combo.getPointsCost()) {
+            throw new InsufficientBalanceException("Not enough points to buy this combo. Required: " + combo.getPointsCost());
+        }
+
+        // Deduct points
+        wallet.setAvailablePoints(wallet.getAvailablePoints() - combo.getPointsCost());
+        // Add free posts
+        wallet.setRemainingFreePosts(wallet.getRemainingFreePosts() + combo.getPostLimit());
+        walletRepository.save(wallet);
+
+        // Audit log
+        PointTransaction tx = new PointTransaction();
+        tx.setUser(wallet.getUser());
+        tx.setAmount(combo.getPointsCost());
+        tx.setType(PointTransaction.TransactionType.SPEND);
+        tx.setStatus(PointTransaction.TransactionStatus.SUCCESS);
+        tx.setReferenceId("BUY_COMBO_" + comboId);
+        tx.setRemarks("Mua gói combo tin đăng: " + combo.getName());
+        pointTxRepo.save(tx);
+
+        return wallet;
+    }
+
+    public java.util.List<com.bikeexchange.model.ListingCombo> getActiveCombos() {
+        return listingComboRepository.findByIsActiveTrue();
     }
 }

@@ -28,6 +28,9 @@ public class UserWallet {
     @Column(name = "frozen_points", nullable = false)
     private Long frozenPoints = 0L;
 
+    @Column(name = "remaining_free_posts", nullable = false)
+    private Integer remainingFreePosts = 0;
+
     @Version
     private Long version; // For Optimistic Locking if needed as secondary protection
 
