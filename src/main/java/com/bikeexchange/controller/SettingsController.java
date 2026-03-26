@@ -2,6 +2,7 @@ package com.bikeexchange.controller;
 
 import com.bikeexchange.model.OrderRuleConfig;
 import com.bikeexchange.repository.OrderRuleConfigRepository;
+import com.bikeexchange.service.service.OrderRuleConfigService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +20,9 @@ public class SettingsController {
 
     @Autowired
     private OrderRuleConfigRepository orderRuleConfigRepository;
+
+    @Autowired
+    private OrderRuleConfigService orderRuleConfigService;
 
     private OrderRuleConfig getConfig() {
         return orderRuleConfigRepository.findById(OrderRuleConfig.SINGLETON_ID)
@@ -52,6 +56,6 @@ public class SettingsController {
     @GetMapping("/commission-rate")
     @Operation(summary = "Xem tỷ lệ hoa hồng")
     public ResponseEntity<?> getCommissionRate() {
-        return ResponseEntity.ok(Map.of("success", true, "data", getConfig().getCommissionRate()));
+        return ResponseEntity.ok(Map.of("success", true, "data", orderRuleConfigService.getCommissionRatePercent()));
     }
 }

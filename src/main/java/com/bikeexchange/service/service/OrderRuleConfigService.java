@@ -47,8 +47,8 @@ public class OrderRuleConfigService {
                 .orElseGet(this::buildDefault);
 
         if (commissionRate != null) {
-            validateCommissionRate(commissionRate);
-            config.setCommissionRate(commissionRate);
+            validateCommissionRatePercent(commissionRate);
+            config.setCommissionRate(percentToRatio(commissionRate));
         }
 
         if (sellerUpgradeFee != null) {
@@ -81,6 +81,11 @@ public class OrderRuleConfigService {
     }
 
     @Transactional(readOnly = true)
+    public double getCommissionRatePercent() {
+        return ratioToPercent(getCurrentRules().getCommissionRate());
+    }
+
+    @Transactional(readOnly = true)
     public long getSellerUpgradeFee() {
         return getCurrentRules().getSellerUpgradeFee();
     }
@@ -100,10 +105,24 @@ public class OrderRuleConfigService {
         return getCurrentRules().getInspectionFee();
     }
 
-    private void validateCommissionRate(Double value) {
-        if (value < 0 || value > 1.0d) {
-            throw new IllegalArgumentException("commissionRate must be between 0 and 1.0");
+    private void validateCommissionRatePercent(Double value) {
+        if (value < 0 || value > 100.0d) {
+            throw new IllegalArgumentException("commissionRate must be between 0 and 100");
         }
+    }
+
+    public double ratioToPercent(Double ratioValue) {
+        if (ratioValue == null) {
+            return 0.0d;
+        }
+        return ratioValue * 100.0d;
+    }
+
+    public double percentToRatio(Double percentValue) {
+        if (percentValue == null) {
+            return DEFAULT_COMMISSION_RATE;
+        }
+        return percentValue / 100.0d;
     }
 
     private void validateReturnWindowDays(Integer value) {
@@ -141,4 +160,4 @@ public class OrderRuleConfigService {
         return config;
     }
 }
-
+

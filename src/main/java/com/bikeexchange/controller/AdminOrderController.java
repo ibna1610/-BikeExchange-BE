@@ -39,7 +39,7 @@ public class AdminOrderController extends AdminBaseController {
     public ResponseEntity<?> getOrderRules() {
         OrderRuleConfig config = orderRuleConfigService.getCurrentRules();
         Map<String, Object> data = new HashMap<>();
-        data.put("commissionRate", config.getCommissionRate());
+        data.put("commissionRate", orderRuleConfigService.getCommissionRatePercent());
         data.put("sellerUpgradeFee", config.getSellerUpgradeFee());
         data.put("returnWindowDays", config.getReturnWindowDays());
         data.put("bikePostFee", config.getBikePostFee());
@@ -59,7 +59,7 @@ public class AdminOrderController extends AdminBaseController {
                     null
             );
             Map<String, Object> data = new HashMap<>();
-            data.put("commissionRate", config.getCommissionRate());
+                data.put("commissionRate", orderRuleConfigService.ratioToPercent(config.getCommissionRate()));
             data.put("sellerUpgradeFee", config.getSellerUpgradeFee());
             data.put("returnWindowDays", config.getReturnWindowDays());
             data.put("bikePostFee", config.getBikePostFee());
@@ -75,7 +75,8 @@ public class AdminOrderController extends AdminBaseController {
     public ResponseEntity<?> updateCommissionRate(@RequestParam Double commissionRate) {
         try {
             OrderRuleConfig config = orderRuleConfigService.updateRules(commissionRate, null, null, null, null);
-            return ok("Commission rate updated successfully", Map.of("commissionRate", config.getCommissionRate()));
+            return ok("Commission rate updated successfully",
+                    Map.of("commissionRate", orderRuleConfigService.ratioToPercent(config.getCommissionRate())));
         } catch (IllegalArgumentException e) {
             return badRequest(e.getMessage());
         }
@@ -196,6 +197,7 @@ public class AdminOrderController extends AdminBaseController {
     @Operation(summary = "Danh sách phí hệ thống")
     public ResponseEntity<?> listSystemFees() {
         double commissionRate = orderRuleConfigService.getCommissionRate();
+        double commissionRatePercent = orderRuleConfigService.ratioToPercent(commissionRate);
         List<Order> completed = orderRepository.findAll().stream()
                 .filter(o -> o.getStatus() == Order.OrderStatus.COMPLETED).toList();
         long totalCommission = 0L;
@@ -207,7 +209,7 @@ public class AdminOrderController extends AdminBaseController {
             Map<String, Object> row = new HashMap<>();
             row.put("orderId", o.getId());
             row.put("amountPoints", amount);
-            row.put("commissionRate", commissionRate);
+            row.put("commissionRate", commissionRatePercent);
             row.put("commissionFee", fee);
             rows.add(row);
         }
