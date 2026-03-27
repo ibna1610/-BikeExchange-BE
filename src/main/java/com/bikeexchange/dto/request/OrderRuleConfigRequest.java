@@ -7,4 +7,6 @@ public class OrderRuleConfigRequest {
     private Double commissionRate;
     private Long sellerUpgradeFee;
     private Integer returnWindowDays;
+    private Integer returnWindowHours;
+    private Integer returnWindowMinutes;
 }

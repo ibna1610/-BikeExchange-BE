@@ -84,8 +84,8 @@ public class Order {
         ESCROWED,
         ACCEPTED,            // Seller đã accept đơn, chuẩn bị gửi hàng
         SHIPPED,             // Seller đã gửi cho đơn vị vận chuyển
-        DELIVERED,           // Seller đánh dấu đã giao hàng; bắt đầu đếm 14 ngày
-        RETURN_REQUESTED,    // Buyer yêu cầu hoàn hàng (trong 14 ngày kể từ deliveredAt)
+        DELIVERED,           // Seller đánh dấu đã giao hàng; bắt đầu đếm thời gian trả hàng theo cấu hình
+        RETURN_REQUESTED,    // Buyer yêu cầu hoàn hàng trong thời gian cấu hình kể từ deliveredAt
         COMPLETED,           // Điểm giải phóng về seller
         REFUNDED,            // Điểm hoàn về buyer sau khi seller xác nhận nhận lại hàng
         DISPUTED,

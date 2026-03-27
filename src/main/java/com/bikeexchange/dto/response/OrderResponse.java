@@ -29,8 +29,18 @@ public class OrderResponse {
     private String shippingNote;
     private String returnReason;
     private Long daysUntilAutoRelease;
+    // Thêm các trường chi tiết cho FE
+    private Long remainingDays;
+    private Long remainingHours;
+    private Long remainingMinutes;
+    private Long remainingSeconds;
+    private LocalDateTime autoReleaseDeadline;
 
     public static OrderResponse fromEntity(Order order) {
+        return fromEntity(order, 0L);
+    }
+
+    public static OrderResponse fromEntity(Order order, long returnWindowTotalMinutes) {
         OrderResponse res = new OrderResponse();
         res.setId(order.getId());
         if (order.getBuyer() != null) {
@@ -58,9 +68,22 @@ public class OrderResponse {
         res.setTrackingCode(order.getTrackingCode());
         res.setShippingNote(order.getShippingNote());
         res.setReturnReason(order.getReturnReason());
-        if (order.getDeliveredAt() != null && order.getStatus() == Order.OrderStatus.DELIVERED) {
-            long daysPassed = ChronoUnit.DAYS.between(order.getDeliveredAt(), LocalDateTime.now());
-            res.setDaysUntilAutoRelease(Math.max(0, 14 - daysPassed));
+        if (returnWindowTotalMinutes > 0
+                && order.getDeliveredAt() != null
+                && order.getStatus() == Order.OrderStatus.DELIVERED) {
+            LocalDateTime now = LocalDateTime.now();
+            LocalDateTime deadline = order.getDeliveredAt().plusMinutes(returnWindowTotalMinutes);
+            long totalRemainingSeconds = Math.max(0L, ChronoUnit.SECONDS.between(now, deadline));
+            long remainingDays = totalRemainingSeconds / (24 * 3600);
+            long remainingHours = (totalRemainingSeconds % (24 * 3600)) / 3600;
+            long remainingMinutes = (totalRemainingSeconds % 3600) / 60;
+            long remainingSeconds = totalRemainingSeconds % 60;
+            res.setDaysUntilAutoRelease(remainingDays); // giữ trường cũ cho tương thích
+            res.setRemainingDays(remainingDays);
+            res.setRemainingHours(remainingHours);
+            res.setRemainingMinutes(remainingMinutes);
+            res.setRemainingSeconds(remainingSeconds);
+            res.setAutoReleaseDeadline(deadline);
         }
         return res;
     }

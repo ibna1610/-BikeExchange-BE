@@ -111,6 +111,15 @@ public class AdminComboController extends AdminBaseController {
         if (request.getPostLimit() == null || request.getPostLimit() <= 0) {
             return "postLimit must be > 0";
         }
+
+        // RULE: Giá combo phải rẻ hơn tổng giá lẻ
+        // Giả sử giá đăng lẻ cố định là 1 giá trị, ví dụ 1 bài = 20000 VND
+        final long SINGLE_POST_PRICE = 20000L; // Có thể lấy từ config nếu cần
+        long totalSinglePrice = SINGLE_POST_PRICE * request.getPostLimit();
+        if (request.getPointsCost() >= totalSinglePrice) {
+            return "Giá combo phải rẻ hơn mua lẻ từng bài (" + totalSinglePrice + " VND)";
+        }
+
         return null;
     }
 }

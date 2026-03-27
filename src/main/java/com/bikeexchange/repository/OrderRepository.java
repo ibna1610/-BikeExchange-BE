@@ -33,7 +33,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     List<Order> findByBikeSellerIdAndStatusInOrderByCreatedAtDesc(Long sellerId, List<Order.OrderStatus> statuses);
 
-    // Tìm các order đang DELIVERED và deliveredAt đã quá 14 ngày (dùng cho scheduler auto-release)
+    // Tìm các order đang DELIVERED và deliveredAt đã quá thời gian cấu hình (dùng cho scheduler auto-release)
     @Query("SELECT o FROM Order o WHERE o.status = 'DELIVERED' AND o.deliveredAt < :deadline")
     List<Order> findExpiredDeliveredOrders(@Param("deadline") LocalDateTime deadline);
 

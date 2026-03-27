@@ -3,6 +3,7 @@ package com.bikeexchange.service.service;
 import com.bikeexchange.model.OrderRuleConfig;
 import com.bikeexchange.repository.OrderRuleConfigRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -11,9 +12,17 @@ public class OrderRuleConfigService {
 
     private static final double DEFAULT_COMMISSION_RATE = 0.02d;
     private static final long DEFAULT_SELLER_UPGRADE_FEE = 50000L;
-    private static final int DEFAULT_RETURN_WINDOW_DAYS = 14;
     private static final long DEFAULT_BIKE_POST_FEE = 5000L;
     private static final long DEFAULT_INSPECTION_FEE = 200000L;
+
+    @Value("${app.order-rule.defaults.return-window.days:14}")
+    private int defaultReturnWindowDays;
+
+    @Value("${app.order-rule.defaults.return-window.hours:0}")
+    private int defaultReturnWindowHours;
+
+    @Value("${app.order-rule.defaults.return-window.minutes:0}")
+    private int defaultReturnWindowMinutes;
 
     @Autowired
     private OrderRuleConfigRepository repository;
@@ -29,8 +38,15 @@ public class OrderRuleConfigService {
         if (config.getSellerUpgradeFee() == null) {
             config.setSellerUpgradeFee(DEFAULT_SELLER_UPGRADE_FEE);
         }
-        if (config.getReturnWindowDays() == null || config.getReturnWindowDays() <= 0) {
-            config.setReturnWindowDays(DEFAULT_RETURN_WINDOW_DAYS);
+        // Chỉ set default nếu null, cho phép 0 ngày
+        if (config.getReturnWindowDays() == null) {
+            config.setReturnWindowDays(defaultReturnWindowDays);
+        }
+        if (config.getReturnWindowHours() == null || config.getReturnWindowHours() < 0) {
+            config.setReturnWindowHours(defaultReturnWindowHours);
+        }
+        if (config.getReturnWindowMinutes() == null || config.getReturnWindowMinutes() < 0) {
+            config.setReturnWindowMinutes(defaultReturnWindowMinutes);
         }
         if (config.getBikePostFee() == null || config.getBikePostFee() <= 0) {
             config.setBikePostFee(DEFAULT_BIKE_POST_FEE);
@@ -42,7 +58,13 @@ public class OrderRuleConfigService {
     }
 
     @Transactional
-    public OrderRuleConfig updateRules(Double commissionRate, Long sellerUpgradeFee, Integer returnWindowDays, Long bikePostFee, Long inspectionFee) {
+    public OrderRuleConfig updateRules(Double commissionRate,
+                                       Long sellerUpgradeFee,
+                                       Integer returnWindowDays,
+                                       Integer returnWindowHours,
+                                       Integer returnWindowMinutes,
+                                       Long bikePostFee,
+                                       Long inspectionFee) {
         OrderRuleConfig config = repository.findById(OrderRuleConfig.SINGLETON_ID)
                 .orElseGet(this::buildDefault);
 
@@ -59,6 +81,16 @@ public class OrderRuleConfigService {
         if (returnWindowDays != null) {
             validateReturnWindowDays(returnWindowDays);
             config.setReturnWindowDays(returnWindowDays);
+        }
+
+        if (returnWindowHours != null) {
+            validateReturnWindowHours(returnWindowHours);
+            config.setReturnWindowHours(returnWindowHours);
+        }
+
+        if (returnWindowMinutes != null) {
+            validateReturnWindowMinutes(returnWindowMinutes);
+            config.setReturnWindowMinutes(returnWindowMinutes);
         }
 
         if (bikePostFee != null) {
@@ -96,6 +128,24 @@ public class OrderRuleConfigService {
     }
 
     @Transactional(readOnly = true)
+    public int getReturnWindowHours() {
+        return getCurrentRules().getReturnWindowHours();
+    }
+
+    @Transactional(readOnly = true)
+    public int getReturnWindowMinutes() {
+        return getCurrentRules().getReturnWindowMinutes();
+    }
+
+    @Transactional(readOnly = true)
+    public long getReturnWindowTotalMinutes() {
+        OrderRuleConfig config = getCurrentRules();
+        return (long) config.getReturnWindowDays() * 24L * 60L
+                + (long) config.getReturnWindowHours() * 60L
+                + config.getReturnWindowMinutes();
+    }
+
+    @Transactional(readOnly = true)
     public long getBikePostFee() {
         return getCurrentRules().getBikePostFee();
     }
@@ -126,8 +176,20 @@ public class OrderRuleConfigService {
     }
 
     private void validateReturnWindowDays(Integer value) {
-        if (value < 1 || value > 60) {
-            throw new IllegalArgumentException("returnWindowDays must be between 1 and 60");
+        if (value < 0 || value > 60) {
+            throw new IllegalArgumentException("returnWindowDays must be between 0 and 60");
+        }
+    }
+
+    private void validateReturnWindowHours(Integer value) {
+        if (value < 0 || value > 23) {
+            throw new IllegalArgumentException("returnWindowHours must be between 0 and 23");
+        }
+    }
+
+    private void validateReturnWindowMinutes(Integer value) {
+        if (value < 0 || value > 59) {
+            throw new IllegalArgumentException("returnWindowMinutes must be between 0 and 59");
         }
     }
 
@@ -154,7 +216,9 @@ public class OrderRuleConfigService {
         config.setId(OrderRuleConfig.SINGLETON_ID);
         config.setCommissionRate(DEFAULT_COMMISSION_RATE);
         config.setSellerUpgradeFee(DEFAULT_SELLER_UPGRADE_FEE);
-        config.setReturnWindowDays(DEFAULT_RETURN_WINDOW_DAYS);
+        config.setReturnWindowDays(defaultReturnWindowDays);
+        config.setReturnWindowHours(defaultReturnWindowHours);
+        config.setReturnWindowMinutes(defaultReturnWindowMinutes);
         config.setBikePostFee(DEFAULT_BIKE_POST_FEE);
         config.setInspectionFee(DEFAULT_INSPECTION_FEE);
         return config;

@@ -15,8 +15,12 @@ public class BuyerPurchaseHistoryResponse {
     private List<HistoryResponse> history;
 
     public static BuyerPurchaseHistoryResponse from(Order order, Review review, List<HistoryResponse> history) {
+        return from(order, review, history, 0L);
+    }
+
+    public static BuyerPurchaseHistoryResponse from(Order order, Review review, List<HistoryResponse> history, long returnWindowTotalMinutes) {
         BuyerPurchaseHistoryResponse response = new BuyerPurchaseHistoryResponse();
-        response.setOrder(OrderResponse.fromEntity(order));
+        response.setOrder(OrderResponse.fromEntity(order, returnWindowTotalMinutes));
         response.setReviewed(review != null);
         response.setCanReview(order.getStatus() == Order.OrderStatus.COMPLETED && review == null);
         response.setReview(review != null ? ReviewSummaryResponse.fromEntity(review) : null);
