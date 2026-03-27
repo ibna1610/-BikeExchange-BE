@@ -59,7 +59,7 @@ logging:
     org.springframework.web: INFO
 
 app:
-  jwtSecret: ${JWT_SECRET:926D96C90030DD58429D2751AC1BDBBC926D96C90030DD58429D2751AC1BDBBC}
+  jwtSecret: ${JWT_SECRET:}
   jwtExpirationMs: ${JWT_EXPIRATION_MS:86400000}
   frontend.url: ${FRONTEND_URL:http://localhost:5173}
   forgot-password.url: ${FORGOT_PASSWORD_URL:http://localhost:5173/reset-password}
