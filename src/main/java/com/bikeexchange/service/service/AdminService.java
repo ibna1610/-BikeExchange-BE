@@ -1,13 +1,12 @@
 package com.bikeexchange.service.service;
 
-import com.bikeexchange.dto.response.OrderResponse;
-import com.bikeexchange.dto.response.PointTransactionDto;
-import com.bikeexchange.dto.response.SystemWalletSummaryResponse;
+import com.bikeexchange.dto.response.*;
 import com.bikeexchange.model.*;
 import com.bikeexchange.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,6 +38,9 @@ public class AdminService {
 
     @Autowired
     private com.bikeexchange.repository.UserReportRepository userReportRepository;
+
+    @Autowired
+    private OrderRuleConfigService orderRuleConfigService;
 
     public Map<String, Object> getDashboardMetrics() {
         Map<String, Object> metrics = new HashMap<>();
@@ -190,5 +192,76 @@ public class AdminService {
         }
 
         return summary;
+    }
+
+    public AdminRevenueSummaryResponse getSystemRevenueSummary() {
+        AdminRevenueSummaryResponse res = new AdminRevenueSummaryResponse();
+
+        // Get all successful SPEND transactions to categorize
+        List<PointTransaction> allSpend = pointTransactionRepository.findByTypeAndStatusOrderByCreatedAtDesc(
+                PointTransaction.TransactionType.SPEND, PointTransaction.TransactionStatus.SUCCESS);
+        
+        // 1. Phí đăng tin xe lẻ (BIKE_POST_FEE_)
+        List<PointTransaction> postingFees = allSpend.stream()
+                .filter(tx -> tx.getReferenceId() != null && tx.getReferenceId().startsWith("BIKE_POST_FEE_"))
+                .collect(Collectors.toList());
+        long postingTotal = postingFees.stream().mapToLong(PointTransaction::getAmount).sum();
+        res.setPostingFeesCount(postingFees.size());
+        res.setPostingFeesTotal(postingTotal);
+        res.setPostingFeeDetails(postingFees.stream().map(PointTransactionDto::from).collect(Collectors.toList()));
+
+        // 2. Phí mua gói Combo (BUY_COMBO_)
+        List<PointTransaction> comboFees = allSpend.stream()
+                .filter(tx -> tx.getReferenceId() != null && tx.getReferenceId().startsWith("BUY_COMBO_"))
+                .collect(Collectors.toList());
+        long comboTotal = comboFees.stream().mapToLong(PointTransaction::getAmount).sum();
+        res.setComboFeesCount(comboFees.size());
+        res.setComboFeesTotal(comboTotal);
+        res.setComboFeeDetails(comboFees.stream().map(PointTransactionDto::from).collect(Collectors.toList()));
+
+        // 3. Phí nâng cấp Seller (Seller Upgrade Fee)
+        List<PointTransaction> upgradeFees = allSpend.stream()
+                .filter(tx -> "Seller Upgrade Fee".equals(tx.getReferenceId()))
+                .collect(Collectors.toList());
+        long upgradeTotal = upgradeFees.stream().mapToLong(PointTransaction::getAmount).sum();
+        res.setUpgradeFeesCount(upgradeFees.size());
+        res.setUpgradeFeesTotal(upgradeTotal);
+        res.setUpgradeFeeDetails(upgradeFees.stream().map(PointTransactionDto::from).collect(Collectors.toList()));
+
+        // 4. Phí kiểm định hệ thống thực thu (APPROVED Inspections)
+        List<InspectionRequest> approvedInspections = inspectionRepository.findByStatusIn(List.of(InspectionRequest.RequestStatus.APPROVED));
+        long inspectionTotal = approvedInspections.stream().mapToLong(InspectionRequest::getFeePoints).sum();
+        res.setInspectionFeesCount(approvedInspections.size());
+        res.setInspectionFeesTotal(inspectionTotal);
+        res.setInspectionFeeDetails(approvedInspections.stream()
+            .map(InspectionResponse::fromEntity)
+            .collect(Collectors.toList()));
+
+        // 5. Hoa hồng từ đơn hàng (COMPLETED orders)
+        List<Order> completedOrders = orderRepository.findByStatusIn(List.of(Order.OrderStatus.COMPLETED));
+        double currentCommissionRate = orderRuleConfigService.getCommissionRate();
+        
+        long commissionTotal = 0;
+        List<PointTransactionDto> commissionDetails = new ArrayList<>();
+        
+        for (Order o : completedOrders) {
+            long commAmount = Math.round(o.getAmountPoints() * currentCommissionRate);
+            commissionTotal += commAmount;
+            
+            PointTransactionDto dto = new PointTransactionDto();
+            dto.setAmount(commAmount);
+            dto.setType(PointTransaction.TransactionType.COMMISSION.name());
+            dto.setStatus(PointTransaction.TransactionStatus.SUCCESS.name());
+            dto.setRemarks("Hoa hồng từ đơn hàng #" + o.getId() + " (" + o.getBike().getTitle() + ")");
+            dto.setCreatedAt(o.getUpdatedAt());
+            commissionDetails.add(dto);
+        }
+        res.setOrderCommissionCount(completedOrders.size());
+        res.setOrderCommissionTotal(commissionTotal);
+        res.setCommissionDetails(commissionDetails);
+
+        res.setTotalRevenue(postingTotal + comboTotal + upgradeTotal + inspectionTotal + commissionTotal);
+        
+        return res;
     }
 }
