@@ -28,4 +28,11 @@ public interface PointTransactionRepository extends JpaRepository<PointTransacti
 
         java.util.List<PointTransaction> findByStatusInOrderByCreatedAtDesc(
                         java.util.List<PointTransaction.TransactionStatus> statuses);
+
+        @org.springframework.data.jpa.repository.Query("SELECT SUM(t.amount) FROM PointTransaction t WHERE t.type = :type AND t.status = :status")
+        Long sumAmountByTypeAndStatus(@org.springframework.data.repository.query.Param("type") PointTransaction.TransactionType type,
+                        @org.springframework.data.repository.query.Param("status") PointTransaction.TransactionStatus status);
+        @org.springframework.data.jpa.repository.Query("SELECT SUM(t.amount) FROM PointTransaction t WHERE t.type = :type AND t.status IN :statuses")
+        Long sumAmountByTypeAndStatusIn(@org.springframework.data.repository.query.Param("type") PointTransaction.TransactionType type,
+                        @org.springframework.data.repository.query.Param("statuses") java.util.List<PointTransaction.TransactionStatus> statuses);
 }

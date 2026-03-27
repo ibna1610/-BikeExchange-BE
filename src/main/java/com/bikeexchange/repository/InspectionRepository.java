@@ -18,4 +18,10 @@ public interface InspectionRepository extends JpaRepository<InspectionRequest, L
     
     @org.springframework.data.jpa.repository.Query("SELECT i FROM InspectionRequest i WHERE i.inspector.id = :inspectorId AND i.status IN :statuses ORDER BY i.createdAt DESC")
     java.util.List<InspectionRequest> findByInspectorIdAndStatusIn(Long inspectorId, java.util.Collection<InspectionRequest.RequestStatus> statuses);
+
+    @org.springframework.data.jpa.repository.Query("SELECT i FROM InspectionRequest i WHERE i.status IN :statuses")
+    java.util.List<InspectionRequest> findByStatusIn(@org.springframework.data.repository.query.Param("statuses") java.util.Collection<InspectionRequest.RequestStatus> statuses);
+
+    @org.springframework.data.jpa.repository.Query("SELECT SUM(i.feePoints) FROM InspectionRequest i WHERE i.status IN :statuses")
+    Long sumFeePointsByStatusIn(@org.springframework.data.repository.query.Param("statuses") java.util.Collection<InspectionRequest.RequestStatus> statuses);
 }
