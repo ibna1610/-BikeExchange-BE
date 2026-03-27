@@ -123,4 +123,14 @@ public class WalletController {
         UserWallet wallet = walletService.buyListingCombo(currentUser.getId(), comboId);
         return ResponseEntity.ok(Map.of("success", true, "message", "Combo purchased successfully", "data", wallet));
     }
+
+    @PreAuthorize("isAuthenticated()")
+    @GetMapping("/remaining-posts")
+    public ResponseEntity<?> getRemainingPosts(@AuthenticationPrincipal UserPrincipal currentUser) {
+        UserWallet wallet = walletService.getWallet(currentUser.getId());
+        return ResponseEntity.ok(Map.of(
+            "success", true,
+            "data", Map.of("remainingFreePosts", wallet.getRemainingFreePosts())
+        ));
+    }
 }
