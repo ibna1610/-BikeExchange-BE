@@ -28,4 +28,10 @@ public class AdminWalletController extends AdminBaseController {
         SystemWalletSummaryResponse summary = adminService.getSystemWalletSummary();
         return ok("System wallet summary retrieved successfully", summary);
     }
+
+    @GetMapping("/revenue-summary")
+    @Operation(summary = "Xem tổng doanh thu hệ thống (tiền người dùng đã tiêu vào web)")
+    public ResponseEntity<?> getSystemRevenueSummary() {
+        return ok("System revenue summary retrieved successfully", adminService.getSystemRevenueSummary());
+    }
 }
