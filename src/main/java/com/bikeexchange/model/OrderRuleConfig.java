@@ -29,6 +29,12 @@ public class OrderRuleConfig {
     @Column(name = "return_window_days", nullable = false)
     private Integer returnWindowDays;
 
+    @Column(name = "return_window_hours", nullable = false)
+    private Integer returnWindowHours;
+
+    @Column(name = "return_window_minutes", nullable = false)
+    private Integer returnWindowMinutes;
+
     @Column(name = "bike_post_fee", nullable = false)
     private Long bikePostFee;
 

@@ -31,7 +31,7 @@ spring:
     host: smtp-relay.brevo.com
     port: 587
     username: a44240001@smtp-brevo.com
-    password: ${BREVO_SMTP_KEY:}
+    password: ${BREVO_SMTP_KEY}
     properties:
       mail:
         smtp:
@@ -64,6 +64,12 @@ app:
   frontend.url: ${FRONTEND_URL:http://localhost:5173}
   forgot-password.url: ${FORGOT_PASSWORD_URL:http://localhost:5173/reset-password}
   name: BikeExchange
+  order-rule:
+    defaults:
+      return-window:
+        days: ${ORDER_RETURN_WINDOW_DAYS_DEFAULT:14}
+        hours: ${ORDER_RETURN_WINDOW_HOURS_DEFAULT:0}
+        minutes: ${ORDER_RETURN_WINDOW_MINUTES_DEFAULT:0}
 
 vnpay:
   tmnCode: ${VNP_TMN_CODE:B2H6WZFU}

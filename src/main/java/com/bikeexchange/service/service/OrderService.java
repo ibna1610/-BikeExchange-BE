@@ -258,9 +258,9 @@ public class OrderService {
             throw new IllegalArgumentException("Return reason is required");
         }
 
-        int returnWindowDays = orderRuleConfigService.getReturnWindowDays();
-        if (order.getDeliveredAt() == null || order.getDeliveredAt().plusDays(returnWindowDays).isBefore(LocalDateTime.now())) {
-            throw new InvalidOrderStatusException("Return window of " + returnWindowDays + " days has expired");
+        long returnWindowTotalMinutes = orderRuleConfigService.getReturnWindowTotalMinutes();
+        if (order.getDeliveredAt() == null || order.getDeliveredAt().plusMinutes(returnWindowTotalMinutes).isBefore(LocalDateTime.now())) {
+            throw new InvalidOrderStatusException("Return window has expired");
         }
 
         order.setStatus(Order.OrderStatus.RETURN_REQUESTED);
@@ -328,6 +328,7 @@ public class OrderService {
         if (orders.isEmpty()) {
             return Collections.emptyList();
         }
+        long returnWindowTotalMinutes = orderRuleConfigService.getReturnWindowTotalMinutes();
 
         List<Long> orderIds = orders.stream().map(Order::getId).toList();
         Map<Long, Review> reviewsByOrderId = reviewRepository.findByOrderIdIn(orderIds)
@@ -341,7 +342,8 @@ public class OrderService {
             .map(order -> BuyerPurchaseHistoryResponse.from(
                 order,
                 reviewsByOrderId.get(order.getId()),
-                historyByOrderId.getOrDefault(order.getId(), List.of())))
+                historyByOrderId.getOrDefault(order.getId(), List.of()),
+                returnWindowTotalMinutes))
                 .toList();
     }
 
@@ -351,6 +353,7 @@ public class OrderService {
         if (orders.isEmpty()) {
             return Collections.emptyList();
         }
+        long returnWindowTotalMinutes = orderRuleConfigService.getReturnWindowTotalMinutes();
 
         List<Long> orderIds = orders.stream().map(Order::getId).toList();
         Map<Long, Review> reviewsByOrderId = reviewRepository.findByOrderIdIn(orderIds)
@@ -363,7 +366,7 @@ public class OrderService {
         return orders.stream().map(order -> {
             Review review = reviewsByOrderId.get(order.getId());
             SellerSalesHistoryResponse response = new SellerSalesHistoryResponse();
-            response.setOrder(com.bikeexchange.dto.response.OrderResponse.fromEntity(order));
+            response.setOrder(com.bikeexchange.dto.response.OrderResponse.fromEntity(order, returnWindowTotalMinutes));
             response.setReviewed(review != null);
             response.setReview(review != null ? ReviewSummaryResponse.fromEntity(review) : null);
             response.setHistory(historyByOrderId.getOrDefault(order.getId(), List.of()));
@@ -376,9 +379,10 @@ public class OrderService {
         List<Order> orders = orderRepository.findByBikeSellerIdAndStatusInOrderByCreatedAtDesc(
                 sellerId,
                 List.of(Order.OrderStatus.ESCROWED));
+        long returnWindowTotalMinutes = orderRuleConfigService.getReturnWindowTotalMinutes();
 
         return orders.stream()
-                .map(OrderResponse::fromEntity)
+            .map(order -> OrderResponse.fromEntity(order, returnWindowTotalMinutes))
                 .toList();
     }
 
@@ -386,6 +390,7 @@ public class OrderService {
     public OrderHistoryDetailResponse getOrderHistoryDetail(Long orderId, Long viewerId) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
+        long returnWindowTotalMinutes = orderRuleConfigService.getReturnWindowTotalMinutes();
 
         boolean isBuyer = order.getBuyer() != null && order.getBuyer().getId().equals(viewerId);
         boolean isSeller = order.getBike() != null
@@ -403,7 +408,7 @@ public class OrderService {
 
         OrderHistoryDetailResponse response = new OrderHistoryDetailResponse();
         response.setViewerRole(isBuyer ? "BUYER" : "SELLER");
-        response.setOrder(com.bikeexchange.dto.response.OrderResponse.fromEntity(order));
+        response.setOrder(com.bikeexchange.dto.response.OrderResponse.fromEntity(order, returnWindowTotalMinutes));
         response.setReviewed(review != null);
         response.setCanReview(isBuyer && order.getStatus() == Order.OrderStatus.COMPLETED && review == null);
         response.setReview(review != null ? ReviewSummaryResponse.fromEntity(review) : null);

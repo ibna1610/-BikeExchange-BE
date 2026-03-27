@@ -50,7 +50,25 @@ public class SettingsController {
     @GetMapping("/return-window-days")
     @Operation(summary = "Xem số ngày cho phép trả hàng")
     public ResponseEntity<?> getReturnWindowDays() {
-        return ResponseEntity.ok(Map.of("success", true, "data", getConfig().getReturnWindowDays()));
+        OrderRuleConfig config = getConfig();
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "data", config.getReturnWindowDays(),
+                "hours", config.getReturnWindowHours(),
+                "minutes", config.getReturnWindowMinutes(),
+                "totalMinutes", orderRuleConfigService.getReturnWindowTotalMinutes()));
+    }
+
+    @GetMapping("/return-window")
+    @Operation(summary = "Xem thời gian cho phép trả hàng theo ngày/giờ/phút")
+    public ResponseEntity<?> getReturnWindow() {
+        OrderRuleConfig config = getConfig();
+        Map<String, Object> data = Map.of(
+                "days", config.getReturnWindowDays(),
+                "hours", config.getReturnWindowHours(),
+                "minutes", config.getReturnWindowMinutes(),
+                "totalMinutes", orderRuleConfigService.getReturnWindowTotalMinutes());
+        return ResponseEntity.ok(Map.of("success", true, "data", data));
     }
 
     @GetMapping("/commission-rate")

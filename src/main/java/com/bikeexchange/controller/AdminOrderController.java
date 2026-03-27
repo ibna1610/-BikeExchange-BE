@@ -42,6 +42,14 @@ public class AdminOrderController extends AdminBaseController {
         data.put("commissionRate", orderRuleConfigService.getCommissionRatePercent());
         data.put("sellerUpgradeFee", config.getSellerUpgradeFee());
         data.put("returnWindowDays", config.getReturnWindowDays());
+        data.put("returnWindowHours", config.getReturnWindowHours());
+        data.put("returnWindowMinutes", config.getReturnWindowMinutes());
+        data.put("returnWindowTotalMinutes", orderRuleConfigService.getReturnWindowTotalMinutes());
+        // Thêm tổng số giây cấu hình cho FE
+        long totalSeconds = config.getReturnWindowDays() * 24L * 3600L
+            + config.getReturnWindowHours() * 3600L
+            + config.getReturnWindowMinutes() * 60L;
+        data.put("returnWindowTotalSeconds", totalSeconds);
         data.put("bikePostFee", config.getBikePostFee());
         data.put("inspectionFee", config.getInspectionFee());
         return ok("Order rules retrieved successfully", data);
@@ -55,6 +63,8 @@ public class AdminOrderController extends AdminBaseController {
                     request.getCommissionRate(),
                     request.getSellerUpgradeFee(),
                     request.getReturnWindowDays(),
+                    request.getReturnWindowHours(),
+                    request.getReturnWindowMinutes(),
                     null,
                     null
             );
@@ -62,6 +72,9 @@ public class AdminOrderController extends AdminBaseController {
                 data.put("commissionRate", orderRuleConfigService.ratioToPercent(config.getCommissionRate()));
             data.put("sellerUpgradeFee", config.getSellerUpgradeFee());
             data.put("returnWindowDays", config.getReturnWindowDays());
+                data.put("returnWindowHours", config.getReturnWindowHours());
+                data.put("returnWindowMinutes", config.getReturnWindowMinutes());
+                data.put("returnWindowTotalMinutes", orderRuleConfigService.getReturnWindowTotalMinutes());
             data.put("bikePostFee", config.getBikePostFee());
             data.put("inspectionFee", config.getInspectionFee());
             return ok("Order rules updated successfully", data);
@@ -74,7 +87,7 @@ public class AdminOrderController extends AdminBaseController {
     @Operation(summary = "Cập nhật tỷ lệ hoa hồng")
     public ResponseEntity<?> updateCommissionRate(@RequestParam Double commissionRate) {
         try {
-            OrderRuleConfig config = orderRuleConfigService.updateRules(commissionRate, null, null, null, null);
+            OrderRuleConfig config = orderRuleConfigService.updateRules(commissionRate, null, null, null, null, null, null);
             return ok("Commission rate updated successfully",
                     Map.of("commissionRate", orderRuleConfigService.ratioToPercent(config.getCommissionRate())));
         } catch (IllegalArgumentException e) {
@@ -86,7 +99,7 @@ public class AdminOrderController extends AdminBaseController {
     @Operation(summary = "Cập nhật phí nâng cấp người bán")
     public ResponseEntity<?> updateSellerUpgradeFee(@RequestParam Long sellerUpgradeFee) {
         try {
-            OrderRuleConfig config = orderRuleConfigService.updateRules(null, sellerUpgradeFee, null, null, null);
+            OrderRuleConfig config = orderRuleConfigService.updateRules(null, sellerUpgradeFee, null, null, null, null, null);
             return ok("Seller upgrade fee updated successfully", Map.of("sellerUpgradeFee", config.getSellerUpgradeFee()));
         } catch (IllegalArgumentException e) {
             return badRequest(e.getMessage());
@@ -97,8 +110,31 @@ public class AdminOrderController extends AdminBaseController {
     @Operation(summary = "Cập nhật số ngày cho phép trả hàng")
     public ResponseEntity<?> updateReturnWindowDays(@RequestParam Integer returnWindowDays) {
         try {
-            OrderRuleConfig config = orderRuleConfigService.updateRules(null, null, returnWindowDays, null, null);
-            return ok("Return window days updated successfully", Map.of("returnWindowDays", config.getReturnWindowDays()));
+            OrderRuleConfig config = orderRuleConfigService.updateRules(null, null, returnWindowDays, null, null, null, null);
+            Map<String, Object> data = new HashMap<>();
+            data.put("returnWindowDays", config.getReturnWindowDays());
+            data.put("returnWindowHours", config.getReturnWindowHours());
+            data.put("returnWindowMinutes", config.getReturnWindowMinutes());
+            data.put("returnWindowTotalMinutes", orderRuleConfigService.getReturnWindowTotalMinutes());
+            return ok("Return window updated successfully", data);
+        } catch (IllegalArgumentException e) {
+            return badRequest(e.getMessage());
+        }
+    }
+
+    @PutMapping("/order-rules/return-window")
+    @Operation(summary = "Cập nhật thời gian cho phép trả hàng theo ngày/giờ/phút")
+    public ResponseEntity<?> updateReturnWindow(@RequestParam(required = false) Integer returnWindowDays,
+                                                @RequestParam(required = false) Integer returnWindowHours,
+                                                @RequestParam(required = false) Integer returnWindowMinutes) {
+        try {
+            OrderRuleConfig config = orderRuleConfigService.updateRules(null, null, returnWindowDays, returnWindowHours, returnWindowMinutes, null, null);
+            Map<String, Object> data = new HashMap<>();
+            data.put("returnWindowDays", config.getReturnWindowDays());
+            data.put("returnWindowHours", config.getReturnWindowHours());
+            data.put("returnWindowMinutes", config.getReturnWindowMinutes());
+            data.put("returnWindowTotalMinutes", orderRuleConfigService.getReturnWindowTotalMinutes());
+            return ok("Return window updated successfully", data);
         } catch (IllegalArgumentException e) {
             return badRequest(e.getMessage());
         }
@@ -108,7 +144,7 @@ public class AdminOrderController extends AdminBaseController {
     @Operation(summary = "Cập nhật phí đăng xe")
     public ResponseEntity<?> updateBikePostFee(@RequestParam Long bikePostFee) {
         try {
-            OrderRuleConfig config = orderRuleConfigService.updateRules(null, null, null, bikePostFee, null);
+            OrderRuleConfig config = orderRuleConfigService.updateRules(null, null, null, null, null, bikePostFee, null);
             return ok("Bike post fee updated successfully", Map.of("bikePostFee", config.getBikePostFee()));
         } catch (IllegalArgumentException e) {
             return badRequest(e.getMessage());
@@ -119,7 +155,7 @@ public class AdminOrderController extends AdminBaseController {
     @Operation(summary = "Cập nhật phí kiểm định")
     public ResponseEntity<?> updateInspectionFee(@RequestParam Long inspectionFee) {
         try {
-            OrderRuleConfig config = orderRuleConfigService.updateRules(null, null, null, null, inspectionFee);
+            OrderRuleConfig config = orderRuleConfigService.updateRules(null, null, null, null, null, null, inspectionFee);
             return ok("Inspection fee updated successfully", Map.of("inspectionFee", config.getInspectionFee()));
         } catch (IllegalArgumentException e) {
             return badRequest(e.getMessage());
@@ -147,8 +183,9 @@ public class AdminOrderController extends AdminBaseController {
     @GetMapping("/orders/{id}")
     @Operation(summary = "Chi tiết giao dịch")
     public ResponseEntity<?> getOrder(@PathVariable Long id) {
+        long returnWindowTotalMinutes = orderRuleConfigService.getReturnWindowTotalMinutes();
         return orderRepository.findById(id)
-                .<ResponseEntity<?>>map(order -> ok("Order retrieved successfully", OrderResponse.fromEntity(order)))
+            .<ResponseEntity<?>>map(order -> ok("Order retrieved successfully", OrderResponse.fromEntity(order, returnWindowTotalMinutes)))
                 .orElseGet(() -> notFound("Order not found"));
     }
 
@@ -158,6 +195,7 @@ public class AdminOrderController extends AdminBaseController {
             @PathVariable Long id,
             @RequestParam String status,
             @RequestParam(required = false) String reason) {
+        long returnWindowTotalMinutes = orderRuleConfigService.getReturnWindowTotalMinutes();
         Order.OrderStatus targetStatus;
         try {
             targetStatus = Order.OrderStatus.valueOf(status.trim().toUpperCase());
@@ -167,7 +205,7 @@ public class AdminOrderController extends AdminBaseController {
         return orderRepository.findById(id).<ResponseEntity<?>>map(order -> {
             order.setStatus(targetStatus);
             Map<String, Object> data = new HashMap<>();
-            data.put("order", OrderResponse.fromEntity(orderRepository.save(order)));
+            data.put("order", OrderResponse.fromEntity(orderRepository.save(order), returnWindowTotalMinutes));
             data.put("reason", reason != null ? reason : "");
             return ok("Order status updated", data);
         }).orElseGet(() -> notFound("Order not found"));

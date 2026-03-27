@@ -5,6 +5,7 @@ import com.bikeexchange.model.Bike.BikeStatus;
 import com.bikeexchange.model.Bike.InspectionStatus;
 import com.bikeexchange.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -26,6 +27,15 @@ public class DataInitializer implements CommandLineRunner {
     @Autowired private MessageRepository messageRepository;
     @Autowired private OrderRuleConfigRepository orderRuleConfigRepository;
     @Autowired private PasswordEncoder passwordEncoder;
+
+        @Value("${app.order-rule.defaults.return-window.days:14}")
+        private int defaultReturnWindowDays;
+
+        @Value("${app.order-rule.defaults.return-window.hours:0}")
+        private int defaultReturnWindowHours;
+
+        @Value("${app.order-rule.defaults.return-window.minutes:0}")
+        private int defaultReturnWindowMinutes;
 
     @Override
     @Transactional
@@ -101,8 +111,6 @@ public class DataInitializer implements CommandLineRunner {
         u.setFullName(fullName);
         u.setPhone(phone);
         u.setAddress(address);
-        u.setRole(role);
-        u.setStatus(status);
         u.setIsVerified(true);
         if (role == User.UserRole.SELLER) {
             u.setShopName(fullName + " Store");
@@ -149,7 +157,51 @@ public class DataInitializer implements CommandLineRunner {
             return bikeRepository.findBySellerId(seller.getId(), org.springframework.data.domain.Pageable.unpaged())
                     .stream().filter(b -> b.getTitle().equals(title)).findFirst().orElseThrow();
         }
-        Bike bike = new Bike();
+            private void seedOrderRuleConfig() {
+                OrderRuleConfig config = orderRuleConfigRepository.findById(OrderRuleConfig.SINGLETON_ID)
+                        .orElse(null);
+        
+                if (config == null) {
+                    config = new OrderRuleConfig();
+                    config.setId(OrderRuleConfig.SINGLETON_ID);
+                    config.setCommissionRate(0.02d);
+                    config.setSellerUpgradeFee(50000L);
+                    config.setReturnWindowDays(defaultReturnWindowDays);
+                    config.setReturnWindowHours(defaultReturnWindowHours);
+                    config.setReturnWindowMinutes(defaultReturnWindowMinutes);
+                    config.setBikePostFee(5000L);
+                    config.setInspectionFee(200000L);
+                    orderRuleConfigRepository.save(config);
+                    System.out.println("Seeded Default OrderRuleConfig");
+                } else {
+                    // Repair existing config if missing new fields
+                    boolean updated = false;
+                    if (config.getBikePostFee() == null || config.getBikePostFee() <= 0) {
+                        config.setBikePostFee(5000L);
+                        updated = true;
+                    }
+                    if (config.getInspectionFee() == null || config.getInspectionFee() <= 0) {
+                        config.setInspectionFee(200000L);
+                        updated = true;
+                    }
+                    if (config.getReturnWindowHours() == null || config.getReturnWindowHours() < 0) {
+                        config.setReturnWindowHours(defaultReturnWindowHours);
+                        updated = true;
+                    }
+                    if (config.getReturnWindowMinutes() == null || config.getReturnWindowMinutes() < 0) {
+                        config.setReturnWindowMinutes(defaultReturnWindowMinutes);
+                        updated = true;
+                    }
+                    if (config.getReturnWindowDays() == null || config.getReturnWindowDays() <= 0) {
+                        config.setReturnWindowDays(defaultReturnWindowDays);
+                        updated = true;
+                    }
+                    if (updated) {
+                        orderRuleConfigRepository.save(config);
+                        System.out.println("Updated existing OrderRuleConfig with missing fields");
+                    }
+                }
+            }
         bike.setSeller(seller);
         bike.setBrand(brand);
         bike.setCategories(new HashSet<>(cats));
@@ -224,4 +276,53 @@ public class DataInitializer implements CommandLineRunner {
         m.setCreatedAt(LocalDateTime.now());
         messageRepository.save(m);
     }
+<<<<<<< HEAD
+=======
+
+    private void seedOrderRuleConfig() {
+        OrderRuleConfig config = orderRuleConfigRepository.findById(OrderRuleConfig.SINGLETON_ID)
+                .orElse(null);
+        
+        if (config == null) {
+            config = new OrderRuleConfig();
+            config.setId(OrderRuleConfig.SINGLETON_ID);
+            config.setCommissionRate(0.02d);
+            config.setSellerUpgradeFee(50000L);
+            config.setReturnWindowDays(defaultReturnWindowDays);
+            config.setReturnWindowHours(defaultReturnWindowHours);
+            config.setReturnWindowMinutes(defaultReturnWindowMinutes);
+            config.setBikePostFee(5000L);
+            config.setInspectionFee(200000L);
+            orderRuleConfigRepository.save(config);
+            System.out.println("Seeded Default OrderRuleConfig");
+        } else {
+            // Repair existing config if missing new fields
+            boolean updated = false;
+            if (config.getBikePostFee() == null || config.getBikePostFee() <= 0) {
+                config.setBikePostFee(5000L);
+                updated = true;
+            }
+            if (config.getInspectionFee() == null || config.getInspectionFee() <= 0) {
+                config.setInspectionFee(200000L);
+                updated = true;
+            }
+                        if (config.getReturnWindowHours() == null || config.getReturnWindowHours() < 0) {
+                                config.setReturnWindowHours(defaultReturnWindowHours);
+                                updated = true;
+                        }
+                        if (config.getReturnWindowMinutes() == null || config.getReturnWindowMinutes() < 0) {
+                                config.setReturnWindowMinutes(defaultReturnWindowMinutes);
+                                updated = true;
+                        }
+                        if (config.getReturnWindowDays() == null || config.getReturnWindowDays() <= 0) {
+                                config.setReturnWindowDays(defaultReturnWindowDays);
+                                updated = true;
+                        }
+            if (updated) {
+                orderRuleConfigRepository.save(config);
+                System.out.println("Updated existing OrderRuleConfig with missing fields");
+            }
+        }
+    }
+>>>>>>> f4ee16a (27)
 }
