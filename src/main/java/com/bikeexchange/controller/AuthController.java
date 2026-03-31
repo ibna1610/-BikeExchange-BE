@@ -71,22 +71,33 @@ public class AuthController {
                                         @ExampleObject(name = "Inspector Account", value = "{\"email\": \"inspector@bikeexchange.com\", \"password\": \"password123\"}"),
                                         @ExampleObject(name = "Buyer Account", value = "{\"email\": \"buyer@bikeexchange.com\", \"password\": \"password123\"}")
                         })) @org.springframework.web.bind.annotation.RequestBody LoginRequest loginRequest) {
-                Authentication authentication = authenticationManager.authenticate(
-                                new UsernamePasswordAuthenticationToken(
-                                                loginRequest.getEmail(),
-                                                loginRequest.getPassword()));
+                                // Kiểm tra trạng thái tài khoản trước khi xác thực
+                                User user = userRepository.findByEmail(loginRequest.getEmail()).orElse(null);
+                                if (user != null && "LOCKED".equalsIgnoreCase(user.getStatus())) {
+                                        Map<String, Object> response = new HashMap<>();
+                                        response.put("success", false);
+                                        response.put("locked", true);
+                                        response.put("reason", user.getLockReason() != null ? user.getLockReason() : "Tài khoản của bạn đã bị khóa bởi quản trị viên.");
+                                        response.put("contactEmail", "support@bikeexchange.com"); // Thay bằng email hệ thống thực tế
+                                        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+                                }
 
-                SecurityContextHolder.getContext().setAuthentication(authentication);
-                String jwt = tokenProvider.generateToken(authentication);
+                                Authentication authentication = authenticationManager.authenticate(
+                                                                new UsernamePasswordAuthenticationToken(
+                                                                                                loginRequest.getEmail(),
+                                                                                                loginRequest.getPassword()));
 
-                UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+                                SecurityContextHolder.getContext().setAuthentication(authentication);
+                                String jwt = tokenProvider.generateToken(authentication);
 
-                Map<String, Object> response = new HashMap<>();
-                response.put("success", true);
-                response.put("data", new JwtAuthResponse(jwt, principal.getId(), principal.getUsername(),
-                                principal.getFullName(), principal.getPhone(), principal.getRole()));
+                                UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
 
-                return ResponseEntity.ok(response);
+                                Map<String, Object> response = new HashMap<>();
+                                response.put("success", true);
+                                response.put("data", new JwtAuthResponse(jwt, principal.getId(), principal.getUsername(),
+                                                                principal.getFullName(), principal.getPhone(), principal.getRole()));
+
+                                return ResponseEntity.ok(response);
         }
 
         @PostMapping("/register")

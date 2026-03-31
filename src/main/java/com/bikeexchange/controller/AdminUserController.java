@@ -90,6 +90,7 @@ public class AdminUserController extends AdminBaseController {
         String reasonValue = (reason == null || reason.isBlank()) ? "Locked by admin" : reason;
         return userRepository.findById(userId).<ResponseEntity<?>>map(u -> {
             u.setStatus("LOCKED");
+            u.setLockReason(reasonValue);
             userRepository.save(u);
             return ok("User locked", Map.of("userId", userId, "reason", reasonValue));
         }).orElseGet(() -> notFound("User not found"));
@@ -100,22 +101,12 @@ public class AdminUserController extends AdminBaseController {
     public ResponseEntity<?> unlockUser(@PathVariable Long userId) {
         return userRepository.findById(userId).<ResponseEntity<?>>map(u -> {
             u.setStatus("ACTIVE");
+            u.setLockReason(null);
             return ok("User unlocked", userRepository.save(u));
         }).orElseGet(() -> notFound("User not found"));
     }
 
-    @DeleteMapping("/users/{userId}")
-    @Operation(summary = "Xóa người dùng")
-    public ResponseEntity<?> deleteUser(
-            @PathVariable Long userId,
-            @RequestParam(required = false) String reason) {
-        String reasonValue = (reason == null || reason.isBlank()) ? "Deleted by admin" : reason;
-        return userRepository.findById(userId).<ResponseEntity<?>>map(u -> {
-            u.setStatus("DELETED");
-            userRepository.save(u);
-            return ok("User deleted", Map.of("userId", userId, "reason", reasonValue));
-        }).orElseGet(() -> notFound("User not found"));
-    }
+    // Đã loại bỏ chức năng xóa tài khoản người dùng theo yêu cầu
 
     @PostMapping("/inspectors/create")
     @Transactional

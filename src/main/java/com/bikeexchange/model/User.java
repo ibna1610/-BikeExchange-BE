@@ -57,6 +57,9 @@ public class User {
     @Column(name = "status", columnDefinition = "VARCHAR(255) DEFAULT 'UNVERIFIED'")
     private String status;
 
+    @Column(name = "lock_reason", columnDefinition = "TEXT")
+    private String lockReason;
+
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 

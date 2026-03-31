@@ -16,10 +16,11 @@ public class UserPrincipal implements UserDetails {
     private String role;
     private String password;
     private String status;
+    private String lockReason;
     private Collection<? extends GrantedAuthority> authorities;
 
     public UserPrincipal(Long id, String email, String fullName, String phone, String role, String password,
-            String status,
+            String status, String lockReason,
             Collection<? extends GrantedAuthority> authorities) {
         this.id = id;
         this.email = email;
@@ -28,12 +29,12 @@ public class UserPrincipal implements UserDetails {
         this.role = role;
         this.password = password;
         this.status = status;
+        this.lockReason = lockReason;
         this.authorities = authorities;
     }
 
     public static UserPrincipal create(User user) {
         GrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + user.getRole().name());
-
         return new UserPrincipal(
                 user.getId(),
                 user.getEmail(),
@@ -42,7 +43,11 @@ public class UserPrincipal implements UserDetails {
                 user.getRole().name(),
                 user.getPassword(),
                 user.getStatus(),
+                user.getLockReason(),
                 Collections.singletonList(authority));
+    }
+    public String getLockReason() {
+        return lockReason;
     }
 
     public Long getId() {

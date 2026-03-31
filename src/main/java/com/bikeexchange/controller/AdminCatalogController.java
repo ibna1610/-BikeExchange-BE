@@ -2,10 +2,8 @@ package com.bikeexchange.controller;
 
 import com.bikeexchange.model.Brand;
 import com.bikeexchange.model.Category;
-import com.bikeexchange.model.Component;
 import com.bikeexchange.repository.BrandRepository;
 import com.bikeexchange.repository.CategoryRepository;
-import com.bikeexchange.repository.ComponentRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -19,13 +17,13 @@ import java.util.Map;
 @RestController
 @RequestMapping("/admin")
 @PreAuthorize("hasRole('ADMIN')")
-@Tag(name = "Admin - Catalog", description = "6.3 Quản lý danh mục (loại xe, thương hiệu, linh kiện)")
+@Tag(name = "Admin - Catalog", description = "6.3 Quản lý danh mục (loại xe, thương hiệu)")
 @SecurityRequirement(name = "Bearer Token")
 public class AdminCatalogController extends AdminBaseController {
 
     @Autowired private CategoryRepository categoryRepository;
     @Autowired private BrandRepository brandRepository;
-    @Autowired private ComponentRepository componentRepository;
+    // Removed Component logic
 
     // ── Categories ──────────────────────────────────────────────────────────
 
@@ -102,37 +100,5 @@ public class AdminCatalogController extends AdminBaseController {
 
     // ── Components ───────────────────────────────────────────────────────────
 
-    @GetMapping("/components")
-    @Operation(summary = "Danh sách linh kiện")
-    public ResponseEntity<?> listComponents() {
-        return ok("Components retrieved successfully", componentRepository.findAll());
-    }
-
-    @PostMapping("/components")
-    @Operation(summary = "Tạo linh kiện")
-    public ResponseEntity<?> createComponent(@RequestBody Component payload) {
-        if (payload.getName() == null || payload.getName().isBlank())
-            return badRequest("Component name is required");
-        if (componentRepository.findByName(payload.getName()).isPresent())
-            return badRequest("Component already exists");
-        return created("Component created successfully", componentRepository.save(payload));
-    }
-
-    @PutMapping("/components/{id}")
-    @Operation(summary = "Cập nhật linh kiện")
-    public ResponseEntity<?> updateComponent(@PathVariable Long id, @RequestBody Component payload) {
-        return componentRepository.findById(id).<ResponseEntity<?>>map(comp -> {
-            if (payload.getName() != null && !payload.getName().isBlank()) comp.setName(payload.getName());
-            comp.setDescription(payload.getDescription());
-            return ok("Component updated successfully", componentRepository.save(comp));
-        }).orElseGet(() -> notFound("Component not found"));
-    }
-
-    @DeleteMapping("/components/{id}")
-    @Operation(summary = "Xóa linh kiện")
-    public ResponseEntity<?> deleteComponent(@PathVariable Long id) {
-        if (!componentRepository.existsById(id)) return notFound("Component not found");
-        componentRepository.deleteById(id);
-        return ok("Component deleted", Map.of("id", id));
-    }
+    // Removed Component logic
 }
