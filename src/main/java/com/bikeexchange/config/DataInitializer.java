@@ -187,6 +187,8 @@ public class DataInitializer implements CommandLineRunner {
         config.setCommissionRate(0.02d);
         config.setSellerUpgradeFee(50000L);
         config.setReturnWindowDays(14);
+        config.setReturnWindowHours(0);
+        config.setReturnWindowMinutes(0);
         config.setBikePostFee(5000L);
         config.setInspectionFee(200000L);
         orderRuleConfigRepository.save(config);
