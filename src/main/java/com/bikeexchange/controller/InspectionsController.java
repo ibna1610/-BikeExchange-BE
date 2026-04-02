@@ -1,5 +1,6 @@
 package com.bikeexchange.controller;
 
+import com.bikeexchange.dto.request.InspectionEditDto;
 import com.bikeexchange.dto.request.InspectionReportDto;
 import com.bikeexchange.dto.request.InspectionRequestDto;
 import com.bikeexchange.dto.response.HistoryResponse;
@@ -108,6 +109,29 @@ public class InspectionsController {
         response.put("success", true);
         response.put("data", InspectionResponse.fromEntity(inspection));
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{inspectionId}/cancel")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Cancel inspection request (Seller)", description = "Roles: Seller (Owner). Only allowed if status is REQUESTED. Refunds the seller.")
+    public ResponseEntity<?> cancelBySeller(
+            @PathVariable("inspectionId") Long inspectionId,
+            @AuthenticationPrincipal UserPrincipal currentUser) {
+        Long sellerId = currentUser.getId();
+        InspectionRequest inspection = inspectionService.cancelInspection(sellerId, inspectionId);
+        return ResponseEntity.ok(Map.of("success", true, "data", InspectionResponse.fromEntity(inspection)));
+    }
+
+    @PutMapping("/{inspectionId}/edit")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Update inspection request info (Seller)", description = "Roles: Seller (Owner). Only allowed if status is REQUESTED. Update scheduling info.")
+    public ResponseEntity<?> updateBySeller(
+            @PathVariable("inspectionId") Long inspectionId,
+            @RequestBody InspectionEditDto request,
+            @AuthenticationPrincipal UserPrincipal currentUser) {
+        Long sellerId = currentUser.getId();
+        InspectionRequest inspection = inspectionService.updateInspection(sellerId, inspectionId, request);
+        return ResponseEntity.ok(Map.of("success", true, "data", InspectionResponse.fromEntity(inspection)));
     }
 
     @GetMapping("/{inspectionId}")
