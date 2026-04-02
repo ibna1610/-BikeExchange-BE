@@ -1,5 +1,6 @@
 package com.bikeexchange.service.service;
 
+import com.bikeexchange.dto.request.InspectionEditDto;
 import com.bikeexchange.dto.request.InspectionReportDto;
 import com.bikeexchange.dto.request.InspectionRequestDto;
 import com.bikeexchange.exception.InsufficientBalanceException;
@@ -112,6 +113,70 @@ public class InspectionService {
         historyService.log("inspection", saved.getId(), "requested", requesterId, null);
         historyService.log("bike", bike.getId(), "inspection_requested", requesterId, null);
         return saved;
+    }
+
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public InspectionRequest cancelInspection(Long requesterId, Long inspectionId) {
+        InspectionRequest inspection = inspectionRepository.findById(inspectionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Inspection request not found"));
+
+        // Security check: Only the bike owner can cancel
+        if (!inspection.getBike().getSeller().getId().equals(requesterId)) {
+            throw new IllegalArgumentException("Only the seller who requested this inspection can cancel it.");
+        }
+
+        // Logic check: Only allowed to cancel if status is still REQUESTED (not assigned yet)
+        if (inspection.getStatus() != InspectionRequest.RequestStatus.REQUESTED) {
+            throw new IllegalArgumentException("Cannot cancel request as an inspector has already been assigned or is processing.");
+        }
+
+        // Update status
+        inspection.setStatus(InspectionRequest.RequestStatus.REJECTED);
+        inspection.setRejectionReason("Canceled by Seller");
+        inspection.setUpdatedAt(LocalDateTime.now());
+
+        // Sync with Bike status: reset to ACTIVE
+        Bike bike = inspection.getBike();
+        bike.setInspectionStatus(Bike.InspectionStatus.REJECTED); // Option: keep REJECTED locally?
+        // Or set to ACTIVE/NULL to allow re-requesting? 
+        // Based on other methods, REJECTED is used.
+        bikeRepository.save(bike);
+
+        // Refund points
+        performRefund(inspection);
+
+        historyService.log("inspection", inspection.getId(), "canceled_by_seller", requesterId, null);
+        historyService.log("bike", bike.getId(), "inspection_canceled", requesterId, null);
+        
+        return inspectionRepository.save(inspection);
+    }
+
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public InspectionRequest updateInspection(Long requesterId, Long inspectionId, InspectionEditDto dto) {
+        InspectionRequest inspection = inspectionRepository.findById(inspectionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Inspection request not found"));
+
+        // Security check
+        if (!inspection.getBike().getSeller().getId().equals(requesterId)) {
+            throw new IllegalArgumentException("Only the seller who requested this inspection can update it.");
+        }
+
+        // Logic check: Only allow updates in REQUESTED status
+        if (inspection.getStatus() != InspectionRequest.RequestStatus.REQUESTED) {
+            throw new IllegalArgumentException("Cannot update request as it is already being processed.");
+        }
+
+        // Update fields
+        inspection.setPreferredDate(dto.getPreferredDate());
+        inspection.setPreferredTimeSlot(dto.getPreferredTimeSlot());
+        inspection.setAddress(dto.getAddress());
+        inspection.setContactPhone(dto.getContactPhone());
+        inspection.setNotes(dto.getNotes());
+        inspection.setUpdatedAt(LocalDateTime.now());
+
+        historyService.log("inspection", inspection.getId(), "updated_by_seller", requesterId, null);
+        
+        return inspectionRepository.save(inspection);
     }
 
     /**

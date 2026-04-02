@@ -27,13 +27,13 @@ public class OrderRuleConfig {
     private Long sellerUpgradeFee;
 
     @Column(name = "return_window_days", nullable = false)
-    private Integer returnWindowDays;
-
+    private Integer returnWindowDays = 1;
+    
     @Column(name = "return_window_hours", nullable = false)
-    private Integer returnWindowHours;
-
+    private Integer returnWindowHours = 0;
+    
     @Column(name = "return_window_minutes", nullable = false)
-    private Integer returnWindowMinutes;
+    private Integer returnWindowMinutes = 0;
 
     @Column(name = "bike_post_fee", nullable = false)
     private Long bikePostFee;
