@@ -138,4 +138,24 @@ public class DisputeController {
 
         return ResponseEntity.ok(response);
     }
+
+    // [SELLER] Xem danh sách tranh chấp liên quan đến xe của tôi
+    @GetMapping("/orders/my-seller-disputes")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "[SELLER] Xem danh sách tranh chấp liên quan đến xe của tôi")
+    public ResponseEntity<?> getMySellerDisputes(
+            @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser) {
+        List<Dispute> disputes = disputeService.getSellerDisputes(currentUser.getId());
+        List<DisputeSummaryResponse> disputeSummaries = disputes.stream()
+            .map(DisputeSummaryResponse::fromEntity)
+            .toList();
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("message", "Fetched seller disputes successfully");
+        response.put("data", disputeSummaries);
+        response.put("summary", Map.of("totalCount", disputeSummaries.size()));
+
+        return ResponseEntity.ok(response);
+    }
 }
