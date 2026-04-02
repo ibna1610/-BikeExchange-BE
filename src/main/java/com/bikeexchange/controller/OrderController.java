@@ -134,7 +134,7 @@ public class OrderController {
 
     @PostMapping("/{id}/cancel")
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "[BUYER] Hủy đơn hàng", description = "Người mua chỉ được hủy đơn khi người bán chưa accept (trạng thái ESCROWED). Điểm ký quỹ sẽ được hoàn về ví người mua. Transition: ESCROWED -> CANCELLED, bike RESERVED -> ACTIVE.")
+    @Operation(summary = "[BUYER] Hủy đơn hàng", description = "Người mua được hủy đơn khi trạng thái là ESCROWED hoặc ACCEPTED (chưa giao hàng). Điểm ký quỹ sẽ được hoàn về ví người mua. Transition: ESCROWED/ACCEPTED -> CANCELLED, bike RESERVED -> ACTIVE.")
     public ResponseEntity<?> cancelOrder(
             @PathVariable Long id,
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser) {

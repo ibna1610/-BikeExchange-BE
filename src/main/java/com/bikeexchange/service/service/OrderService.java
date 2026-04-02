@@ -143,7 +143,9 @@ public class OrderService {
         Order order = orderRepository.findByIdForUpdate(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
         assertBuyer(order, buyerId);
-        assertStatus(order, Order.OrderStatus.ESCROWED);
+        if (order.getStatus() != Order.OrderStatus.ESCROWED && order.getStatus() != Order.OrderStatus.ACCEPTED) {
+            throw new InvalidOrderStatusException("Order can only be cancelled if status is ESCROWED or ACCEPTED");
+        }
 
         refundToBuyer(order, "Cancel Order: " + orderId);
 
