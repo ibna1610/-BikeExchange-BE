@@ -67,16 +67,18 @@ public class SecurityConfig {
 
     @org.springframework.beans.factory.annotation.Value("${app.frontend.url}")
     private String frontendUrl;
+    // Thêm domain FE vercel
+    private static final String VERCEL_URL = "https://bike-ex-change-fe.vercel.app";
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // Use exact origins instead of patterns when credentials are true for better security/compatibility
-        configuration.setAllowedOrigins(List.of(frontendUrl));
+        // Cho phép cả domain FE local và vercel
+        configuration.setAllowedOrigins(List.of(frontendUrl, VERCEL_URL));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setExposedHeaders(List.of("Authorization"));
-        configuration.setAllowCredentials(true); 
+        configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
