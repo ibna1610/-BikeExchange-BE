@@ -181,18 +181,19 @@ public class DataInitializer implements CommandLineRunner {
 
 
     private void seedOrderRuleConfig() {
-        OrderRuleConfig config = orderRuleConfigRepository.findById(OrderRuleConfig.SINGLETON_ID)
-                .orElse(new OrderRuleConfig());
-        config.setId(OrderRuleConfig.SINGLETON_ID);
-        config.setCommissionRate(0.02d);
-        config.setSellerUpgradeFee(50000L);
-        config.setReturnWindowDays(14);
-        config.setReturnWindowHours(0);
-        config.setReturnWindowMinutes(0);
-        config.setBikePostFee(5000L);
-        config.setInspectionFee(200000L);
-        orderRuleConfigRepository.save(config);
-    }
+    OrderRuleConfig config = orderRuleConfigRepository.findById(OrderRuleConfig.SINGLETON_ID)
+            .orElse(new OrderRuleConfig());
+    config.setId(OrderRuleConfig.SINGLETON_ID);
+    config.setCommissionRate(0.02d);
+    config.setSellerUpgradeFee(50000L);
+    config.setReturnWindowDays(14);
+    config.setReturnWindowHours(0);   
+    config.setReturnWindowMinutes(0); 
+    config.setBikePostFee(5000L);
+    config.setInspectionFee(200000L);
+    orderRuleConfigRepository.save(config);
+}
+
     private void seedWishlist(User buyer, Bike bike) {
         if (wishlistRepository.findByBuyerIdAndBikeId(buyer.getId(), bike.getId()).isPresent()) return;
         Wishlist w = new Wishlist();
