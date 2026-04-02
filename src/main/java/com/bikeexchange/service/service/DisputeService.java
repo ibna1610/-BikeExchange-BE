@@ -54,6 +54,12 @@ public class DisputeService {
     public List<Dispute> getBuyerDisputes(Long buyerId) {
         return disputeRepository.findByOrderBuyerIdOrderByCreatedAtDesc(buyerId);
     }
+    
+    // [SELLER] Lấy danh sách tranh chấp liên quan đến xe của seller
+    @Transactional(readOnly = true)
+    public List<Dispute> getSellerDisputes(Long sellerId) {
+        return disputeRepository.findByOrderBikeSellerIdOrderByCreatedAtDesc(sellerId);
+    }
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public Dispute createReturnDispute(Long orderId, Long buyerId, ReturnDisputeRequest request) {

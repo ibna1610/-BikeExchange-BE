@@ -269,11 +269,9 @@ public class BikeService {
             throw new IllegalStateException("Cannot delete a reserved bike");
         }
 
-        // Soft delete or just update status to CANCELLED
-        bike.setStatus(Bike.BikeStatus.CANCELLED);
-        bike.setUpdatedAt(LocalDateTime.now());
-        bikeRepository.save(bike);
-        historyService.log("bike", bike.getId(), "cancelled", userId, isAdmin ? "Cancelled by Admin" : null);
+        // Hard delete: remove from database
+        bikeRepository.deleteById(bikeId);
+        historyService.log("bike", bikeId, "deleted", userId, isAdmin ? "Deleted by Admin" : null);
     }
 
 }

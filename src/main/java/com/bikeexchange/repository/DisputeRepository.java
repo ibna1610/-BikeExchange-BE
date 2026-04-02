@@ -21,4 +21,7 @@ public interface DisputeRepository extends JpaRepository<Dispute, Long> {
     List<Dispute> findByStatusInOrderByCreatedAtDesc(List<Dispute.DisputeStatus> statuses);
 
     List<Dispute> findByStatusInOrderByResolvedAtDesc(List<Dispute.DisputeStatus> statuses);
+    
+        // Seller disputes: các tranh chấp liên quan đến xe của seller
+        List<Dispute> findByOrderBikeSellerIdOrderByCreatedAtDesc(Long sellerId);
 }

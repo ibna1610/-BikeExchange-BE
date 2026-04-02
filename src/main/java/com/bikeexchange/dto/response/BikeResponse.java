@@ -27,12 +27,19 @@ public class BikeResponse {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private List<MediaResponse> media;
+    private List<CategoryResponse> categories;
 
     @Data
     public static class MediaResponse {
         private String url;
         private String type;
         private Integer sortOrder;
+    }
+
+    @Data
+    public static class CategoryResponse {
+        private Long id;
+        private String name;
     }
 
     public static BikeResponse fromEntity(Bike bike) {
@@ -64,6 +71,15 @@ public class BikeResponse {
                 mr.setType(m.getType().name());
                 mr.setSortOrder(m.getSortOrder());
                 return mr;
+            }).collect(Collectors.toList()));
+        }
+
+        if (bike.getCategories() != null) {
+            res.setCategories(bike.getCategories().stream().map(c -> {
+                CategoryResponse cr = new CategoryResponse();
+                cr.setId(c.getId());
+                cr.setName(c.getName());
+                return cr;
             }).collect(Collectors.toList()));
         }
 
