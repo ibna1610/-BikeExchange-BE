@@ -1,15 +1,20 @@
 package com.bikeexchange.controller;
 
 import com.bikeexchange.dto.request.ListingComboRequest;
+
 import com.bikeexchange.model.ListingCombo;
 import com.bikeexchange.repository.ListingComboRepository;
+import com.bikeexchange.service.service.OrderRuleConfigService;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.access.prepost.PreAuthorize;
+
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -18,6 +23,8 @@ import org.springframework.web.bind.annotation.*;
 @SecurityRequirement(name = "Bearer Token")
 @PreAuthorize("hasRole('ADMIN')")
 public class AdminComboController extends AdminBaseController {
+    @Autowired
+    private OrderRuleConfigService orderRuleConfigService;
 
     @Autowired
     private ListingComboRepository listingComboRepository;
@@ -25,6 +32,7 @@ public class AdminComboController extends AdminBaseController {
     @GetMapping
     @Operation(summary = "Get all combos (including inactive ones)")
     public ResponseEntity<?> getAllCombos() {
+        //SELECT
         return ok("Combos retrieved successfully", listingComboRepository.findAll());
     }
 
@@ -41,7 +49,7 @@ public class AdminComboController extends AdminBaseController {
         combo.setPointsCost(request.getPointsCost());
         combo.setPostLimit(request.getPostLimit());
         combo.setActive(request.isActive());
-        
+        //INSERT
         ListingCombo saved = listingComboRepository.save(combo);
         return created("Combo created successfully", saved);
     }
@@ -54,17 +62,17 @@ public class AdminComboController extends AdminBaseController {
             return badRequest(validationError);
         }
 
+        
         ListingCombo combo = listingComboRepository.findById(id)
                 .orElse(null);
         if (combo == null) {
             return notFound("Combo not found");
         }
-        
         combo.setName(request.getName().trim());
         combo.setPointsCost(request.getPointsCost());
         combo.setPostLimit(request.getPostLimit());
         combo.setActive(request.isActive());
-        
+        // UPDATE listing_combos SET name=?, points_cost=?, post_limit=?, active=? WHERE id=?;
         ListingCombo updated = listingComboRepository.save(combo);
         return ok("Combo updated successfully", updated);
     }
@@ -72,12 +80,14 @@ public class AdminComboController extends AdminBaseController {
     @PatchMapping("/{id}/deactivate")
     @Operation(summary = "Deactivate a combo")
     public ResponseEntity<?> deactivateCombo(@PathVariable Long id) {
+        // SELECT * FROM listing_combos WHERE id = ?;
         ListingCombo combo = listingComboRepository.findById(id)
                 .orElse(null);
         if (combo == null) {
             return notFound("Combo not found");
         }
         combo.setActive(false);
+        //UPDATE listing_combos SET active = false WHERE id = ?;
         ListingCombo updated = listingComboRepository.save(combo);
         return ok("Combo deactivated", updated);
     }
@@ -85,12 +95,14 @@ public class AdminComboController extends AdminBaseController {
     @DeleteMapping("/{id}")
     @Operation(summary = "Permanently delete a combo")
     public ResponseEntity<?> deleteCombo(@PathVariable Long id) {
+        
         ListingCombo combo = listingComboRepository.findById(id)
                 .orElse(null);
         if (combo == null) {
             return notFound("Combo not found");
         }
         try {
+            //DELETE
             listingComboRepository.delete(combo);
             return ok("Combo deleted permanently", null);
         } catch (DataIntegrityViolationException e) {
@@ -112,10 +124,9 @@ public class AdminComboController extends AdminBaseController {
             return "postLimit must be > 0";
         }
 
-        // RULE: Giá combo phải rẻ hơn tổng giá lẻ
-        // Giả sử giá đăng lẻ cố định là 1 giá trị, ví dụ 1 bài = 20000 VND
-        final long SINGLE_POST_PRICE = 20000L; // Có thể lấy từ config nếu cần
-        long totalSinglePrice = SINGLE_POST_PRICE * request.getPostLimit();
+        // Yêu cầu của cô: Giá combo phải rẻ hơn giá lẻ
+        long singlePostPrice = orderRuleConfigService.getBikePostFee();
+        long totalSinglePrice = singlePostPrice * request.getPostLimit();
         if (request.getPointsCost() >= totalSinglePrice) {
             return "Giá combo phải rẻ hơn mua lẻ từng bài (" + totalSinglePrice + " VND)";
         }
